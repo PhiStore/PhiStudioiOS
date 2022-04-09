@@ -1,14 +1,14 @@
 import SwiftUI
 
-enum NOTETYPE{
+enum NOTETYPE {
     case Tap
     case Hold
     case Flick
     case Drag
 }
 
-enum EASINGTYPE{
-    case linear                
+enum EASINGTYPE {
+    case linear
     case easeInSine
     case easeOutSine
     case easeInOutSine
@@ -41,14 +41,14 @@ enum EASINGTYPE{
     case easeInOutBounce
 }
 
-enum WINDOWSTATUS{
+enum WINDOWSTATUS {
     case pannelNote
     case pannelProp
     case note
     case prop
 }
 
-class note{
+class note {
     var id: Int?
     var speed: Double? // HSL per tick
     @Published var type: NOTETYPE?
@@ -58,13 +58,13 @@ class note{
     @Published var width: Double?
     @Published var side: Bool?
     @Published var isFake: Bool?
-    init(){
+    init() {
         width = 1
         side = true
         isFake = false
     }
-    
-    func defaultInit(){
+
+    func defaultInit() {
         id = 1
         speed = 1
         type = NOTETYPE.Tap
@@ -76,22 +76,22 @@ class note{
     }
 }
 
-class propStatus{
+class propStatus {
     var time: Int?
     var value: Int?
     var easing: EASINGTYPE?
 }
 
-class judgeLine{
-    class judgeLineProps{
+class judgeLine {
+    class judgeLineProps {
         var controlX: [propStatus]?
         var controlY: [propStatus]?
         var angle: [propStatus]?
         var speed: [propStatus]?
         var noteAlpha: [propStatus]?
         var lineAlpha: [propStatus]?
-        var displayRange:[propStatus]?
-        init(){
+        var displayRange: [propStatus]?
+        init() {
             controlX = []
             controlY = []
             angle = []
@@ -101,20 +101,17 @@ class judgeLine{
             displayRange = []
         }
     }
-    var id: Int?
+
+    var id: Int
     var NoteList: [note]?
     var props: judgeLineProps?
-    
-    func defaultInit(){
-        id = 1
-        let n = note()
-        n.defaultInit()
-        NoteList = [n]
-        props = judgeLineProps()
+
+    init(_id: Int) {
+        id = _id
     }
 }
 
-class mainData: ObservableObject{
+class mainData: ObservableObject {
     // global data structure.
     // @Published meaning the swiftUI should look out if the variable is changing
     // for performance issue, please double check the usage for that
@@ -129,8 +126,8 @@ class mainData: ObservableObject{
     @Published var chartAuthorName: String
     @Published var windowStatus: WINDOWSTATUS
     @Published var time: Double
-    @Published var judgeLines: [judgeLine]
-    init(){
+    @Published var lines: [judgeLine]
+    init() {
         offset = 0.0
         bpm = 96
         changeBpm = false
@@ -142,12 +139,6 @@ class mainData: ObservableObject{
         chartAuthorName = ""
         windowStatus = WINDOWSTATUS.pannelNote
         time = 0.0
-        judgeLines = []
-    }
-    
-    func defaultInit(){
-        let j = judgeLine()
-        j.defaultInit()
-        judgeLines = [j]
+        lines = [judgeLine(_id: 1)]
     }
 }
