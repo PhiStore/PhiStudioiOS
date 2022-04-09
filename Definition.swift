@@ -139,6 +139,6 @@ class mainData: ObservableObject {
         chartAuthorName = ""
         windowStatus = WINDOWSTATUS.pannelNote
         time = 0.0
-        lines = [judgeLine(_id: 1)]
+        lines = [judgeLine(_id: 0)]
     }
 }
