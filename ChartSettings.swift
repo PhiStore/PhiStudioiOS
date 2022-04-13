@@ -1,5 +1,7 @@
 import SwiftUI
 
+public var tick_p: Int = 48
+
 struct ChartSettings: View {
     @EnvironmentObject private var data: mainData
 
@@ -64,7 +66,10 @@ struct ChartSettings: View {
                 }
             }.textCase(nil)
             Section(header: Text("Do not change these:")) {
-                Stepper(value: $data.tick) {
+                Stepper(value: $data.tick,
+                        onEditingChanged: { _ in
+                    tick_p = data.tick
+                }) {
                     Text("Tick: \(data.tick)")
                 }
             }

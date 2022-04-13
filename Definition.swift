@@ -82,8 +82,8 @@ class propStatus {
     var easing: EASINGTYPE?
 }
 
-class judgeLine {
-    class judgeLineProps {
+struct judgeLine: Identifiable {
+    struct judgeLineProps {
         var controlX: [propStatus]?
         var controlY: [propStatus]?
         var angle: [propStatus]?
@@ -125,8 +125,9 @@ class mainData: ObservableObject {
     @Published var chartLevel: String
     @Published var chartAuthorName: String
     @Published var windowStatus: WINDOWSTATUS
-    @Published var time: Double
     @Published var lines: [judgeLine]
+    
+    @Published var time: Double
     init() {
         offset = 0.0
         bpm = 96
@@ -138,7 +139,7 @@ class mainData: ObservableObject {
         chartLevel = ""
         chartAuthorName = ""
         windowStatus = WINDOWSTATUS.pannelNote
-        time = 0.0
         lines = [judgeLine(_id: 0)]
+        time = 0.0
     }
 }

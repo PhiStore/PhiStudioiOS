@@ -1,8 +1,11 @@
+import SpriteKit
 import SwiftUI
 
-struct NoteEditorView: View{
-    var body: some View{
-        Text("Example")
+struct NoteEditorView: View {
+    @EnvironmentObject private var data: mainData
+    
+    var body: some View {
+        SpriteKitContainer(scene: NoteEditScene())
     }
 }
 

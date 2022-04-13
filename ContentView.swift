@@ -1,6 +1,8 @@
 // this is the main editor's entrance here
 import SwiftUI
 
+public var time_p: Double = 0.0
+
 struct ContentView: View {
     // these variables are used for location and alignment
     // guide: reserve size*2 for boundaries, and keep everything fit in place
@@ -36,17 +38,16 @@ struct ContentView: View {
                 LazyVStack(alignment: .leading) {
                     // title
                     Text("PhiStudio").font(.title2).fontWeight(.bold)
-                    TabView {
+                    // FIXME: The tabItem is showing different on iPad, especially when you add four tabs and more.
+                    // I'm not sure whether that is a feature or a bug, but please take care
+                    TabView() {
                         ChartSettings().environmentObject(data)
                             .tabItem {
-                                HStack {
-                                    Image(systemName: "command")
-                                    Text("Chart")
-                                }
+                                Label("Chart",systemImage:"command")
                             }
                         JudgeLineSettings().environmentObject(data)
                             .tabItem {
-                                HStack {
+                                VStack(alignment: .center) {
                                     Image(systemName: "pencil.tip.crop.circle")
                                     Text("JudgeLine")
                                 }
@@ -54,17 +55,9 @@ struct ContentView: View {
                         // unfinished section - reserved for Note
                         Text("Unfinished Part")
                             .tabItem {
-                                HStack {
+                                VStack(alignment: .center) {
                                     Image(systemName: "bolt.horizontal")
                                     Text("Notes")
-                                }
-                            }
-                        // unfinished section - reserved for Props
-                        Text("Unfinished Part")
-                            .tabItem {
-                                HStack {
-                                    Image(systemName: "alternatingcurrent")
-                                    Text("Props")
                                 }
                             }
                     }
@@ -128,8 +121,10 @@ struct ContentView: View {
             // Slidebar to control the time being showed
             LazyVStack {
                 Slider(value: $data.time,
-                       in: 0 ... Double(data.chartLength))
-                    .frame(width: width_s / 2 - 2 * size)
+                       in: 0 ... Double(data.chartLength),
+                       onEditingChanged:{ _ in
+                        time_p = data.time
+                }).frame(width: width_s / 2 - 2 * size)
                 // need to add control button here
             }.frame(width: width_s / 2, height: size * 2)
                 .overlay(
@@ -137,6 +132,6 @@ struct ContentView: View {
                         .stroke(Color.blue))
                 .offset(x: width_s / 4 - size * 2, y: -height_s / 2 + size * 3)
                 .fixedSize()
-        } // end for Zstack
-    } // end for view
-} // end for struct
+        }
+    }
+}
