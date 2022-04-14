@@ -58,8 +58,7 @@ struct ChartSettings: View {
                     }
                 } else {
                     // work to be done here. - give a editor on time-changing BPM
-                    Button("Edit BPM Props") {
-                    }
+                    Button("Edit BPM Props") {}
                 }
                 Stepper(value: $data.chartLength, in: chartLengthRange) {
                     Text("Length: \(data.chartLength)s")
@@ -68,8 +67,8 @@ struct ChartSettings: View {
             Section(header: Text("Do not change these:")) {
                 Stepper(value: $data.tick,
                         onEditingChanged: { _ in
-                    tick_p = data.tick
-                }) {
+                            tick_p = data.tick
+                        }) {
                     Text("Tick: \(data.tick)")
                 }
             }

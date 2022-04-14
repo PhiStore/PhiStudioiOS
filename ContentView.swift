@@ -1,7 +1,8 @@
 // this is the main editor's entrance here
 import SwiftUI
 
-public var time_p: Double = 0.0
+public var time_p: Double = 0.0 // time copy in ticks
+public var isRunning: Bool = false
 
 struct ContentView: View {
     // these variables are used for location and alignment
@@ -22,49 +23,39 @@ struct ContentView: View {
                 case .pannelNote: data.windowStatus = WINDOWSTATUS.note
                 case .note: data.windowStatus = WINDOWSTATUS.pannelNote
                 }
-                print("Pannel Button Toggled")
             }
     }
 
     func pannelStatus() -> Bool {
-        // this returns if the left pannel should be turned on
+        // returns true if the left pannel show
         return (data.windowStatus == WINDOWSTATUS.pannelNote || data.windowStatus == WINDOWSTATUS.pannelProp)
     }
 
     var body: some View {
         ZStack(alignment: .center) {
-            // left pannel, only shows if needed
+            // left pannel
             if pannelStatus() {
                 LazyVStack(alignment: .leading) {
                     // title
                     Text("PhiStudio").font(.title2).fontWeight(.bold)
-                    // FIXME: The tabItem is showing different on iPad, especially when you add four tabs and more.
-                    // I'm not sure whether that is a feature or a bug, but please take care
-                    TabView() {
+                    // FIXME: The tabItem is showing different on iPad, especially when you add four tabs and more, I'm not sure whether that is a feature or a bug, but please take care
+                    TabView {
                         ChartSettings().environmentObject(data)
                             .tabItem {
-                                Label("Chart",systemImage:"command")
+                                Label("Chart", systemImage: "command")
                             }
                         JudgeLineSettings().environmentObject(data)
                             .tabItem {
-                                VStack(alignment: .center) {
-                                    Image(systemName: "pencil.tip.crop.circle")
-                                    Text("JudgeLine")
-                                }
+                                Label("JudgeLine", systemImage: "pencil.tip.crop.circle")
                             }
                         // unfinished section - reserved for Note
                         Text("Unfinished Part")
                             .tabItem {
-                                VStack(alignment: .center) {
-                                    Image(systemName: "bolt.horizontal")
-                                    Text("Notes")
-                                }
+                                Label("Notes", systemImage: "bolt.horizontal")
                             }
                     }
                     .frame(width: width_s / 4, height: height_s - size * 8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 4)
-                            .stroke(Color.blue))
+                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
                     .fixedSize()
                 }
                 .frame(width: width_s / 4)
@@ -105,14 +96,12 @@ struct ContentView: View {
 
             // Switch to toggle the pannel on or off
             if pannelStatus() {
-                Image(systemName: "command.circle")
-                    .resizable()
+                Image(systemName: "command.circle").resizable()
                     .frame(width: size * 2, height: size * 2)
                     .offset(x: -width_s / 2 + size * 3, y: -height_s / 2 + size * 3)
                     .gesture(pannelGesture)
             } else {
-                Image(systemName: "command.circle.fill")
-                    .resizable()
+                Image(systemName: "command.circle.fill").resizable()
                     .frame(width: size * 2, height: size * 2)
                     .offset(x: -width_s / 2 + size * 3, y: -height_s / 2 + size * 3)
                     .gesture(pannelGesture)
@@ -121,15 +110,13 @@ struct ContentView: View {
             // Slidebar to control the time being showed
             LazyVStack {
                 Slider(value: $data.time,
-                       in: 0 ... Double(data.chartLength),
-                       onEditingChanged:{ _ in
-                        time_p = data.time
-                }).frame(width: width_s / 2 - 2 * size)
-                // need to add control button here
+                       in: 0 ... Double(data.chartLength * data.tick),
+                       onEditingChanged: { _ in
+                           time_p = data.time
+                       }).frame(width: width_s / 2 - 2 * size)
+                // need to add control buttons here
             }.frame(width: width_s / 2, height: size * 2)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(Color.blue))
+                .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
                 .offset(x: width_s / 4 - size * 2, y: -height_s / 2 + size * 3)
                 .fixedSize()
         }
