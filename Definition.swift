@@ -1,6 +1,7 @@
+import SpriteKit
 import SwiftUI
 
-enum NOTETYPE {
+public enum NOTETYPE {
     case Tap
     case Hold
     case Flick
@@ -48,20 +49,23 @@ enum WINDOWSTATUS {
     case prop
 }
 
-class note {
+public class note: Equatable {
     var id: Int?
     var speed: Double? // HSL per tick
-    @Published var type: NOTETYPE?
-    @Published var time: Int? // measured in tick
+    @Published var type: NOTETYPE
+    @Published var time: Int // measured in tick
     @Published var holdTime: Int? // measured in tick, only used for Hold variable
-    @Published var x: Double?
-    @Published var width: Double?
-    @Published var side: Bool?
-    @Published var isFake: Bool?
-    init() {
-        width = 1
+    @Published var x: Double
+    @Published var width: Double
+    @Published var side: Bool
+    @Published var isFake: Bool
+    init(Type: NOTETYPE,Time: Int, PosX: Double) {
+        type = Type
+        width = 1.0
+        x = PosX
         side = true
         isFake = false
+        time = Time
     }
 
     func defaultInit() {
@@ -70,20 +74,24 @@ class note {
         type = NOTETYPE.Tap
         time = 1
         x = 0
-        width = 1
+        width = 1.0
         side = true
         isFake = false
     }
+    public static func == (l:note,r:note) -> Bool{
+        return l.id == r.id && l.speed == r.speed && l.type == r.type && l.time == r.time && l.holdTime == r.holdTime && l.x == r.x && l.width == r.width && l.side == r.side && l.isFake == r.isFake
+    }
+    
 }
 
-class propStatus {
+struct propStatus {
     var time: Int?
     var value: Int?
     var easing: EASINGTYPE?
 }
 
-struct judgeLine: Identifiable {
-    struct judgeLineProps {
+public class judgeLine: Identifiable, Equatable {
+    class judgeLineProps {
         var controlX: [propStatus]?
         var controlY: [propStatus]?
         var angle: [propStatus]?
@@ -102,37 +110,64 @@ struct judgeLine: Identifiable {
         }
     }
 
-    var id: Int
-    var NoteList: [note]?
+    public var id: Int
+    var NoteList: [note]
     var props: judgeLineProps?
 
     init(_id: Int) {
         id = _id
+        NoteList = []
+    }
+    public static func == (l:judgeLine, r:judgeLine) -> Bool{
+        return l.id == r.id && r.NoteList == r.NoteList
     }
 }
 
-class mainData: ObservableObject {
+public class coloredInt : Equatable {
+    var value: Int
+    var color: Color = .white
+    init(_value: Int, _color: Color = Color.white) {
+        value = _value
+        color = _color
+    }
+    public static func == (l:coloredInt,r:coloredInt) -> Bool{
+        return l.value == r.value && l.color == r.color
+    }
+}
+
+public class mainData: ObservableObject {
     // global data structure.
     // @Published meaning the swiftUI should look out if the variable is changing
     // for performance issue, please double check the usage for that
+    var id: Int
     @Published var offset: Double
-    @Published var bpm: Int
+    @Published var bpm: Int // beat per minute
     @Published var changeBpm: Bool // if bpm is changing according to time
-    @Published var tick: Int
-    @Published var chartLength: Int
+    @Published var tick: Int // 1 second = x ticks
+    @Published var preferTicks: [coloredInt]
+    @Published var chartLength: Int // in ticks
     @Published var musicName: String
     @Published var authorName: String
     @Published var chartLevel: String
     @Published var chartAuthorName: String
     @Published var windowStatus: WINDOWSTATUS
     @Published var lines: [judgeLine]
-    
-    @Published var time: Double
-    init() {
+    @Published var time: Double {
+        willSet{
+            if(self.id == 0){
+                data_copy.time = time
+            }
+        }
+    }
+    @Published var isRunning: Bool
+    @Published var currentLineId: Int?
+    init(_id: Int) {
+        id = _id
         offset = 0.0
         bpm = 96
         changeBpm = false
         tick = 48
+        preferTicks = [coloredInt(_value: 2, _color: Color.blue), coloredInt(_value: 4, _color: Color.red)]
         chartLength = 120
         musicName = ""
         authorName = ""
@@ -141,5 +176,6 @@ class mainData: ObservableObject {
         windowStatus = WINDOWSTATUS.pannelNote
         lines = [judgeLine(_id: 0)]
         time = 0.0
+        isRunning = false
     }
 }

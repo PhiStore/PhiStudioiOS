@@ -1,5 +1,6 @@
 import SwiftUI
 
+public var editingJudgeLine = judgeLine(_id: 0)
 struct JudgeLineSettings: View {
     @EnvironmentObject private var data: mainData
 
@@ -10,13 +11,16 @@ struct JudgeLineSettings: View {
                     // automatically append to the end,
                     // new judgeLine's id will be the last id + 1
                     data.lines.append(judgeLine(_id: data.lines[data.lines.count - 1].id + 1))
-                }
-                Button("Organize JudgeLines"){
-                    // assgin the judgeLine's numbers according to order in memory
                     for i in 0..<data.lines.count {
                         data.lines[i].id = i
                     }
                 }
+//                Button("Organize JudgeLines"){
+//                    // assgin the judgeLine's numbers according to order in memory
+//                    for i in 0..<data.lines.count {
+//                        data.lines[i].id = i
+//                    }
+//                }
             }.textCase(nil)
             ForEach(data.lines, id: \.id) { _judgeLine in
                 Section(header: Text("JudgeLine \(String(_judgeLine.id))")) {
@@ -39,7 +43,7 @@ struct JudgeLineSettings: View {
 
 struct JudgeLineSettings_Previews: PreviewProvider {
     static var previews: some View {
-        let tmpData = mainData()
+        let tmpData = mainData(_id: 0)
         JudgeLineSettings().environmentObject(tmpData)
     }
 }

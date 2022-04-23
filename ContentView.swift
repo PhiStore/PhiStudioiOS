@@ -1,8 +1,7 @@
 // this is the main editor's entrance here
 import SwiftUI
-
-public var time_p: Double = 0.0 // time copy in ticks
-public var isRunning: Bool = false
+// so the following data is used to sync with the spriteKit, and should be manually called with: `data_copy = data`
+public var data_copy = mainData(_id: 1)
 
 struct ContentView: View {
     // these variables are used for location and alignment
@@ -11,9 +10,10 @@ struct ContentView: View {
     var height_s = UIScreen.main.bounds.height
     var width_s = UIScreen.main.bounds.width
 
-    @StateObject private var data = mainData()
+    @StateObject private var data = mainData(_id: 0)
 
     var pannelGesture: some Gesture {
+        // this toggles the left pannel on or off
         TapGesture(count: 1)
             .onEnded { _ in
                 // switch the pannel Status
@@ -70,9 +70,7 @@ struct ContentView: View {
                     Text("Note Editor").font(.title2).fontWeight(.bold)
                     NoteEditorView()
                         .frame(width: pannelStatus() ? width_s * 3 / 4 - size * 6 : width_s - size * 4, height: height_s - size * 8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 4)
-                                .stroke(Color.blue))
+                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
                         .fixedSize()
                 }
                 .frame(width: pannelStatus() ? width_s * 3 / 4 - size * 6 : width_s - size * 4, height: height_s - size * 8)
@@ -84,9 +82,7 @@ struct ContentView: View {
                     Text("Prop Editor").font(.title2).fontWeight(.bold)
                     PropEditorView()
                         .frame(width: pannelStatus() ? width_s * 3 / 4 - size * 6 : width_s - size * 4, height: height_s - size * 8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 4)
-                                .stroke(Color.blue))
+                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
                         .fixedSize()
                 }
                 .frame(width: pannelStatus() ? width_s * 3 / 4 - size * 6 : width_s - size * 4, height: height_s - size * 8)
@@ -95,24 +91,17 @@ struct ContentView: View {
             }
 
             // Switch to toggle the pannel on or off
-            if pannelStatus() {
-                Image(systemName: "command.circle").resizable()
-                    .frame(width: size * 2, height: size * 2)
-                    .offset(x: -width_s / 2 + size * 3, y: -height_s / 2 + size * 3)
-                    .gesture(pannelGesture)
-            } else {
-                Image(systemName: "command.circle.fill").resizable()
-                    .frame(width: size * 2, height: size * 2)
-                    .offset(x: -width_s / 2 + size * 3, y: -height_s / 2 + size * 3)
-                    .gesture(pannelGesture)
-            }
+            Image(systemName: pannelStatus() ? "command.circle" : "command.circle.fill").resizable()
+                .frame(width: size * 2, height: size * 2)
+                .offset(x: -width_s / 2 + size * 3, y: -height_s / 2 + size * 3)
+                .gesture(pannelGesture)
 
             // Slidebar to control the time being showed
             LazyVStack {
                 Slider(value: $data.time,
                        in: 0 ... Double(data.chartLength * data.tick),
                        onEditingChanged: { _ in
-                           time_p = data.time
+                           data_copy.time = data.time
                        }).frame(width: width_s / 2 - 2 * size)
                 // need to add control buttons here
             }.frame(width: width_s / 2, height: size * 2)

@@ -1,12 +1,11 @@
 import SwiftUI
 
-public var tick_p: Int = 48
-
 struct ChartSettings: View {
     @EnvironmentObject private var data: mainData
 
     let offsetRange = -10.0 ... 10.0 // acceptable offset range
     let chartLengthRange = 0 ... 600 // acceptable chartLength range
+    @State private var newPreferTick = 3.0
 
     var body: some View {
         List {
@@ -64,10 +63,36 @@ struct ChartSettings: View {
                     Text("Length: \(data.chartLength)s")
                 }
             }.textCase(nil)
+
+            Section(header: Text("Preferred Ticks")) {
+                ForEach($data.preferTicks, id: \.value) { $tick in
+                    ColorPicker("Tick: 1/" + String(tick.value), selection: $tick.color)
+
+                }.onDelete(perform: { offset in
+                    data.preferTicks.remove(atOffsets: offset)
+                })
+
+                VStack {
+                    Stepper(value: $newPreferTick, in: 0 ... Double(data.tick), step: 1) {
+                        Text("NewTick: 1/\(Int(newPreferTick))")
+                    }
+                    Button("Add tick", action: {
+                        if data.preferTicks.filter({ $0.value == Int(newPreferTick) }).count != 0 || data.tick % Int(newPreferTick) != 0 {
+                            return
+                        } else {
+                            data.preferTicks.append(coloredInt(_value: Int(newPreferTick), _color: Color(red: .random(in: 0 ... 1), green: .random(in: 0 ... 1), blue: .random(in: 0 ... 1))))
+                        }
+
+                    })
+                }
+            }.onChange(of: data.preferTicks) { _ in
+                data_copy.preferTicks = data.preferTicks
+            }.textCase(nil)
+
             Section(header: Text("Do not change these:")) {
                 Stepper(value: $data.tick,
                         onEditingChanged: { _ in
-                            tick_p = data.tick
+                    data_copy.tick = data.tick
                         }) {
                     Text("Tick: \(data.tick)")
                 }
@@ -78,7 +103,7 @@ struct ChartSettings: View {
 
 struct MyPreviewProvider_Previews: PreviewProvider {
     static var previews: some View {
-        let tmpData = mainData()
+        let tmpData = mainData(_id: 0)
         ChartSettings().environmentObject(tmpData)
     }
 }
