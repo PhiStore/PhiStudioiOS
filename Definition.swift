@@ -49,56 +49,66 @@ enum WINDOWSTATUS {
     case prop
 }
 
-public class note: Equatable {
-    var id: Int?
-    var speed: Double? // HSL per tick
-    @Published var type: NOTETYPE
-    @Published var time: Int // measured in tick
-    @Published var holdTime: Int? // measured in tick, only used for Hold variable
-    @Published var x: Double
-    @Published var width: Double
-    @Published var side: Bool
-    @Published var isFake: Bool
-    init(Type: NOTETYPE,Time: Int, PosX: Double) {
-        type = Type
+public class Note: Equatable {
+    var id: Int? // identify usage
+    var noteType: NOTETYPE
+
+    var posX: Double
+    var width: Double // relative size to default, keep 1 for most cases
+
+    var isFake: Bool
+    var fallSpeed: Double // HSL per tick, relative to default
+    var fallSide: Bool
+
+    var time: Int // measured in tick
+    var holdTime: Int? // measured in tick, only used for Hold variable
+    init(Type: NOTETYPE, Time: Int, PosX: Double) {
+        noteType = Type
+
+        posX = PosX
         width = 1.0
-        x = PosX
-        side = true
+
         isFake = false
+        fallSpeed = 1
+        fallSide = true
+
         time = Time
     }
 
     func defaultInit() {
         id = 1
-        speed = 1
-        type = NOTETYPE.Tap
-        time = 1
-        x = 0
+        noteType = NOTETYPE.Tap
+
+        posX = 0
         width = 1.0
-        side = true
+
         isFake = false
+        fallSpeed = 1
+        fallSide = true
+
+        time = 1
     }
-    public static func == (l:note,r:note) -> Bool{
-        return l.id == r.id && l.speed == r.speed && l.type == r.type && l.time == r.time && l.holdTime == r.holdTime && l.x == r.x && l.width == r.width && l.side == r.side && l.isFake == r.isFake
+
+    public static func == (l: Note, r: Note) -> Bool {
+        return l.id == r.id && l.fallSpeed == r.fallSpeed && l.noteType == r.noteType && l.time == r.time && l.holdTime == r.holdTime && l.posX == r.posX && l.width == r.width && l.fallSide == r.fallSide && l.isFake == r.isFake
     }
-    
 }
 
-struct propStatus {
-    var time: Int?
+struct PropStatus {
+    var time: Int? // in Tick
     var value: Int?
-    var easing: EASINGTYPE?
+    var nextEasing: EASINGTYPE?
 }
 
-public class judgeLine: Identifiable, Equatable {
-    class judgeLineProps {
-        var controlX: [propStatus]?
-        var controlY: [propStatus]?
-        var angle: [propStatus]?
-        var speed: [propStatus]?
-        var noteAlpha: [propStatus]?
-        var lineAlpha: [propStatus]?
-        var displayRange: [propStatus]?
+public class JudgeLine: Identifiable, Equatable {
+    class JudgeLineProps {
+        var controlX: [PropStatus]?
+        var controlY: [PropStatus]?
+        var angle: [PropStatus]?
+        var speed: [PropStatus]?
+        var noteAlpha: [PropStatus]?
+        var lineAlpha: [PropStatus]?
+        var displayRange: [PropStatus]?
         init() {
             controlX = []
             controlY = []
@@ -111,31 +121,33 @@ public class judgeLine: Identifiable, Equatable {
     }
 
     public var id: Int
-    var NoteList: [note]
-    var props: judgeLineProps?
+    var noteList: [Note]
+    var props: JudgeLineProps?
 
     init(_id: Int) {
         id = _id
-        NoteList = []
+        noteList = []
     }
-    public static func == (l:judgeLine, r:judgeLine) -> Bool{
-        return l.id == r.id && r.NoteList == r.NoteList
+
+    public static func == (l: JudgeLine, r: JudgeLine) -> Bool {
+        return l.id == r.id && r.noteList == r.noteList
     }
 }
 
-public class coloredInt : Equatable {
+public class ColoredInt: Equatable {
     var value: Int
     var color: Color = .white
     init(_value: Int, _color: Color = Color.white) {
         value = _value
         color = _color
     }
-    public static func == (l:coloredInt,r:coloredInt) -> Bool{
+
+    public static func == (l: ColoredInt, r: ColoredInt) -> Bool {
         return l.value == r.value && l.color == r.color
     }
 }
 
-public class mainData: ObservableObject {
+public class DataStructure: ObservableObject {
     // global data structure.
     // @Published meaning the swiftUI should look out if the variable is changing
     // for performance issue, please double check the usage for that
@@ -143,22 +155,23 @@ public class mainData: ObservableObject {
     @Published var offset: Double
     @Published var bpm: Int // beat per minute
     @Published var changeBpm: Bool // if bpm is changing according to time
-    @Published var tick: Int // 1 second = x ticks
-    @Published var preferTicks: [coloredInt]
+    @Published var tickPerSecond: Int // 1 second = x ticks
+    @Published var preferTicks: [ColoredInt]
     @Published var chartLength: Int // in ticks
     @Published var musicName: String
     @Published var authorName: String
     @Published var chartLevel: String
     @Published var chartAuthorName: String
     @Published var windowStatus: WINDOWSTATUS
-    @Published var lines: [judgeLine]
-    @Published var time: Double {
-        willSet{
-            if(self.id == 0){
-                data_copy.time = time
+    @Published var listOfJudgeLines: [JudgeLine]
+    @Published var currentTime: Double {
+        willSet {
+            if id == 0 {
+                dataK.currentTime = currentTime
             }
         }
     }
+
     @Published var isRunning: Bool
     @Published var currentLineId: Int?
     init(_id: Int) {
@@ -166,16 +179,16 @@ public class mainData: ObservableObject {
         offset = 0.0
         bpm = 96
         changeBpm = false
-        tick = 48
-        preferTicks = [coloredInt(_value: 2, _color: Color.blue), coloredInt(_value: 4, _color: Color.red)]
+        tickPerSecond = 48
+        preferTicks = [ColoredInt(_value: 2, _color: Color.blue), ColoredInt(_value: 4, _color: Color.red)]
         chartLength = 120
         musicName = ""
         authorName = ""
         chartLevel = ""
         chartAuthorName = ""
         windowStatus = WINDOWSTATUS.pannelNote
-        lines = [judgeLine(_id: 0)]
-        time = 0.0
+        listOfJudgeLines = [JudgeLine(_id: 0)]
+        currentTime = 0.0
         isRunning = false
     }
 }

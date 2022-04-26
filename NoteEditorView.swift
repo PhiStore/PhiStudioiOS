@@ -2,7 +2,7 @@ import SpriteKit
 import SwiftUI
 
 struct NoteEditorView: View {
-    @EnvironmentObject private var data: mainData
+    @EnvironmentObject private var data: DataStructure
     
     var body: some View {
         SpriteKitContainer(scene: NoteEditScene())

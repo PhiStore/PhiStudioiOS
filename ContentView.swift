@@ -1,7 +1,7 @@
 // this is the main editor's entrance here
 import SwiftUI
 // so the following data is used to sync with the spriteKit, and should be manually called with: `data_copy = data`
-public var data_copy = mainData(_id: 1)
+public var dataK = DataStructure(_id: 1)
 
 struct ContentView: View {
     // these variables are used for location and alignment
@@ -10,7 +10,7 @@ struct ContentView: View {
     var height_s = UIScreen.main.bounds.height
     var width_s = UIScreen.main.bounds.width
 
-    @StateObject private var data = mainData(_id: 0)
+    @StateObject private var data = DataStructure(_id: 0)
 
     var pannelGesture: some Gesture {
         // this toggles the left pannel on or off
@@ -98,11 +98,8 @@ struct ContentView: View {
 
             // Slidebar to control the time being showed
             LazyVStack {
-                Slider(value: $data.time,
-                       in: 0 ... Double(data.chartLength * data.tick),
-                       onEditingChanged: { _ in
-                           data_copy.time = data.time
-                       }).frame(width: width_s / 2 - 2 * size)
+                Slider(value: $data.currentTime,
+                       in: 0 ... Double(data.chartLength * data.tickPerSecond)).frame(width: width_s / 2 - 2 * size)
                 // need to add control buttons here
             }.frame(width: width_s / 2, height: size * 2)
                 .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))

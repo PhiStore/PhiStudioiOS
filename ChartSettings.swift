@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ChartSettings: View {
-    @EnvironmentObject private var data: mainData
+    @EnvironmentObject private var data: DataStructure
 
     let offsetRange = -10.0 ... 10.0 // acceptable offset range
     let chartLengthRange = 0 ... 600 // acceptable chartLength range
@@ -73,28 +73,28 @@ struct ChartSettings: View {
                 })
 
                 VStack {
-                    Stepper(value: $newPreferTick, in: 0 ... Double(data.tick), step: 1) {
+                    Stepper(value: $newPreferTick, in: 0 ... Double(data.tickPerSecond), step: 1) {
                         Text("NewTick: 1/\(Int(newPreferTick))")
                     }
                     Button("Add tick", action: {
-                        if data.preferTicks.filter({ $0.value == Int(newPreferTick) }).count != 0 || data.tick % Int(newPreferTick) != 0 {
+                        if data.preferTicks.filter({ $0.value == Int(newPreferTick) }).count != 0 || data.tickPerSecond % Int(newPreferTick) != 0 {
                             return
                         } else {
-                            data.preferTicks.append(coloredInt(_value: Int(newPreferTick), _color: Color(red: .random(in: 0 ... 1), green: .random(in: 0 ... 1), blue: .random(in: 0 ... 1))))
+                            data.preferTicks.append(ColoredInt(_value: Int(newPreferTick), _color: Color(red: .random(in: 0 ... 1), green: .random(in: 0 ... 1), blue: .random(in: 0 ... 1))))
                         }
 
                     })
                 }
             }.onChange(of: data.preferTicks) { _ in
-                data_copy.preferTicks = data.preferTicks
+                dataK.preferTicks = data.preferTicks
             }.textCase(nil)
 
             Section(header: Text("Do not change these:")) {
-                Stepper(value: $data.tick,
+                Stepper(value: $data.tickPerSecond,
                         onEditingChanged: { _ in
-                    data_copy.tick = data.tick
+                    dataK.tickPerSecond = data.tickPerSecond
                         }) {
-                    Text("Tick: \(data.tick)")
+                    Text("Tick: \(data.tickPerSecond)")
                 }
             }
         }
@@ -103,7 +103,7 @@ struct ChartSettings: View {
 
 struct MyPreviewProvider_Previews: PreviewProvider {
     static var previews: some View {
-        let tmpData = mainData(_id: 0)
+        let tmpData = DataStructure(_id: 0)
         ChartSettings().environmentObject(tmpData)
     }
 }
