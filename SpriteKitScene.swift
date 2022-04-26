@@ -1,13 +1,13 @@
 import CoreGraphics
 import CoreMotion
 import SpriteKit
-import UIKit
 import SwiftUI
+import UIKit
 
 class NoteEditScene: SKScene {
     var lastTime: Double = 0.0 // a copy of time_p
     var lastWidth: Double = 0.0 // width of screen size
-    var lastPreferedTick: [coloredInt] = []
+    var lastPreferedTick: [ColoredInt] = []
 
     var judgeLineNode: SKShapeNode? // judgeLine
     var judgeLineLabelNode: SKLabelNode? // text on judgeLine
@@ -19,6 +19,7 @@ class NoteEditScene: SKScene {
         let pair = (nodeA, nodeB)
         nodeLinks.append(pair)
     }
+
     func removeNodesLinked(to node: SKNode) {
         let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
             var res = res
@@ -39,10 +40,12 @@ class NoteEditScene: SKScene {
         super.init(coder: aDecoder)
         setup()
     }
+
     override init() {
         super.init()
         setup()
     }
+
     override init(size: CGSize) {
         super.init(size: size)
         setup()
@@ -52,7 +55,7 @@ class NoteEditScene: SKScene {
 
     func createJudgeLines() {
         if size.width == 0 {
-            // screen isn't load yet
+            // screen isn't loaded yet
             return
         }
         if judgeLineNode == nil {
@@ -73,38 +76,37 @@ class NoteEditScene: SKScene {
         removeNodesLinked(to: judgeLineNode!)
         removeNodesLinked(to: judgeLineLabelNode!)
 
-        var lineTick = Int(data_copy.time)
+        var lineTick = Int(dataK.currentTime)
         let distance = 5.0
-        var pos_y = 50 + distance * (data_copy.time - Double(Int(data_copy.time)))
+        var pos_y = 50 + distance * (dataK.currentTime - Double(Int(dataK.currentTime)))
         var indexedInt: Int?
         var indexedColor: Color?
 
         while pos_y < size.height {
             // in static generation, this only needs to be renderred within the screen
             indexedInt = nil
-            for preferTick in data_copy.preferTicks {
-                if lineTick % (data_copy.tick / preferTick.value) == 0 {
-                    if(indexedInt == nil){
+            for preferTick in dataK.preferTicks {
+                if lineTick % (dataK.tickPerSecond / preferTick.value) == 0 {
+                    if indexedInt == nil {
                         indexedInt = preferTick.value
                         indexedColor = preferTick.color
                     }
-                    if(indexedColor == nil && indexedInt! > preferTick.value){
+                    if indexedColor == nil, indexedInt! > preferTick.value {
                         indexedColor = preferTick.color
                     }
                 }
             }
-            if (indexedInt != nil) {
+            if indexedInt != nil {
                 let _judgeLine = judgeLineNode?.copy() as! SKShapeNode
                 _judgeLine.position = CGPoint(x: size.width / 2, y: pos_y)
-                if lineTick % data_copy.tick == 0 {
+                if lineTick % dataK.tickPerSecond == 0 {
                     _judgeLine.alpha = 1.0
                     let _judgeLineLabel = judgeLineLabelNode?.copy() as! SKLabelNode
                     _judgeLineLabel.position = CGPoint(x: 0, y: pos_y)
                     _judgeLineLabel.text = String(lineTick / 48)
                     link(nodeA: _judgeLineLabel, to: judgeLineLabelNode!)
                     addChild(_judgeLineLabel)
-                }
-                else{
+                } else {
                     _judgeLine.fillColor = SKColor(indexedColor!)
                 }
                 link(nodeA: _judgeLine, to: judgeLineNode!)
@@ -114,21 +116,21 @@ class NoteEditScene: SKScene {
             lineTick += 1
         }
     }
-    
-    func createNotes(){
+
+    func createNotes() {
         let distance = 5.0
-        let pos_y = 50.0 + distance * (data_copy.time - Double(Int(data_copy.time)))
-        print(pos_y)
+        let pos_y = 50.0 + distance * (dataK.currentTime - Double(Int(dataK.currentTime)))
         if noteNode == nil {
-            noteNode = SKShapeNode(rectOf: CGSize(width: 150, height: 20), cornerRadius: 4)
+            noteNode = SKShapeNode(rectOf: CGSize(width: 150, height: 20), cornerRadius: 8)
+            noteNode!.lineWidth = 8
             noteNode!.name = "note"
             noteNode!.fillColor = SKColor.blue
             noteNode!.alpha = 1.0
         }
         removeNodesLinked(to: noteNode!)
-        for i in 0..<editingJudgeLine.NoteList.count{
+        for i in 0 ..< editingJudgeLine.noteList.count {
             let _note = noteNode?.copy() as! SKShapeNode
-            _note.position = CGPoint(x:editingJudgeLine.NoteList[i].x,y:pos_y + distance * ( Double(editingJudgeLine.NoteList[i].time) - data_copy.time))
+            _note.position = CGPoint(x: editingJudgeLine.noteList[i].posX, y: pos_y + distance * (Double(editingJudgeLine.noteList[i].time) - dataK.currentTime))
             link(nodeA: _note, to: noteNode!)
             addChild(_note)
         }
@@ -139,9 +141,9 @@ class NoteEditScene: SKScene {
     override func didMove(to _: SKView) {}
 
     override func update(_: TimeInterval) {
-        if lastTime != data_copy.time || lastPreferedTick != data_copy.preferTicks{
-            lastTime = data_copy.time
-            lastPreferedTick = data_copy.preferTicks
+        if lastTime != dataK.currentTime || lastPreferedTick != dataK.preferTicks {
+            lastTime = dataK.currentTime
+            lastPreferedTick = dataK.preferTicks
             createJudgeLines()
             createNotes()
         }
@@ -162,27 +164,35 @@ class NoteEditScene: SKScene {
 
     override func touchesBegan(_ touches: Set<UITouch>, with _: UIEvent?) {
         let distance = 5.0
-        let pos_y = 50.0 + distance * (data_copy.time - Double(Int(data_copy.time)))
-        
-        for _touch in touches{
+        let pos_y = 50.0 + distance * (dataK.currentTime - Double(Int(dataK.currentTime)))
+
+        for _touch in touches {
             let location = _touch.location(in: self)
             // get the nearest tick here:
-            let tmpTick: Double = (location.y - pos_y) / distance + data_copy.time
-            var minTick: Int = 0
-            var minTickDistance: Double = Double(data_copy.tick)
-            for preferTick in data_copy.preferTicks + [coloredInt(_value: 1)]{
-                let tickDistance: Int = data_copy.tick / preferTick.value
-                if(tmpTick.truncatingRemainder(dividingBy: Double(tickDistance)) < minTickDistance){
+            let tmpTick: Double = (location.y - pos_y) / distance + dataK.currentTime
+            var minTick = 0
+            var minTickDistance = Double(dataK.tickPerSecond)
+            for preferTick in dataK.preferTicks + [ColoredInt(_value: 1)] {
+                let tickDistance: Int = dataK.tickPerSecond / preferTick.value
+                if tmpTick.truncatingRemainder(dividingBy: Double(tickDistance)) < minTickDistance {
                     minTickDistance = tmpTick.truncatingRemainder(dividingBy: Double(tickDistance))
                     minTick = Int(tmpTick / Double(tickDistance)) * tickDistance
                 }
-                if(Double(tickDistance) - tmpTick.truncatingRemainder(dividingBy: Double(tickDistance)) < minTickDistance){
+                if Double(tickDistance) - tmpTick.truncatingRemainder(dividingBy: Double(tickDistance)) < minTickDistance {
                     minTickDistance = Double(tickDistance) - tmpTick.truncatingRemainder(dividingBy: Double(tickDistance))
                     minTick = (Int(tmpTick / Double(tickDistance)) + 1) * tickDistance
                 }
             }
-            print(minTick)
-            editingJudgeLine.NoteList.append(note(Type: NOTETYPE.Tap, Time: minTick, PosX: location.x))
+            for node in nodes(at: location) {
+                if node.name == "note" {
+                    node.run(SKAction.fadeOut(withDuration: 0.1))
+                    editingJudgeLine.noteList.removeAll(where: { _note in
+                        (_note.time == minTick) && (node.position.x == _note.posX)
+                    })
+                    return
+                }
+            }
+            editingJudgeLine.noteList.append(Note(Type: NOTETYPE.Tap, Time: minTick, PosX: Double(Int(location.x / 40) * 40)))
         }
         createNotes()
     }
