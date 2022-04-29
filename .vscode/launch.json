@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "swift",
+			"command": "xcodebuild",
+			"args": [
+				"-scheme",
+        "Tows",
+        "-destination",
+        "platform=iOS Simulator,OS=15.2,name=iPhone 13 Pro"
+			],
+			"group": "build",
+			"problemMatcher": [],
+			"label": "swift: Build All",
+			"detail": "xcodebuild"
+		}
+	]
+}

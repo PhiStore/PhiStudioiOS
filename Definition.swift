@@ -1,3 +1,4 @@
+import AVFoundation
 import SpriteKit
 import SwiftUI
 
@@ -152,27 +153,71 @@ public class DataStructure: ObservableObject {
     // @Published meaning the swiftUI should look out if the variable is changing
     // for performance issue, please double check the usage for that
     var id: Int
+    var timer = Timer()
+    let now = Date()
+    var timeWhenStart: Double?
+    var lastTime = 0.0
+    let updateTime = 0.01
     @Published var offset: Double
     @Published var bpm: Int // beat per minute
     @Published var changeBpm: Bool // if bpm is changing according to time
     @Published var tickPerSecond: Int // 1 second = x ticks
     @Published var preferTicks: [ColoredInt]
-    @Published var chartLength: Int // in ticks
+    @Published var chartLength: Int { // in ticks
+        didSet {
+            if chartLength < 0 {
+                chartLength = 0
+            }
+            if id == 0 {
+                dataK.chartLength = chartLength
+            }
+        }
+    }
+
     @Published var musicName: String
     @Published var authorName: String
+    @Published var audioFile: AVAudioPlayer?
+    @Published var imgFile: URL?
     @Published var chartLevel: String
     @Published var chartAuthorName: String
     @Published var windowStatus: WINDOWSTATUS
     @Published var listOfJudgeLines: [JudgeLine]
-    @Published var currentTime: Double {
-        willSet {
+    @Published var currentTime: Double { // in ticks
+        didSet {
             if id == 0 {
+                // sync with dataK.
                 dataK.currentTime = currentTime
             }
         }
     }
 
-    @Published var isRunning: Bool
+    @Published var currentNoteType: NOTETYPE
+
+    @Published var isRunning: Bool {
+        didSet {
+            if id == 0 {
+                dataK.isRunning = isRunning
+            }
+            if isRunning {
+                lastTime = currentTime
+                timeWhenStart = Date().timeIntervalSince1970
+                timer = Timer.scheduledTimer(timeInterval: updateTime, target: self, selector: #selector(updateCurrentTime), userInfo: nil, repeats: true)
+            } else {
+                if let t = timeWhenStart {
+                    currentTime = (Date().timeIntervalSince1970 - t) * Double(tickPerSecond) + lastTime
+                    print("Test")
+                    timeWhenStart = nil
+                }
+            }
+        }
+    }
+
+    @objc func updateCurrentTime() {
+        if isRunning {
+            currentTime = (Date().timeIntervalSince1970 - timeWhenStart!) * Double(tickPerSecond) + lastTime
+        }
+    }
+
     @Published var currentLineId: Int?
     init(_id: Int) {
         id = _id
@@ -189,6 +234,7 @@ public class DataStructure: ObservableObject {
         windowStatus = WINDOWSTATUS.pannelNote
         listOfJudgeLines = [JudgeLine(_id: 0)]
         currentTime = 0.0
+        currentNoteType = NOTETYPE.Tap
         isRunning = false
     }
 }

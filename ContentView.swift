@@ -1,6 +1,5 @@
 // this is the main editor's entrance here
 import SwiftUI
-// so the following data is used to sync with the spriteKit, and should be manually called with: `data_copy = data`
 public var dataK = DataStructure(_id: 1)
 
 struct ContentView: View {
@@ -16,6 +15,7 @@ struct ContentView: View {
         // this toggles the left pannel on or off
         TapGesture(count: 1)
             .onEnded { _ in
+                data.isRunning = false
                 // switch the pannel Status
                 switch data.windowStatus {
                 case .pannelProp: data.windowStatus = WINDOWSTATUS.prop
@@ -29,6 +29,51 @@ struct ContentView: View {
     func pannelStatus() -> Bool {
         // returns true if the left pannel show
         return (data.windowStatus == WINDOWSTATUS.pannelNote || data.windowStatus == WINDOWSTATUS.pannelProp)
+    }
+
+    func getColor() -> Color {
+        switch data.currentNoteType {
+        case .Tap: return Color.blue
+        case .Hold: return Color.green
+        case .Flick: return Color.red
+        case .Drag: return Color.yellow
+        }
+    }
+
+    var switchColor: some Gesture {
+        TapGesture(count: 1)
+            .onEnded { _ in
+                switch data.currentNoteType {
+                case .Tap: data.currentNoteType = NOTETYPE.Hold
+                case .Hold: data.currentNoteType = NOTETYPE.Flick
+                case .Flick: data.currentNoteType = NOTETYPE.Drag
+                case .Drag: data.currentNoteType = NOTETYPE.Tap
+                }
+                dataK.currentNoteType = data.currentNoteType
+            }
+    }
+
+    var playOrStop: some Gesture {
+        TapGesture(count: 1)
+            .onEnded { _ in
+                data.isRunning = !data.isRunning
+            }
+    }
+
+    var fowardFive: some Gesture {
+        TapGesture(count: 1)
+            .onEnded { _ in
+                data.isRunning = false
+                data.currentTime += 5.0
+            }
+    }
+
+    var backwardFive: some Gesture {
+        TapGesture(count: 1)
+            .onEnded { _ in
+                data.isRunning = false
+                data.currentTime -= 5.0
+            }
     }
 
     var body: some View {
@@ -96,14 +141,37 @@ struct ContentView: View {
                 .offset(x: -width_s / 2 + size * 3, y: -height_s / 2 + size * 3)
                 .gesture(pannelGesture)
 
+            Image(systemName: "paintbrush.pointed").resizable()
+                .renderingMode(.template)
+                .foregroundColor(getColor())
+                .frame(width: size * 2, height: size * 2)
+                .offset(x: -width_s / 2 + size * 6, y: -height_s / 2 + size * 3)
+                .gesture(switchColor)
+
             // Slidebar to control the time being showed
-            LazyVStack {
+            HStack(spacing: size / 2) {
+                Image(systemName: "gobackward.5").resizable()
+                    .renderingMode(.template)
+                    .foregroundColor(.blue)
+                    .frame(width: size * 1, height: size * 1)
+                    .gesture(backwardFive)
+                Image(systemName: !data.isRunning ? "play.circle" : "pause.circle").resizable()
+                    .renderingMode(.template)
+                    .foregroundColor(.blue)
+                    .frame(width: size * 1, height: size * 1)
+                    .gesture(playOrStop)
+                Image(systemName: "goforward.5").resizable()
+                    .renderingMode(.template)
+                    .foregroundColor(.blue)
+                    .frame(width: size * 1, height: size * 1)
+                    .gesture(fowardFive)
+
                 Slider(value: $data.currentTime,
-                       in: 0 ... Double(data.chartLength * data.tickPerSecond)).frame(width: width_s / 2 - 2 * size)
+                       in: 0 ... Double(data.chartLength * data.tickPerSecond)).frame(width: width_s / 2 - 3 / 2 * size)
                 // need to add control buttons here
-            }.frame(width: width_s / 2, height: size * 2)
+            }.frame(width: width_s / 2 + size * 4, height: size * 2)
                 .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
-                .offset(x: width_s / 4 - size * 2, y: -height_s / 2 + size * 3)
+                .offset(x: width_s / 4 - size * 4, y: -height_s / 2 + size * 3)
                 .fixedSize()
         }
     }

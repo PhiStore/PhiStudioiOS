@@ -1,4 +1,6 @@
 import SwiftUI
+import Photos
+import PhotosUI
 
 struct ChartSettings: View {
     @EnvironmentObject private var data: DataStructure
@@ -7,11 +9,14 @@ struct ChartSettings: View {
     let chartLengthRange = 0 ... 600 // acceptable chartLength range
     @State private var newPreferTick = 3.0
 
+    
     var body: some View {
         List {
             Section(header: Text("File Operation:")) {
                 Button("Import Music...") {
                     /*@START_MENU_TOKEN@*//*@PLACEHOLDER=Action@*/ /*@END_MENU_TOKEN@*/
+                    // use the iTunes Library here... or use the finder app?
+
                 }
                 Button("Import Photo...") {
                     /*@START_MENU_TOKEN@*//*@PLACEHOLDER=Action@*/ /*@END_MENU_TOKEN@*/
@@ -92,7 +97,7 @@ struct ChartSettings: View {
             Section(header: Text("Do not change these:")) {
                 Stepper(value: $data.tickPerSecond,
                         onEditingChanged: { _ in
-                    dataK.tickPerSecond = data.tickPerSecond
+                            dataK.tickPerSecond = data.tickPerSecond
                         }) {
                     Text("Tick: \(data.tickPerSecond)")
                 }
