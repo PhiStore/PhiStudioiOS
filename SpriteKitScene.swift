@@ -1,9 +1,9 @@
+import AVFoundation
 import CoreGraphics
 import CoreMotion
 import SpriteKit
 import SwiftUI
 import UIKit
-import AVFoundation
 
 let _constNoteDiff = 10.0
 
@@ -12,10 +12,12 @@ class NoteEditScene: SKScene {
     var lastWidth: Double = 0.0 // copy of screen width
     var lastPreferedTick: [ColoredInt] = []
     var lastRunning: Bool = false
+    var lastImage: UIImage?
 
     var judgeLineNode: SKShapeNode? // judgeLine
     var judgeLineLabelNode: SKLabelNode? // text on judgeLine
     var noteNode: SKShapeNode? // note
+    var backGroundImage: SKSpriteNode? // background image
 
     // these are used for node copying and management
     var nodeLinks: [(SKNode, SKNode)] = [] // all nodes linked from A to B
@@ -146,6 +148,22 @@ class NoteEditScene: SKScene {
         }
     }
 
+    func createBackGroundImage() {
+        if backGroundImage != nil {
+            removeNodesLinked(to: backGroundImage!)
+        }
+        lastImage = dataK.imageFile
+        let Texture = SKTexture(image: lastImage!)
+        Texture.filteringMode = .linear
+        backGroundImage = SKSpriteNode(texture: Texture)
+        backGroundImage?.scale(to: size)
+        backGroundImage?.alpha = 0.5
+        backGroundImage?.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        let _backGroundImage = backGroundImage?.copy() as! SKSpriteNode
+        link(nodeA: _backGroundImage, to: backGroundImage!)
+        addChild(_backGroundImage)
+    }
+
     override func sceneDidLoad() {}
 
     override func didMove(to _: SKView) {}
@@ -170,6 +188,8 @@ class NoteEditScene: SKScene {
             judgeLineNode!.fillColor = SKColor.white
             judgeLineNode!.alpha = 0.2
             lastWidth = size.width
+
+            createBackGroundImage()
             createJudgeLines()
             createNotes()
         }
@@ -200,6 +220,12 @@ class NoteEditScene: SKScene {
                 createJudgeLines()
                 createNotes()
             }
+        }
+
+        if lastImage != dataK.imageFile {
+            createBackGroundImage()
+            createJudgeLines()
+            createNotes()
         }
     }
 

@@ -34,7 +34,8 @@ let package = Package(
             ],
             capabilities: [
                 .photoLibrary(purposeString: "添加曲绘🌟"),
-                .mediaLibrary(purposeString: "添加音乐🎧")
+                .mediaLibrary(purposeString: "添加音乐🎧"),
+                .fileAccess(.userSelectedFiles, mode: .readOnly)
             ]
         )
     ],

@@ -1,6 +1,60 @@
-import SwiftUI
 import Photos
 import PhotosUI
+import SwiftUI
+import UIKit
+
+struct ImagePicker: UIViewControllerRepresentable {
+    @EnvironmentObject private var data: DataStructure
+    let configuration: PHPickerConfiguration
+    @Binding var isPresented: Bool
+
+    func makeUIViewController(context: Context) -> PHPickerViewController {
+        let controller = PHPickerViewController(configuration: configuration)
+        controller.delegate = context.coordinator
+        return controller
+    }
+
+    func updateUIViewController(_: PHPickerViewController, context _: Context) {}
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self,dataP:data)
+    }
+
+    // Use a Coordinator to act as your PHPickerViewControllerDelegate
+    class Coordinator: PHPickerViewControllerDelegate {
+        var data: DataStructure
+        private let parent: ImagePicker
+
+        init(_ parent: ImagePicker, dataP: DataStructure) {
+            self.data = dataP
+            self.parent = parent
+        }
+
+        func picker(_: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+            parent.isPresented = false // Set isPresented to false because picking has finished.
+            let itemProviders = results.map(\.itemProvider)
+            for item in itemProviders {
+                if item.canLoadObject(ofClass: UIImage.self) {
+                    item.loadObject(ofClass: UIImage.self) { image, _ in
+                        DispatchQueue.main.async {
+                            if let image = image as? UIImage {
+                                self.data.imageFile = image
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct MusicPicker: UIViewControllerRepresentable {
+    func makeUIViewController(context _: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.mp3, .wav])
+        return picker
+    }
+
+    func updateUIViewController(_: UIDocumentPickerViewController, context _: Context) {}
+}
 
 struct ChartSettings: View {
     @EnvironmentObject private var data: DataStructure
@@ -8,20 +62,23 @@ struct ChartSettings: View {
     let offsetRange = -10.0 ... 10.0 // acceptable offset range
     let chartLengthRange = 0 ... 600 // acceptable chartLength range
     @State private var newPreferTick = 3.0
+    @State private var image: Image?
+    @State private var showingImagePicker = false
+    @State private var showingMusicPicker = false
 
-    
     var body: some View {
         List {
             Section(header: Text("File Operation:")) {
                 Button("Import Music...") {
                     /*@START_MENU_TOKEN@*//*@PLACEHOLDER=Action@*/ /*@END_MENU_TOKEN@*/
                     // use the iTunes Library here... or use the finder app?
-
+                    showingMusicPicker = true
                 }
                 Button("Import Photo...") {
                     /*@START_MENU_TOKEN@*//*@PLACEHOLDER=Action@*/ /*@END_MENU_TOKEN@*/
+                    showingImagePicker = true
                 }
-                Button("Save '.pxf' file...") {
+                Button("Export '.pxf' file...") {
                     /*@START_MENU_TOKEN@*//*@PLACEHOLDER=Action@*/ /*@END_MENU_TOKEN@*/
                 }
             }.textCase(nil)
@@ -102,6 +159,12 @@ struct ChartSettings: View {
                     Text("Tick: \(data.tickPerSecond)")
                 }
             }
+        }.sheet(isPresented: $showingImagePicker) {
+            let configuration = PHPickerConfiguration(photoLibrary: PHPhotoLibrary.shared())
+            ImagePicker(configuration: configuration, isPresented: $showingImagePicker).environmentObject(data)
+        }
+        .sheet(isPresented: $showingMusicPicker) {
+            MusicPicker()
         }
     }
 }

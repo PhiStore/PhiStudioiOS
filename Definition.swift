@@ -177,6 +177,14 @@ public class DataStructure: ObservableObject {
     @Published var musicName: String
     @Published var authorName: String
     @Published var audioFile: AVAudioPlayer?
+    @Published var imageFile: UIImage? {
+        didSet {
+            if id == 0 {
+                dataK.imageFile = imageFile
+            }
+        }
+    }
+
     @Published var imgFile: URL?
     @Published var chartLevel: String
     @Published var chartAuthorName: String
