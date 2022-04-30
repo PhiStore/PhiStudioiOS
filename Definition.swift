@@ -61,44 +61,30 @@ public class Note: Equatable {
     var fallSpeed: Double // HSL per tick, relative to default
     var fallSide: Bool
 
-    var time: Int // measured in tick
-    var holdTime: Int? // measured in tick, only used for Hold variable
-    init(Type: NOTETYPE, Time: Int, PosX: Double) {
-        noteType = Type
+    var timeTick: Int // measured in tick
+    var holdTimeTick: Int? // measured in tick, only used for Hold variable
+    init(noteType: NOTETYPE, posX: Double, timeTick: Int) {
+        self.noteType = noteType
 
-        posX = PosX
+        self.posX = posX
         width = 1.0
 
         isFake = false
         fallSpeed = 1
         fallSide = true
 
-        time = Time
-    }
-
-    func defaultInit() {
-        id = 1
-        noteType = NOTETYPE.Tap
-
-        posX = 0
-        width = 1.0
-
-        isFake = false
-        fallSpeed = 1
-        fallSide = true
-
-        time = 1
+        self.timeTick = timeTick
     }
 
     public static func == (l: Note, r: Note) -> Bool {
-        return l.id == r.id && l.fallSpeed == r.fallSpeed && l.noteType == r.noteType && l.time == r.time && l.holdTime == r.holdTime && l.posX == r.posX && l.width == r.width && l.fallSide == r.fallSide && l.isFake == r.isFake
+        return l.id == r.id && l.fallSpeed == r.fallSpeed && l.noteType == r.noteType && l.timeTick == r.timeTick && l.holdTimeTick == r.holdTimeTick && l.posX == r.posX && l.width == r.width && l.fallSide == r.fallSide && l.isFake == r.isFake
     }
 }
 
 struct PropStatus {
-    var time: Int? // in Tick
+    var timeTick: Int?
     var value: Int?
-    var nextEasing: EASINGTYPE?
+    var followingEasing: EASINGTYPE?
 }
 
 public class JudgeLine: Identifiable, Equatable {
@@ -125,8 +111,8 @@ public class JudgeLine: Identifiable, Equatable {
     var noteList: [Note]
     var props: JudgeLineProps?
 
-    init(_id: Int) {
-        id = _id
+    init(id: Int) {
+        self.id = id
         noteList = []
     }
 
@@ -138,9 +124,9 @@ public class JudgeLine: Identifiable, Equatable {
 public class ColoredInt: Equatable {
     var value: Int
     var color: Color = .white
-    init(_value: Int, _color: Color = Color.white) {
-        value = _value
-        color = _color
+    init(value: Int, color: Color = Color.white) {
+        self.value = value
+        self.color = color
     }
 
     public static func == (l: ColoredInt, r: ColoredInt) -> Bool {
@@ -152,24 +138,37 @@ public class DataStructure: ObservableObject {
     // global data structure.
     // @Published meaning the swiftUI should look out if the variable is changing
     // for performance issue, please double check the usage for that
-    var id: Int
-    var timer = Timer()
-    let now = Date()
-    var timeWhenStart: Double?
-    var lastTime = 0.0
-    let updateTime = 0.01
-    @Published var offset: Double
-    @Published var bpm: Int // beat per minute
-    @Published var changeBpm: Bool // if bpm is changing according to time
-    @Published var tickPerSecond: Int // 1 second = x ticks
-    @Published var preferTicks: [ColoredInt]
-    @Published var chartLength: Int { // in ticks
+    private var id: Int // mark if it's data(0) or dataK(1)
+    private var scheduleTimer = Timer()
+    private var timeWhenStartSecond: Double?
+    private var lastStartTick = 0.0
+    private let updateTimeIntervalSecond = 0.5
+    @Published var offsetSecond: Double
+    @Published var bpm: Int { // beat per minute
         didSet {
-            if chartLength < 0 {
-                chartLength = 0
+            if id == 0 {
+                dataK.bpm = bpm
+            }
+        }
+    }
+
+    @Published var bpmChangeAccrodingToTime: Bool // if bpm is changing according to time
+    @Published var tickPerBeat: Int // 1 beat = x ticks
+    @Published var highlightedTicks: [ColoredInt] {
+        didSet {
+            if id == 0 {
+                dataK.highlightedTicks = highlightedTicks
+            }
+        }
+    }
+
+    @Published var chartLengthSecond: Int { // in ticks
+        didSet {
+            if chartLengthSecond < 0 {
+                chartLengthSecond = 0
             }
             if id == 0 {
-                dataK.chartLength = chartLength
+                dataK.chartLengthSecond = chartLengthSecond
             }
         }
     }
@@ -181,8 +180,7 @@ public class DataStructure: ObservableObject {
             if audioFileURL != nil {
                 do {
                     audioPlayer = try AVAudioPlayer(contentsOf: audioFileURL!)
-                    print("L")
-//                    audioPlayer?.prepareToPlay()
+                    //                    audioPlayer?.prepareToPlay()
                 } catch {}
             }
         }
@@ -201,35 +199,34 @@ public class DataStructure: ObservableObject {
     @Published var chartLevel: String
     @Published var chartAuthorName: String
     @Published var windowStatus: WINDOWSTATUS
+    @Published var currentNoteType: NOTETYPE
     @Published var listOfJudgeLines: [JudgeLine]
-    @Published var currentTime: Double { // in ticks
+    @Published var currentTimeTick: Double { // in ticks
         didSet {
             if id == 0 {
                 // sync with dataK.
-                dataK.currentTime = currentTime
+                dataK.currentTimeTick = currentTimeTick
             }
         }
     }
-
-    @Published var currentNoteType: NOTETYPE
 
     @Published var isRunning: Bool {
         didSet {
             if id == 0 {
                 dataK.isRunning = isRunning
-            }
-            if isRunning {
-                audioPlayer?.volume = 1.0
-                audioPlayer?.currentTime = currentTime / Double(tickPerSecond)
-                audioPlayer?.play()
-                lastTime = currentTime
-                timeWhenStart = Date().timeIntervalSince1970
-                timer = Timer.scheduledTimer(timeInterval: updateTime, target: self, selector: #selector(updateCurrentTime), userInfo: nil, repeats: true)
-            } else {
-                audioPlayer?.stop()
-                if let t = timeWhenStart {
-                    currentTime = (Date().timeIntervalSince1970 - t) * Double(tickPerSecond) + lastTime
-                    timeWhenStart = nil
+                if isRunning {
+                    audioPlayer?.volume = 1.0
+                    audioPlayer?.currentTime = currentTimeTick / Double(tickPerBeat) / Double(bpm) * 60.0 - offsetSecond
+                    audioPlayer?.play()
+                    lastStartTick = currentTimeTick
+                    timeWhenStartSecond = Date().timeIntervalSince1970
+                    scheduleTimer = Timer.scheduledTimer(timeInterval: updateTimeIntervalSecond, target: self, selector: #selector(updateCurrentTime), userInfo: nil, repeats: true)
+                } else {
+                    audioPlayer?.stop()
+                    if let t = timeWhenStartSecond {
+                        currentTimeTick = (Date().timeIntervalSince1970 - t) * Double(tickPerBeat) * Double(bpm) / 60.0 + lastStartTick
+                        timeWhenStartSecond = nil
+                    }
                 }
             }
         }
@@ -237,26 +234,28 @@ public class DataStructure: ObservableObject {
 
     @objc func updateCurrentTime() {
         if isRunning {
-            currentTime = (Date().timeIntervalSince1970 - timeWhenStart!) * Double(tickPerSecond) + lastTime
+            currentTimeTick = (Date().timeIntervalSince1970 - timeWhenStartSecond!) * Double(tickPerBeat) * Double(bpm) / 60.0 + lastStartTick
+            if(currentTimeTick > Double(chartLengthSecond * tickPerBeat * bpm / 60)){
+                isRunning = false
+            }
         }
     }
 
-    @Published var currentLineId: Int?
     init(_id: Int) {
         id = _id
-        offset = 0.0
-        bpm = 96
-        changeBpm = false
-        tickPerSecond = 48
-        preferTicks = [ColoredInt(_value: 2, _color: Color.blue), ColoredInt(_value: 4, _color: Color.red)]
-        chartLength = 120
+        offsetSecond = 0.0
+        bpm = 160
+        bpmChangeAccrodingToTime = false
+        tickPerBeat = 48
+        highlightedTicks = [ColoredInt(value: 2, color: Color.blue), ColoredInt(value: 4, color: Color.red)]
+        chartLengthSecond = 180
         musicName = ""
         authorName = ""
         chartLevel = ""
         chartAuthorName = ""
         windowStatus = WINDOWSTATUS.pannelNote
-        listOfJudgeLines = [JudgeLine(_id: 0)]
-        currentTime = 0.0
+        listOfJudgeLines = [JudgeLine(id: 0)]
+        currentTimeTick = 0.0
         currentNoteType = NOTETYPE.Tap
         isRunning = false
     }

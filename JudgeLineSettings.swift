@@ -1,6 +1,6 @@
 import SwiftUI
 
-public var editingJudgeLine = JudgeLine(_id: 0)
+public var editingJudgeLine = JudgeLine(id: 0)
 struct JudgeLineSettings: View {
     @EnvironmentObject private var data: DataStructure
 
@@ -10,23 +10,23 @@ struct JudgeLineSettings: View {
                 Button("New JudgeLine") {
                     // automatically append to the end,
                     // new judgeLine's id will be the last id + 1
-                    data.listOfJudgeLines.append(JudgeLine(_id: data.listOfJudgeLines[data.listOfJudgeLines.count - 1].id + 1))
-                    for i in 0..<data.listOfJudgeLines.count {
+                    data.listOfJudgeLines.append(JudgeLine(id: data.listOfJudgeLines[data.listOfJudgeLines.count - 1].id + 1))
+                    for i in 0 ..< data.listOfJudgeLines.count {
                         data.listOfJudgeLines[i].id = i
                     }
                 }
-//                Button("Organize JudgeLines"){
-//                    // assgin the judgeLine's numbers according to order in memory
-//                    for i in 0..<data.lines.count {
-//                        data.lines[i].id = i
-//                    }
-//                }
+                Button("Organize JudgeLines") {
+                    // assgin the judgeLine's numbers according to order in memory
+                    for i in 0 ..< data.listOfJudgeLines.count {
+                        data.listOfJudgeLines[i].id = i
+                    }
+                }
             }.textCase(nil)
             ForEach(data.listOfJudgeLines, id: \.id) { _judgeLine in
                 Section(header: Text("JudgeLine \(String(_judgeLine.id))")) {
                     Button("Edit Notes") {}
                     Button("Edit Props") {}
-                    
+
                     Button(action: { data.listOfJudgeLines.removeAll(where: { $0.id == _judgeLine.id && $0.id != 0 }) }) {
                         // couldn't delte id = 0 judgeLine.
                         HStack {

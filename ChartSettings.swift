@@ -95,14 +95,14 @@ struct ChartSettings: View {
                 }
             }.textCase(nil)
             Section(header: Text("Variables:")) {
-                Stepper(value: $data.offset, in: offsetRange, step: 0.05) {
-                    Text("Offset: \(NSString(format: "%.2f", data.offset))s")
+                Stepper(value: $data.offsetSecond, in: offsetRange, step: 0.005) {
+                    Text("Offset: \(NSString(format: "%.3f", data.offsetSecond))s")
                 }
 
-                Toggle(isOn: $data.changeBpm) {
+                Toggle(isOn: $data.bpmChangeAccrodingToTime) {
                     Text("Allow BPM changes")
                 }
-                if !data.changeBpm {
+                if !data.bpmChangeAccrodingToTime {
                     Stepper(value: $data.bpm) {
                         Text("BPM: \(data.bpm)")
                     }
@@ -110,42 +110,42 @@ struct ChartSettings: View {
                     // work to be done here. - give a editor on time-changing BPM
                     Button("Edit BPM Props") {}
                 }
-                Stepper(value: $data.chartLength, in: chartLengthRange) {
-                    Text("Length: \(data.chartLength)s")
+                Stepper(value: $data.chartLengthSecond, in: chartLengthRange) {
+                    Text("Length: \(data.chartLengthSecond)s")
                 }
             }.textCase(nil)
 
             Section(header: Text("Preferred Ticks")) {
-                ForEach($data.preferTicks, id: \.value) { $tick in
+                ForEach($data.highlightedTicks, id: \.value) { $tick in
                     ColorPicker("Tick: 1/" + String(tick.value), selection: $tick.color)
 
                 }.onDelete(perform: { offset in
-                    data.preferTicks.remove(atOffsets: offset)
+                    data.highlightedTicks.remove(atOffsets: offset)
                 })
 
                 VStack {
-                    Stepper(value: $newPreferTick, in: 0 ... Double(data.tickPerSecond), step: 1) {
+                    Stepper(value: $newPreferTick, in: 0 ... Double(data.tickPerBeat), step: 1) {
                         Text("NewTick: 1/\(Int(newPreferTick))")
                     }
                     Button("Add tick", action: {
-                        if data.preferTicks.filter({ $0.value == Int(newPreferTick) }).count != 0 || data.tickPerSecond % Int(newPreferTick) != 0 {
+                        if data.highlightedTicks.filter({ $0.value == Int(newPreferTick) }).count != 0 || data.tickPerBeat % Int(newPreferTick) != 0 {
                             return
                         } else {
-                            data.preferTicks.append(ColoredInt(_value: Int(newPreferTick), _color: Color(red: .random(in: 0 ... 1), green: .random(in: 0 ... 1), blue: .random(in: 0 ... 1))))
+                            data.highlightedTicks.append(ColoredInt(value: Int(newPreferTick), color: Color(red: .random(in: 0 ... 1), green: .random(in: 0 ... 1), blue: .random(in: 0 ... 1))))
                         }
 
                     })
                 }
-            }.onChange(of: data.preferTicks) { _ in
-                dataK.preferTicks = data.preferTicks
+            }.onChange(of: data.highlightedTicks) { _ in
+                dataK.highlightedTicks = data.highlightedTicks
             }.textCase(nil)
 
             Section(header: Text("Do not change these:")) {
-                Stepper(value: $data.tickPerSecond,
+                Stepper(value: $data.tickPerBeat,
                         onEditingChanged: { _ in
-                            dataK.tickPerSecond = data.tickPerSecond
+                            dataK.tickPerBeat = data.tickPerBeat
                         }) {
-                    Text("Tick: \(data.tickPerSecond)")
+                    Text("Tick: \(data.tickPerBeat)")
                 }
             }
         }.sheet(isPresented: $showingImagePicker) {

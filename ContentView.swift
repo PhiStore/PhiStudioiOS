@@ -64,7 +64,7 @@ struct ContentView: View {
         TapGesture(count: 1)
             .onEnded { _ in
                 data.isRunning = false
-                data.currentTime += 5.0
+                data.currentTimeTick += 5.0
             }
     }
 
@@ -72,7 +72,7 @@ struct ContentView: View {
         TapGesture(count: 1)
             .onEnded { _ in
                 data.isRunning = false
-                data.currentTime -= 5.0
+                data.currentTimeTick -= 5.0
             }
     }
 
@@ -166,8 +166,8 @@ struct ContentView: View {
                     .frame(width: size * 1, height: size * 1)
                     .gesture(fowardFive)
 
-                Slider(value: $data.currentTime,
-                       in: 0 ... Double(data.chartLength * data.tickPerSecond)).frame(width: width_s / 2 - 3 / 2 * size)
+                Slider(value: $data.currentTimeTick,
+                       in: 0 ... Double(data.chartLengthSecond * data.tickPerBeat * data.bpm / 60)).frame(width: width_s / 2 - 3 / 2 * size)
                 // need to add control buttons here
             }.frame(width: width_s / 2 + size * 4, height: size * 2)
                 .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
