@@ -56,7 +56,7 @@ struct ContentView: View {
     var playOrStop: some Gesture {
         TapGesture(count: 1)
             .onEnded { _ in
-                data.isRunning = !data.isRunning
+                data.isRunning.toggle()
             }
     }
 

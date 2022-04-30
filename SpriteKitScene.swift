@@ -18,6 +18,7 @@ class NoteEditScene: SKScene {
     var judgeLineLabelNode: SKLabelNode? // text on judgeLine
     var noteNode: SKShapeNode? // note
     var backGroundImage: SKSpriteNode? // background image
+    var lintNode: SKShapeNode?
 
     // these are used for node copying and management
     var nodeLinks: [(SKNode, SKNode)] = [] // all nodes linked from A to B
@@ -66,14 +67,14 @@ class NoteEditScene: SKScene {
         }
         if judgeLineNode == nil {
             judgeLineNode = SKShapeNode(rectOf: CGSize(width: size.width, height: 2))
-            judgeLineNode!.name = "judgeLine"
-            judgeLineNode!.fillColor = SKColor.white
-            judgeLineNode!.alpha = 0.2
+            judgeLineNode?.name = "judgeLine"
+            judgeLineNode?.fillColor = SKColor.white
+            judgeLineNode?.alpha = 0.2
             lastWidth = size.width
         }
         if judgeLineLabelNode == nil {
             judgeLineLabelNode = SKLabelNode(fontNamed: "AmericanTypewriter")
-            judgeLineLabelNode!.name = "judgeLineLabel"
+            judgeLineLabelNode?.name = "judgeLineLabel"
             judgeLineLabelNode?.horizontalAlignmentMode = .left
             judgeLineLabelNode?.fontSize = 15
         }
@@ -85,11 +86,10 @@ class NoteEditScene: SKScene {
         let lineTick = Int(dataK.currentTime) // tick base
         let distance = 5.0 // diff between each line
         let pos_y = 50 + distance * (dataK.currentTime - Double(Int(dataK.currentTime))) // y base
-        var indexedInt: Int?
-        var indexedColor: Color?
 
         var currentLineTick = 0
-
+        var indexedInt: Int?
+        var indexedColor: Color?
         while currentLineTick <= dataK.tickPerSecond * dataK.chartLength {
             indexedInt = nil
             for preferTick in dataK.preferTicks {
@@ -106,18 +106,23 @@ class NoteEditScene: SKScene {
             if indexedInt != nil {
                 let _judgeLine = judgeLineNode?.copy() as! SKShapeNode
                 _judgeLine.position = CGPoint(x: size.width / 2, y: pos_y + distance * Double(currentLineTick - lineTick))
+
                 if currentLineTick % dataK.tickPerSecond == 0 {
                     _judgeLine.alpha = 1.0
+                } else {
+                    _judgeLine.fillColor = SKColor(indexedColor!)
+                }
+
+                link(nodeA: _judgeLine, to: judgeLineNode!)
+                addChild(_judgeLine)
+
+                if currentLineTick % dataK.tickPerSecond == 0 {
                     let _judgeLineLabel = judgeLineLabelNode?.copy() as! SKLabelNode
                     _judgeLineLabel.position = CGPoint(x: 0, y: pos_y + distance * Double(currentLineTick - lineTick))
                     _judgeLineLabel.text = String(currentLineTick / 48)
                     link(nodeA: _judgeLineLabel, to: judgeLineLabelNode!)
                     addChild(_judgeLineLabel)
-                } else {
-                    _judgeLine.fillColor = SKColor(indexedColor!)
                 }
-                link(nodeA: _judgeLine, to: judgeLineNode!)
-                addChild(_judgeLine)
             }
             currentLineTick += 1
         }
@@ -164,6 +169,19 @@ class NoteEditScene: SKScene {
         addChild(_backGroundImage)
     }
 
+    func createLint() {
+        if lintNode != nil {
+            removeNodesLinked(to: lintNode!)
+        }
+        lintNode = SKShapeNode(circleOfRadius: 4)
+        lintNode?.name = "lineNode"
+        lintNode?.fillColor = SKColor.red
+        lintNode?.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        let _lintNode = lintNode?.copy() as! SKShapeNode
+        link(nodeA: _lintNode, to: lintNode!)
+        addChild(_lintNode)
+    }
+
     override func sceneDidLoad() {}
 
     override func didMove(to _: SKView) {}
@@ -192,6 +210,7 @@ class NoteEditScene: SKScene {
             createBackGroundImage()
             createJudgeLines()
             createNotes()
+            createLint()
         }
 
         if lastRunning != dataK.isRunning {
@@ -226,6 +245,7 @@ class NoteEditScene: SKScene {
             createBackGroundImage()
             createJudgeLines()
             createNotes()
+            createLint()
         }
     }
 
@@ -256,7 +276,6 @@ class NoteEditScene: SKScene {
                     editingJudgeLine.noteList.removeAll(where: { _note in
                         (_note.time == minTick) && abs(node.position.x - _note.posX * lastWidth) < 150
                     })
-                    createNotes()
                     return
                 }
             }

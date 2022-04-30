@@ -176,7 +176,19 @@ public class DataStructure: ObservableObject {
 
     @Published var musicName: String
     @Published var authorName: String
-    @Published var audioFile: AVAudioPlayer?
+    @Published var audioFileURL: URL? {
+        didSet {
+            if audioFileURL != nil {
+                do {
+                    audioPlayer = try AVAudioPlayer(contentsOf: audioFileURL!)
+                    print("L")
+//                    audioPlayer?.prepareToPlay()
+                } catch {}
+            }
+        }
+    }
+
+    @Published var audioPlayer: AVAudioPlayer?
     @Published var imageFile: UIImage? {
         didSet {
             if id == 0 {
@@ -207,13 +219,16 @@ public class DataStructure: ObservableObject {
                 dataK.isRunning = isRunning
             }
             if isRunning {
+                audioPlayer?.volume = 1.0
+                audioPlayer?.currentTime = currentTime / Double(tickPerSecond)
+                audioPlayer?.play()
                 lastTime = currentTime
                 timeWhenStart = Date().timeIntervalSince1970
                 timer = Timer.scheduledTimer(timeInterval: updateTime, target: self, selector: #selector(updateCurrentTime), userInfo: nil, repeats: true)
             } else {
+                audioPlayer?.stop()
                 if let t = timeWhenStart {
                     currentTime = (Date().timeIntervalSince1970 - t) * Double(tickPerSecond) + lastTime
-                    print("Test")
                     timeWhenStart = nil
                 }
             }

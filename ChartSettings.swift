@@ -2,9 +2,10 @@ import Photos
 import PhotosUI
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 struct ImagePicker: UIViewControllerRepresentable {
-    @EnvironmentObject private var data: DataStructure
+    @Binding var Image: UIImage?
     let configuration: PHPickerConfiguration
     @Binding var isPresented: Bool
 
@@ -15,17 +16,16 @@ struct ImagePicker: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_: PHPickerViewController, context _: Context) {}
+
     func makeCoordinator() -> Coordinator {
-        Coordinator(self,dataP:data)
+        Coordinator(self)
     }
 
     // Use a Coordinator to act as your PHPickerViewControllerDelegate
     class Coordinator: PHPickerViewControllerDelegate {
-        var data: DataStructure
         private let parent: ImagePicker
 
-        init(_ parent: ImagePicker, dataP: DataStructure) {
-            self.data = dataP
+        init(_ parent: ImagePicker) {
             self.parent = parent
         }
 
@@ -35,9 +35,9 @@ struct ImagePicker: UIViewControllerRepresentable {
             for item in itemProviders {
                 if item.canLoadObject(ofClass: UIImage.self) {
                     item.loadObject(ofClass: UIImage.self) { image, _ in
-                        DispatchQueue.main.async {
+                        DispatchQueue.main.async { [self] in
                             if let image = image as? UIImage {
-                                self.data.imageFile = image
+                                self.parent.Image = image
                             }
                         }
                     }
@@ -45,15 +45,6 @@ struct ImagePicker: UIViewControllerRepresentable {
             }
         }
     }
-}
-
-struct MusicPicker: UIViewControllerRepresentable {
-    func makeUIViewController(context _: Context) -> UIDocumentPickerViewController {
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.mp3, .wav])
-        return picker
-    }
-
-    func updateUIViewController(_: UIDocumentPickerViewController, context _: Context) {}
 }
 
 struct ChartSettings: View {
@@ -70,12 +61,10 @@ struct ChartSettings: View {
         List {
             Section(header: Text("File Operation:")) {
                 Button("Import Music...") {
-                    /*@START_MENU_TOKEN@*//*@PLACEHOLDER=Action@*/ /*@END_MENU_TOKEN@*/
-                    // use the iTunes Library here... or use the finder app?
                     showingMusicPicker = true
                 }
+
                 Button("Import Photo...") {
-                    /*@START_MENU_TOKEN@*//*@PLACEHOLDER=Action@*/ /*@END_MENU_TOKEN@*/
                     showingImagePicker = true
                 }
                 Button("Export '.pxf' file...") {
@@ -161,10 +150,23 @@ struct ChartSettings: View {
             }
         }.sheet(isPresented: $showingImagePicker) {
             let configuration = PHPickerConfiguration(photoLibrary: PHPhotoLibrary.shared())
-            ImagePicker(configuration: configuration, isPresented: $showingImagePicker).environmentObject(data)
+            ImagePicker(Image: $data.imageFile, configuration: configuration, isPresented: $showingImagePicker)
         }
-        .sheet(isPresented: $showingMusicPicker) {
-            MusicPicker()
+        .fileImporter(
+            isPresented: $showingMusicPicker,
+            allowedContentTypes: [.audio],
+            allowsMultipleSelection: false
+        ) { result in
+            do {
+                guard let selectedFile: URL = try result.get().first else { return }
+                if selectedFile.startAccessingSecurityScopedResource() {
+                    data.audioFileURL = selectedFile
+                } else {
+                    // Handle denied access
+                }
+            } catch {
+                // Handle failure.
+            }
         }
     }
 }
