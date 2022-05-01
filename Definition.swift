@@ -50,19 +50,19 @@ enum WINDOWSTATUS {
     case prop
 }
 
-public class Note: Equatable {
-    var id: Int? // identify usage
-    var noteType: NOTETYPE
+public class Note: Equatable, Identifiable, ObservableObject {
+    @Published public var id: Int? // identify usage
+    @Published var noteType: NOTETYPE
 
-    var posX: Double
-    var width: Double // relative size to default, keep 1 for most cases
+    @Published var posX: Double
+    @Published var width: Double // relative size to default, keep 1 for most cases
 
-    var isFake: Bool
-    var fallSpeed: Double // HSL per tick, relative to default
-    var fallSide: Bool
+    @Published var isFake: Bool
+    @Published var fallSpeed: Double // HSL per tick, relative to default
+    @Published var fallSide: Bool
 
-    var timeTick: Int // measured in tick
-    var holdTimeTick: Int? // measured in tick, only used for Hold variable
+    @Published var timeTick: Int // measured in tick
+    @Published var holdTimeTick: Int? // measured in tick, only used for Hold variable
     init(noteType: NOTETYPE, posX: Double, timeTick: Int) {
         self.noteType = noteType
 
@@ -87,7 +87,7 @@ struct PropStatus {
     var followingEasing: EASINGTYPE?
 }
 
-public class JudgeLine: Identifiable, Equatable {
+public class JudgeLine: Identifiable, Equatable, ObservableObject {
     class JudgeLineProps {
         var controlX: [PropStatus]?
         var controlY: [PropStatus]?
@@ -107,8 +107,8 @@ public class JudgeLine: Identifiable, Equatable {
         }
     }
 
-    public var id: Int
-    var noteList: [Note]
+    @Published public var id: Int
+    @Published var noteList: [Note]
     var props: JudgeLineProps?
 
     init(id: Int) {
@@ -138,27 +138,27 @@ public class DataStructure: ObservableObject {
     // global data structure.
     // @Published meaning the swiftUI should look out if the variable is changing
     // for performance issue, please double check the usage for that
-    private var id: Int // mark if it's data(0) or dataK(1)
     private var scheduleTimer = Timer()
     private var timeWhenStartSecond: Double?
     private var lastStartTick = 0.0
     private let updateTimeIntervalSecond = 0.5
     @Published var offsetSecond: Double
-    @Published var bpm: Int { // beat per minute
+    @Published var bpm: Int {
         didSet {
-            if id == 0 {
-                dataK.bpm = bpm
-            }
+            rebuildScene()
         }
     }
 
     @Published var bpmChangeAccrodingToTime: Bool // if bpm is changing according to time
-    @Published var tickPerBeat: Int // 1 beat = x ticks
+    @Published var tickPerBeat: Int { // 1 beat = x ticks
+        didSet {
+            rebuildScene()
+        }
+    }
+
     @Published var highlightedTicks: [ColoredInt] {
         didSet {
-            if id == 0 {
-                dataK.highlightedTicks = highlightedTicks
-            }
+            rebuildScene()
         }
     }
 
@@ -166,9 +166,6 @@ public class DataStructure: ObservableObject {
         didSet {
             if chartLengthSecond < 0 {
                 chartLengthSecond = 0
-            }
-            if id == 0 {
-                dataK.chartLengthSecond = chartLengthSecond
             }
         }
     }
@@ -180,7 +177,6 @@ public class DataStructure: ObservableObject {
             if audioFileURL != nil {
                 do {
                     audioPlayer = try AVAudioPlayer(contentsOf: audioFileURL!)
-                    //                    audioPlayer?.prepareToPlay()
                 } catch {}
             }
         }
@@ -189,8 +185,8 @@ public class DataStructure: ObservableObject {
     @Published var audioPlayer: AVAudioPlayer?
     @Published var imageFile: UIImage? {
         didSet {
-            if id == 0 {
-                dataK.imageFile = imageFile
+            if imageFile != nil {
+                noteEditScene.clearAndMakeBackgroundImage()
             }
         }
     }
@@ -198,51 +194,89 @@ public class DataStructure: ObservableObject {
     @Published var imgFile: URL?
     @Published var chartLevel: String
     @Published var chartAuthorName: String
-    @Published var windowStatus: WINDOWSTATUS
+    @Published var windowStatus: WINDOWSTATUS {
+        didSet {
+            rebuildScene()
+        }
+        willSet{
+            rebuildScene()
+        }
+    }
+    @Published var locked: Bool
+
     @Published var currentNoteType: NOTETYPE
     @Published var listOfJudgeLines: [JudgeLine]
-    @Published var currentTimeTick: Double { // in ticks
+    @Published var editingJudgeLineNumber: Int
+    @Published var currentTimeTick: Double {
         didSet {
-            if id == 0 {
-                // sync with dataK.
-                dataK.currentTimeTick = currentTimeTick
+            if currentTimeTick < 0{
+                currentTimeTick = 0
+                return
+            }
+            if !isRunning {
+                rebuildLineAndNote()
+            } else {
+                if currentTimeTick >= Double(chartLengthTick()) {
+                    isRunning = false
+                    currentTimeTick = Double(chartLengthTick())
+                }	
             }
         }
     }
 
     @Published var isRunning: Bool {
         didSet {
-            if id == 0 {
-                dataK.isRunning = isRunning
-                if isRunning {
-                    audioPlayer?.volume = 1.0
-                    audioPlayer?.currentTime = currentTimeTick / Double(tickPerBeat) / Double(bpm) * 60.0 - offsetSecond
-                    audioPlayer?.play()
-                    lastStartTick = currentTimeTick
-                    timeWhenStartSecond = Date().timeIntervalSince1970
-                    scheduleTimer = Timer.scheduledTimer(timeInterval: updateTimeIntervalSecond, target: self, selector: #selector(updateCurrentTime), userInfo: nil, repeats: true)
-                } else {
-                    audioPlayer?.stop()
-                    if let t = timeWhenStartSecond {
-                        currentTimeTick = (Date().timeIntervalSince1970 - t) * Double(tickPerBeat) * Double(bpm) / 60.0 + lastStartTick
-                        timeWhenStartSecond = nil
-                    }
+            noteEditScene.startRunning()
+            if isRunning {
+                audioPlayer?.volume = 1.0
+                audioPlayer?.currentTime = currentTimeTick / Double(tickPerBeat) / Double(bpm) * 60.0 - offsetSecond
+                audioPlayer?.play()
+                lastStartTick = currentTimeTick
+                timeWhenStartSecond = Date().timeIntervalSince1970
+                scheduleTimer = Timer.scheduledTimer(timeInterval: updateTimeIntervalSecond, target: self, selector: #selector(updateCurrentTime), userInfo: nil, repeats: true)
+            } else {
+                audioPlayer?.stop()
+                if let t = timeWhenStartSecond {
+                    currentTimeTick = (Date().timeIntervalSince1970 - t) * Double(tickPerBeat) * Double(bpm) / 60.0 + lastStartTick
+                    timeWhenStartSecond = nil
                 }
             }
         }
     }
 
+    var noteEditScene: NoteEditorScene
+
     @objc func updateCurrentTime() {
         if isRunning {
             currentTimeTick = (Date().timeIntervalSince1970 - timeWhenStartSecond!) * Double(tickPerBeat) * Double(bpm) / 60.0 + lastStartTick
-            if(currentTimeTick > Double(chartLengthSecond * tickPerBeat * bpm / 60)){
+            if currentTimeTick > Double(chartLengthSecond * tickPerBeat * bpm / 60) {
                 isRunning = false
             }
         }
     }
 
-    init(_id: Int) {
-        id = _id
+    func chartLengthTick() -> Int {
+        return chartLengthSecond * tickPerBeat * bpm / 60
+    }
+
+    func rebuildScene() {
+        let sceneWidth = UIScreen.main.bounds.width
+        let sceneHeight = UIScreen.main.bounds.height
+        noteEditScene.size = CGSize(width: sceneWidth, height: sceneHeight)
+        noteEditScene.data = self
+        noteEditScene.scaleMode = .resizeFill
+        noteEditScene.clearAndMakeBackgroundImage()
+        noteEditScene.clearAndMakeLint()
+        noteEditScene.clearAndMakeJudgeLines()
+        noteEditScene.clearAndMakeNotes()
+    }
+
+    func rebuildLineAndNote() {
+        noteEditScene.clearAndMakeJudgeLines()
+        noteEditScene.clearAndMakeNotes()
+    }
+
+    init() {
         offsetSecond = 0.0
         bpm = 160
         bpmChangeAccrodingToTime = false
@@ -255,8 +289,11 @@ public class DataStructure: ObservableObject {
         chartAuthorName = ""
         windowStatus = WINDOWSTATUS.pannelNote
         listOfJudgeLines = [JudgeLine(id: 0)]
+        editingJudgeLineNumber = 0
         currentTimeTick = 0.0
+        locked = false
         currentNoteType = NOTETYPE.Tap
         isRunning = false
+        noteEditScene = NoteEditorScene()
     }
 }

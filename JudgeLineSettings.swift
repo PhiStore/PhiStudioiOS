@@ -10,10 +10,10 @@ struct JudgeLineSettings: View {
                 Button("New JudgeLine") {
                     // automatically append to the end,
                     // new judgeLine's id will be the last id + 1
-                    data.listOfJudgeLines.append(JudgeLine(id: data.listOfJudgeLines[data.listOfJudgeLines.count - 1].id + 1))
                     for i in 0 ..< data.listOfJudgeLines.count {
                         data.listOfJudgeLines[i].id = i
                     }
+                    data.listOfJudgeLines.append(JudgeLine(id: data.listOfJudgeLines[data.listOfJudgeLines.count - 1].id + 1))
                 }
                 Button("Organize JudgeLines") {
                     // assgin the judgeLine's numbers according to order in memory
@@ -24,10 +24,19 @@ struct JudgeLineSettings: View {
             }.textCase(nil)
             ForEach(data.listOfJudgeLines, id: \.id) { _judgeLine in
                 Section(header: Text("JudgeLine \(String(_judgeLine.id))")) {
-                    Button("Edit Notes") {}
+                    Button("Edit Notes") {
+                        data.editingJudgeLineNumber = _judgeLine.id
+                        data.rebuildScene()
+                    }
                     Button("Edit Props") {}
 
-                    Button(action: { data.listOfJudgeLines.removeAll(where: { $0.id == _judgeLine.id && $0.id != 0 }) }) {
+                    Button(action: {
+                        data.listOfJudgeLines.removeAll(where: { $0.id == _judgeLine.id && $0.id != 0 })
+                        for i in 0 ..< data.listOfJudgeLines.count {
+                            data.listOfJudgeLines[i].id = i
+                        }
+                        data.editingJudgeLineNumber = 0
+                    }) {
                         // couldn't delte id = 0 judgeLine.
                         HStack {
                             Image(systemName: "exclamationmark.circle")
@@ -43,7 +52,7 @@ struct JudgeLineSettings: View {
 
 struct JudgeLineSettings_Previews: PreviewProvider {
     static var previews: some View {
-        let tmpData = DataStructure(_id: 0)
+        let tmpData = DataStructure()
         JudgeLineSettings().environmentObject(tmpData)
     }
 }

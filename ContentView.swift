@@ -1,6 +1,6 @@
 // this is the main editor's entrance here
 import SwiftUI
-public var dataK = DataStructure(_id: 1)
+// public var dataK = DataStructure(_id: 1)
 
 struct ContentView: View {
     // these variables are used for location and alignment
@@ -9,7 +9,7 @@ struct ContentView: View {
     var height_s = UIScreen.main.bounds.height
     var width_s = UIScreen.main.bounds.width
 
-    @StateObject private var data = DataStructure(_id: 0)
+    @StateObject private var data = DataStructure()
 
     var pannelGesture: some Gesture {
         // this toggles the left pannel on or off
@@ -49,7 +49,21 @@ struct ContentView: View {
                 case .Flick: data.currentNoteType = NOTETYPE.Drag
                 case .Drag: data.currentNoteType = NOTETYPE.Tap
                 }
-                dataK.currentNoteType = data.currentNoteType
+//                dataK.currentNoteType = data.currentNoteType
+            }
+    }
+
+    var refreshGesture: some Gesture {
+        TapGesture(count: 1)
+            .onEnded { _ in
+                data.rebuildScene()
+            }
+    }
+    
+    var changeLockGesture: some Gesture{
+        TapGesture(count: 1)
+            .onEnded{
+                data.locked.toggle()
             }
     }
 
@@ -94,7 +108,7 @@ struct ContentView: View {
                                 Label("JudgeLine", systemImage: "pencil.tip.crop.circle")
                             }
                         // unfinished section - reserved for Note
-                        Text("Unfinished Part")
+                        NoteSettingsView().environmentObject(data)
                             .tabItem {
                                 Label("Notes", systemImage: "bolt.horizontal")
                             }
@@ -112,8 +126,8 @@ struct ContentView: View {
             if data.windowStatus == WINDOWSTATUS.pannelNote || data.windowStatus == WINDOWSTATUS.note {
                 // Note editor
                 LazyVStack(alignment: .leading) {
-                    Text("Note Editor").font(.title2).fontWeight(.bold)
-                    NoteEditorView()
+                    Text("Note Editor: on [\(data.editingJudgeLineNumber)]").font(.title2).fontWeight(.bold)
+                    NoteEditorView().environmentObject(data)
                         .frame(width: pannelStatus() ? width_s * 3 / 4 - size * 6 : width_s - size * 4, height: height_s - size * 8)
                         .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
                         .fixedSize()
@@ -121,6 +135,9 @@ struct ContentView: View {
                 .frame(width: pannelStatus() ? width_s * 3 / 4 - size * 6 : width_s - size * 4, height: height_s - size * 8)
                 .offset(x: pannelStatus() ? width_s / 8 + size : 0, y: size * 2)
                 .fixedSize()
+                .onAppear(perform: {
+                    data.rebuildScene()
+                })
             } else {
                 // Prop Editor
                 LazyVStack(alignment: .leading) {
@@ -147,6 +164,18 @@ struct ContentView: View {
                 .frame(width: size * 2, height: size * 2)
                 .offset(x: -width_s / 2 + size * 6, y: -height_s / 2 + size * 3)
                 .gesture(switchColor)
+
+            Image(systemName: "arrow.triangle.2.circlepath").resizable()
+                .renderingMode(.template)
+                .frame(width: size * 2, height: size * 1.8)
+                .offset(x: -width_s / 2 + size * 9, y: -height_s / 2 + size * 3)
+                .gesture(refreshGesture)
+            
+            Image(systemName: data.locked ? "lock.circle.fill" : "lock.circle").resizable()
+                .renderingMode(.template)
+                .frame(width: size * 2, height: size * 2)
+                .offset(x: -width_s / 2 + size * 12, y: -height_s / 2 + size * 3)
+                .gesture(changeLockGesture)
 
             // Slidebar to control the time being showed
             HStack(spacing: size / 2) {

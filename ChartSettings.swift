@@ -137,13 +137,13 @@ struct ChartSettings: View {
                     })
                 }
             }.onChange(of: data.highlightedTicks) { _ in
-                dataK.highlightedTicks = data.highlightedTicks
+//                dataK.highlightedTicks = data.highlightedTicks
             }.textCase(nil)
 
             Section(header: Text("Do not change these:")) {
                 Stepper(value: $data.tickPerBeat,
                         onEditingChanged: { _ in
-                            dataK.tickPerBeat = data.tickPerBeat
+//                            dataK.tickPerBeat = data.tickPerBeat
                         }) {
                     Text("Tick: \(data.tickPerBeat)")
                 }
@@ -173,7 +173,7 @@ struct ChartSettings: View {
 
 struct MyPreviewProvider_Previews: PreviewProvider {
     static var previews: some View {
-        let tmpData = DataStructure(_id: 0)
+        let tmpData = DataStructure()
         ChartSettings().environmentObject(tmpData)
     }
 }
