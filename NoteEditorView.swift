@@ -1,3 +1,4 @@
+import CoreMedia
 import SpriteKit
 import SwiftUI
 
@@ -127,14 +128,39 @@ class NoteEditorScene: SKScene {
         let RelativePostionY = 50 + _distance * (data!.currentTimeTick - Double(Int(data!.currentTimeTick)))
 
         for note in data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList {
-            let noteNode = noteNodeTemplate!.copy() as! SKShapeNode
-            noteNode.position = CGPoint(x: note.posX * size.width, y: RelativePostionY + CGFloat(note.timeTick - Int(data!.currentTimeTick)) * _distance)
+            var noteNode: SKShapeNode
 
-            switch note.noteType {
-            case .Tap: noteNode.fillColor = SKColor.blue
-            case .Hold: noteNode.fillColor = SKColor.green
-            case .Flick: noteNode.fillColor = SKColor.red
-            case .Drag: noteNode.fillColor = SKColor.yellow
+            if note.noteType == .Hold {
+                let topColor = CIColor(red: 0.0, green: 0.0, blue: 1.0, alpha: 1.0)
+                let bottomColor = CIColor(red: 0.0, green: 0.0, blue: 1.0, alpha: 0.0)
+
+                let texture = SKTexture(size: CGSize(width: 200, height: 200), color1: topColor, color2: bottomColor, direction: GradientDirection.up)
+                texture.filteringMode = .nearest
+
+                noteNode = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight + Int(_distance) * note.holdTimeTick), cornerRadius: _noteCornerRadius)
+                noteNode.fillTexture = texture
+                noteNode.fillColor = .white
+                noteNode.position = CGPoint(x: note.posX * size.width, y: RelativePostionY + (CGFloat(note.timeTick) - data!.currentTimeTick + CGFloat(note.holdTimeTick) / 2) * _distance)
+                noteNode.name = "note"
+                noteNode.alpha = 1.0
+                noteNode.lineWidth = 8
+
+            } else {
+                noteNode = noteNodeTemplate!.copy() as! SKShapeNode
+                noteNode.position = CGPoint(x: note.posX * size.width, y: RelativePostionY + CGFloat(note.timeTick - Int(data!.currentTimeTick)) * _distance)
+                switch note.noteType {
+                case .Tap: noteNode.fillColor = SKColor.blue
+                case .Flick: noteNode.fillColor = SKColor.red
+                case .Drag: noteNode.fillColor = SKColor.yellow
+                case .Hold: continue
+                }
+            }
+
+            if !note.fallSide {
+                noteNode.alpha /= 2
+            }
+            if note.isFake {
+                noteNode.fillColor = multiplyColor(noteNode.fillColor, by: 0.5)
             }
 
             link(nodeA: noteNode, to: noteNodeTemplate!)
@@ -220,7 +246,7 @@ class NoteEditorScene: SKScene {
     override func update(_: TimeInterval) {}
 
     override func touchesBegan(_ touches: Set<UITouch>, with _: UIEvent?) {
-        if data!.locked || data!.isRunning{
+        if data!.locked || data!.isRunning {
             return
         }
         let RelativePostionY = 50 + _distance * (data!.currentTimeTick - Double(Int(data!.currentTimeTick)))
@@ -250,7 +276,22 @@ class NoteEditorScene: SKScene {
                 }
             }
             if minTick >= 0, minTick <= data!.tickPerBeat * data!.chartLengthSecond * data!.bpm / 60 {
-                data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.append(Note(noteType: data!.currentNoteType, posX: (Double(Int(touchLocation.x / size.width * _maxAcceptableNotes)) - 0.5) / _maxAcceptableNotes + 0.5 / _maxAcceptableNotes, timeTick: minTick))
+                let tmpID = data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.count
+
+                // this logic ... might have problems ??? but I'm not sure.
+                // it is working now, so check this for another time maybe
+                data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.append(Note(id: tmpID, noteType: data!.currentNoteType, posX: (Double(Int(touchLocation.x / size.width * _maxAcceptableNotes)) - 0.5) / _maxAcceptableNotes + 1.0 / _maxAcceptableNotes, timeTick: minTick))
+
+                data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.sort(by: { noteA, noteB -> Bool in
+                    if noteA.timeTick != noteB.timeTick {
+                        return noteA.timeTick < noteB.timeTick
+                    } else {
+                        return noteA.posX < noteB.posX
+                    }
+                })
+                for i in 0 ..< data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.count {
+                    data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList[i].id = i
+                }
             }
         }
         clearAndMakeNotes()
@@ -262,7 +303,10 @@ struct NoteEditorView: View {
     @State private var frameSize = CGSize()
 
     var body: some View {
-        SpriteView(scene: data.noteEditScene)
+        SpriteView(scene: data.noteEditScene).onAppear {
+            data.rebuildScene()
+            data.objectWillChange.send()
+        }
     }
 }
 

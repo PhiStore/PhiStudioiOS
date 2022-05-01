@@ -57,6 +57,7 @@ struct ContentView: View {
         TapGesture(count: 1)
             .onEnded { _ in
                 data.rebuildScene()
+                data.objectWillChange.send()
             }
     }
     

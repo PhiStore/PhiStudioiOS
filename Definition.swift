@@ -2,7 +2,9 @@ import AVFoundation
 import SpriteKit
 import SwiftUI
 
-public enum NOTETYPE {
+let _defaultTickPerBeat = 48
+
+public enum NOTETYPE: String, Equatable, CaseIterable {
     case Tap
     case Hold
     case Flick
@@ -51,7 +53,7 @@ enum WINDOWSTATUS {
 }
 
 public class Note: Equatable, Identifiable, ObservableObject {
-    @Published public var id: Int? // identify usage
+    @Published public var id: Int // identify usage
     @Published var noteType: NOTETYPE
 
     @Published var posX: Double
@@ -62,8 +64,9 @@ public class Note: Equatable, Identifiable, ObservableObject {
     @Published var fallSide: Bool
 
     @Published var timeTick: Int // measured in tick
-    @Published var holdTimeTick: Int? // measured in tick, only used for Hold variable
-    init(noteType: NOTETYPE, posX: Double, timeTick: Int) {
+    @Published var holdTimeTick: Int // measured in tick, only used for Hold variable
+    init(id: Int, noteType: NOTETYPE, posX: Double, timeTick: Int) {
+        self.id = id
         self.noteType = noteType
 
         self.posX = posX
@@ -74,6 +77,7 @@ public class Note: Equatable, Identifiable, ObservableObject {
         fallSide = true
 
         self.timeTick = timeTick
+        holdTimeTick = _defaultTickPerBeat
     }
 
     public static func == (l: Note, r: Note) -> Bool {
@@ -198,10 +202,11 @@ public class DataStructure: ObservableObject {
         didSet {
             rebuildScene()
         }
-        willSet{
+        willSet {
             rebuildScene()
         }
     }
+
     @Published var locked: Bool
 
     @Published var currentNoteType: NOTETYPE
@@ -209,7 +214,7 @@ public class DataStructure: ObservableObject {
     @Published var editingJudgeLineNumber: Int
     @Published var currentTimeTick: Double {
         didSet {
-            if currentTimeTick < 0{
+            if currentTimeTick < 0 {
                 currentTimeTick = 0
                 return
             }
@@ -219,7 +224,7 @@ public class DataStructure: ObservableObject {
                 if currentTimeTick >= Double(chartLengthTick()) {
                     isRunning = false
                     currentTimeTick = Double(chartLengthTick())
-                }	
+                }
             }
         }
     }
@@ -280,7 +285,7 @@ public class DataStructure: ObservableObject {
         offsetSecond = 0.0
         bpm = 160
         bpmChangeAccrodingToTime = false
-        tickPerBeat = 48
+        tickPerBeat = _defaultTickPerBeat
         highlightedTicks = [ColoredInt(value: 2, color: Color.blue), ColoredInt(value: 4, color: Color.red)]
         chartLengthSecond = 180
         musicName = ""
