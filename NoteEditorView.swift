@@ -101,7 +101,7 @@ class NoteEditorScene: SKScene {
 
             if currentLineTick % data!.tickPerBeat == 0 {
                 let judgeLineLabelNode = judgeLineLabelNodeTemplate!.copy() as! SKLabelNode
-                judgeLineLabelNode.text = String(currentLineTick)
+                judgeLineLabelNode.text = String(currentLineTick) + "/" + String(currentLineTick / data!.tickPerBeat)
                 judgeLineLabelNode.position = CGPoint(x: 0, y: RelativePostionY + CGFloat(currentLineTick - RelativeTick) * _distance)
                 link(nodeA: judgeLineLabelNode, to: judgeLineLabelNodeTemplate!)
                 addChild(judgeLineLabelNode)
@@ -300,7 +300,6 @@ class NoteEditorScene: SKScene {
 
 struct NoteEditorView: View {
     @EnvironmentObject private var data: DataStructure
-    @State private var frameSize = CGSize()
 
     var body: some View {
         SpriteView(scene: data.noteEditScene).onAppear {

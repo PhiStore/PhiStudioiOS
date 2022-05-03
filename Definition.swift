@@ -1,6 +1,7 @@
 import AVFoundation
 import SpriteKit
 import SwiftUI
+import ZIPFoundation
 
 let _defaultTickPerBeat = 48
 public struct CodableColor {
@@ -21,13 +22,10 @@ extension CodableColor: Decodable {
         var container = try decoder.unkeyedContainer()
         let decodedData = try container.decode(Data.self)
         let nsCoder = try NSKeyedUnarchiver(forReadingFrom: decodedData)
-
         guard let color = UIColor(coder: nsCoder) else {
             struct UnexpectedlyFoundNilError: Error {}
-
             throw UnexpectedlyFoundNilError()
         }
-
         self.color = color
     }
 }
@@ -89,27 +87,21 @@ enum WINDOWSTATUS: String, Equatable, CaseIterable, Codable {
 public class Note: Equatable, Identifiable, ObservableObject, Codable {
     @Published public var id: Int // identify usage
     @Published var noteType: NOTETYPE
-
     @Published var posX: Double
     @Published var width: Double // relative size to default, keep 1 for most cases
-
     @Published var isFake: Bool
     @Published var fallSpeed: Double // HSL per tick, relative to default
     @Published var fallSide: Bool
-
     @Published var timeTick: Int // measured in tick
     @Published var holdTimeTick: Int // measured in tick, only used for Hold variable
     init(id: Int, noteType: NOTETYPE, posX: Double, timeTick: Int) {
         self.id = id
         self.noteType = noteType
-
         self.posX = posX
         width = 1.0
-
         isFake = false
         fallSpeed = 1
         fallSide = true
-
         self.timeTick = timeTick
         holdTimeTick = _defaultTickPerBeat
     }
@@ -155,26 +147,26 @@ struct PropStatus: Codable {
     var followingEasing: EASINGTYPE?
 }
 
-public class JudgeLine: Identifiable, Equatable, ObservableObject, Codable {
-    class JudgeLineProps: Codable {
-        var controlX: [PropStatus]?
-        var controlY: [PropStatus]?
-        var angle: [PropStatus]?
-        var speed: [PropStatus]?
-        var noteAlpha: [PropStatus]?
-        var lineAlpha: [PropStatus]?
-        var displayRange: [PropStatus]?
-        init() {
-            controlX = []
-            controlY = []
-            angle = []
-            speed = []
-            noteAlpha = []
-            lineAlpha = []
-            displayRange = []
-        }
+public class JudgeLineProps: Codable {
+    var controlX: [PropStatus]?
+    var controlY: [PropStatus]?
+    var angle: [PropStatus]?
+    var speed: [PropStatus]?
+    var noteAlpha: [PropStatus]?
+    var lineAlpha: [PropStatus]?
+    var displayRange: [PropStatus]?
+    init() {
+        controlX = []
+        controlY = []
+        angle = []
+        speed = []
+        noteAlpha = []
+        lineAlpha = []
+        displayRange = []
     }
+}
 
+public class JudgeLine: Identifiable, Equatable, ObservableObject, Codable {
     @Published public var id: Int
     @Published var noteList: [Note]
     var props: JudgeLineProps?
@@ -196,10 +188,9 @@ public class JudgeLine: Identifiable, Equatable, ObservableObject, Codable {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         id = try values.decode(Int.self, forKey: .id)
         noteList = try values.decode([Note].self, forKey: .noteList)
-        do{
+        do {
             props = try values.decode(JudgeLineProps.self, forKey: .props)
-        }catch{
-            print(error)
+        } catch {
             props = nil
         }
     }
@@ -239,6 +230,11 @@ public class ColoredInt: Equatable, Codable {
         try container.encode(value, forKey: .value)
         try container.encode(UIColor(color).codable(), forKey: .color)
     }
+}
+
+public enum EDITORSHOWING {
+    case note
+    case prop
 }
 
 public class DataStructure: ObservableObject, Codable {
@@ -299,19 +295,16 @@ public class DataStructure: ObservableObject, Codable {
     }
 
     @Published var imgFileURL: URL?
+
     @Published var chartLevel: String
     @Published var chartAuthorName: String
     @Published var windowStatus: WINDOWSTATUS {
-        didSet {
-            rebuildScene()
-        }
         willSet {
             rebuildScene()
         }
     }
 
     @Published var locked: Bool
-
     @Published var currentNoteType: NOTETYPE
     @Published var listOfJudgeLines: [JudgeLine]
     @Published var editingJudgeLineNumber: Int
@@ -353,6 +346,7 @@ public class DataStructure: ObservableObject, Codable {
     }
 
     var noteEditScene: NoteEditorScene
+    var propEditScene: PropEditorScene
 
     @objc func updateCurrentTime() {
         if isRunning {
@@ -389,69 +383,98 @@ public class DataStructure: ObservableObject, Codable {
         let dataEncoded = try JSONEncoder().encode(self)
         let dataEncodedString = String(data: dataEncoded, encoding: .utf8)
         let fm = FileManager.default
-        let urls = fm.urls(for: .documentDirectory, in: .userDomainMask)
-        if let url = urls.first {
-            let dirPath = url.appendingPathComponent("tmp")
-            if !fm.fileExists(atPath: dirPath.path) {
-                try fm.createDirectory(at: dirPath, withIntermediateDirectories: true, attributes: nil)
+        if let documentBaseURL = fm.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let tmpDirURL = documentBaseURL.appendingPathComponent("tmp")
+            if !fm.fileExists(atPath: tmpDirURL.path) {
+                try fm.createDirectory(at: tmpDirURL, withIntermediateDirectories: true, attributes: nil)
             }
-            let fileURL = url.appendingPathComponent("tmp").appendingPathComponent("tmp.json")
-            try dataEncodedString?.write(to: fileURL, atomically: true, encoding: .utf8)
-            if let data = imageFile?.pngData(){
-                let fileURL = url.appendingPathComponent("tmp").appendingPathComponent("tmp.png")
-                try? data.write(to: fileURL)
+            let jsonFileURL = tmpDirURL.appendingPathComponent("tmp.json")
+            try dataEncodedString?.write(to: jsonFileURL, atomically: true, encoding: .utf8)
+
+            let imagePngURL = tmpDirURL.appendingPathComponent("tmp.png")
+            if let imgData = imageFile?.pngData() {
+                try? imgData.write(to: imagePngURL)
             }
         }
         return true
     }
-    
+
     func exportZip() throws -> URL {
+        try _ = saveCache()
         let fm = FileManager.default
         let urls = fm.urls(for: .documentDirectory, in: .userDomainMask)
         let url = urls.first!
         let archiveURL = url.appendingPathComponent("export.zip")
         let tmpDirURL = url.appendingPathComponent("tmp")
-        try fm.removeItem(at: archiveURL)
+        if fm.fileExists(atPath: archiveURL.path) {
+            try fm.removeItem(at: archiveURL)
+        }
         let coordinator = NSFileCoordinator()
         var error: NSError?
-        coordinator.coordinate(readingItemAt: tmpDirURL, options: [.forUploading], error: &error){(zipURL) in
+        coordinator.coordinate(readingItemAt: tmpDirURL, options: [.forUploading], error: &error) { zipURL in
             try! fm.moveItem(at: zipURL, to: archiveURL)
         }
         return archiveURL
+    }
+    
+    func importZip() throws -> Bool {
+        let fileManager = FileManager()
+        let fm = FileManager.default
+        let urls = fm.urls(for: .documentDirectory, in: .userDomainMask)
+        let url = urls.first!
+        let archiveURL = url.appendingPathComponent("import.zip")
+        let tmpDirURL = url.appendingPathComponent("tmp")
+        try fm.createDirectory(at: tmpDirURL, withIntermediateDirectories: true, attributes: nil)
+        try fileManager.unzipItem(at: archiveURL, to: tmpDirURL)
+        try _ = self.loadCache()
+        return true
     }
 
     func loadCache() throws -> Bool {
         let fm = FileManager.default
         let urls = fm.urls(for: .documentDirectory, in: .userDomainMask)
         if let url = urls.first {
-            let dirPath = url.appendingPathComponent("tmp")
-            if !fm.fileExists(atPath: dirPath.path) {
-                try fm.createDirectory(at: dirPath, withIntermediateDirectories: true, attributes: nil)
+            let tmpDirURL = url.appendingPathComponent("tmp")
+            try fm.createDirectory(at: tmpDirURL, withIntermediateDirectories: true, attributes: nil)
+            let jsonFileURL = tmpDirURL.appendingPathComponent("tmp.json")
+            if fm.fileExists(atPath: jsonFileURL.path){
+                let resolvedData = try String(contentsOf: jsonFileURL)
+                let resolvedObject = try JSONDecoder().decode(DataStructure.self, from: resolvedData.data(using: .utf8)!)
+                offsetSecond = resolvedObject.offsetSecond
+                bpm = resolvedObject.bpm
+                bpmChangeAccrodingToTime = resolvedObject.bpmChangeAccrodingToTime
+                tickPerBeat = resolvedObject.tickPerBeat
+                highlightedTicks = resolvedObject.highlightedTicks
+                chartLengthSecond = resolvedObject.chartLengthSecond
+                musicName = resolvedObject.musicName
+                authorName = resolvedObject.authorName
+                chartLevel = resolvedObject.chartLevel
+                chartAuthorName = resolvedObject.chartAuthorName
+                windowStatus = resolvedObject.windowStatus
+                locked = resolvedObject.locked
+                currentNoteType = resolvedObject.currentNoteType
+                listOfJudgeLines = resolvedObject.listOfJudgeLines
+                editingJudgeLineNumber = resolvedObject.editingJudgeLineNumber
+                currentTimeTick = resolvedObject.currentTimeTick
             }
-            let fileURL = url.appendingPathComponent("tmp").appendingPathComponent("tmp.json")
-            let resolvedData = try String(contentsOf: fileURL)
-            let resolvedObject = try JSONDecoder().decode(DataStructure.self, from: resolvedData.data(using: .utf8)!)
-            offsetSecond = resolvedObject.offsetSecond
-            bpm = resolvedObject.bpm
-            bpmChangeAccrodingToTime = resolvedObject.bpmChangeAccrodingToTime
-            tickPerBeat = resolvedObject.tickPerBeat
-            highlightedTicks = resolvedObject.highlightedTicks
-            chartLengthSecond = resolvedObject.chartLengthSecond
-            musicName = resolvedObject.musicName
-            authorName = resolvedObject.authorName
-            audioFileURL = resolvedObject.audioFileURL
-            audioPlayer = resolvedObject.audioPlayer
-            imageFile = resolvedObject.imageFile
-            imgFileURL = resolvedObject.imgFileURL
-            chartLevel = resolvedObject.chartLevel
-            chartAuthorName = resolvedObject.chartAuthorName
-            windowStatus = resolvedObject.windowStatus
-            locked = resolvedObject.locked
-            currentNoteType = resolvedObject.currentNoteType
-            listOfJudgeLines = resolvedObject.listOfJudgeLines
-            editingJudgeLineNumber = resolvedObject.editingJudgeLineNumber
-            currentTimeTick = resolvedObject.currentTimeTick
-            isRunning = resolvedObject.isRunning
+            let imgFileURLtmp = tmpDirURL.appendingPathComponent("tmp.png")
+            print(imgFileURLtmp)
+            if fm.fileExists(atPath: imgFileURLtmp.path){
+                do {
+                    let imageData = try Data(contentsOf: imgFileURLtmp)
+                    let loadedImage = UIImage(data:imageData)
+                            self.imageFile = loadedImage
+                    
+                }
+                catch{}
+                imageFile = UIImage(data: try! Data(contentsOf: imgFileURLtmp))
+                imgFileURL = imgFileURLtmp
+            }
+            let audioFileURLtmp = tmpDirURL.appendingPathComponent("tmp.mp3")
+            if fm.fileExists(atPath: audioFileURLtmp.path){
+                audioFileURL = audioFileURLtmp
+            }
+
         }
         return true
     }
@@ -475,6 +498,12 @@ public class DataStructure: ObservableObject, Codable {
         currentNoteType = NOTETYPE.Tap
         isRunning = false
         noteEditScene = NoteEditorScene()
+        propEditScene = PropEditorScene()
+        do {
+            try _ = loadCache()
+        } catch {
+            print(error)
+        }
     }
 
     enum CodingKeys: String, CodingKey {
@@ -515,6 +544,7 @@ public class DataStructure: ObservableObject, Codable {
         locked = try container.decode(Bool.self, forKey: .locked)
         currentNoteType = try container.decode(NOTETYPE.self, forKey: .currentNoteType)
         noteEditScene = NoteEditorScene()
+        propEditScene = PropEditorScene()
         isRunning = false
     }
 

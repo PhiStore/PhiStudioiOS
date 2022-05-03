@@ -1,6 +1,7 @@
 import SwiftUI
 
-public var editingJudgeLine = JudgeLine(id: 0)
+public var editingProps: JudgeLineProps = .init()
+
 struct JudgeLineSettings: View {
     @EnvironmentObject private var data: DataStructure
 
@@ -28,16 +29,19 @@ struct JudgeLineSettings: View {
                         data.editingJudgeLineNumber = _judgeLine.id
                         data.rebuildScene()
                     }
-                    Button("Edit Props") {}
+                    Button("Edit Props") {
+                        data.editingJudgeLineNumber = _judgeLine.id
+                        data.rebuildScene()
+                    }
 
                     Button(action: {
                         data.listOfJudgeLines.removeAll(where: { $0.id == _judgeLine.id && $0.id != 0 })
+                        // refuse to delete id = 1 judgeLine.
                         for i in 0 ..< data.listOfJudgeLines.count {
                             data.listOfJudgeLines[i].id = i
                         }
                         data.editingJudgeLineNumber = 0
                     }) {
-                        // couldn't delte id = 0 judgeLine.
                         HStack {
                             Image(systemName: "exclamationmark.circle")
                             Text("Delete this Line")

@@ -1,10 +1,9 @@
-// this is the main editor's entrance here
+// this is the editor's main entrance here
 import SwiftUI
-// public var dataK = DataStructure(_id: 1)
 
 struct ContentView: View {
     // these variables are used for location and alignment
-    // guide: reserve size*2 for boundaries, and keep everything fit in place
+    // guide: reserve size*2 for boundaries, keep everything fit in place
     var size = (UIScreen.main.bounds.width + UIScreen.main.bounds.height) / 100
     var height_s = UIScreen.main.bounds.height
     var width_s = UIScreen.main.bounds.width
@@ -30,6 +29,10 @@ struct ContentView: View {
         // returns true if the left pannel show
         return (data.windowStatus == WINDOWSTATUS.pannelNote || data.windowStatus == WINDOWSTATUS.pannelProp)
     }
+    
+    func editorStatus() -> Bool {
+        return (data.windowStatus == WINDOWSTATUS.note || data.windowStatus == WINDOWSTATUS.pannelNote)
+    }
 
     func getColor() -> Color {
         switch data.currentNoteType {
@@ -49,7 +52,6 @@ struct ContentView: View {
                 case .Flick: data.currentNoteType = NOTETYPE.Drag
                 case .Drag: data.currentNoteType = NOTETYPE.Tap
                 }
-//                dataK.currentNoteType = data.currentNoteType
             }
     }
 
@@ -65,6 +67,19 @@ struct ContentView: View {
         TapGesture(count: 1)
             .onEnded {
                 data.locked.toggle()
+            }
+    }
+    
+    var changeEditorGesture: some Gesture {
+        TapGesture(count: 1)
+            .onEnded {
+                data.isRunning = false
+                switch data.windowStatus{
+                case .note: data.windowStatus = .prop
+                case .prop: data.windowStatus = .note
+                case .pannelNote: data.windowStatus = .pannelProp
+                case .pannelProp: data.windowStatus = .pannelNote
+                }
             }
     }
 
@@ -124,10 +139,10 @@ struct ContentView: View {
             }
 
             // Note editor & Prop Editor
-            if data.windowStatus == WINDOWSTATUS.pannelNote || data.windowStatus == WINDOWSTATUS.note {
+            if editorStatus() {
                 // Note editor
                 LazyVStack(alignment: .leading) {
-                    Text("Note Editor: on [\(data.editingJudgeLineNumber)]").font(.title2).fontWeight(.bold)
+                    Text("Note Editor: on Line \(data.editingJudgeLineNumber) @ \(NSString(format: "%.3f", data.currentTimeTick))T/\(NSString(format: "%.3f", data.currentTimeTick / Double(data.tickPerBeat)))B").font(.title2).fontWeight(.bold)
                     NoteEditorView().environmentObject(data)
                         .frame(width: pannelStatus() ? width_s * 3 / 4 - size * 6 : width_s - size * 4, height: height_s - size * 8)
                         .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
@@ -143,7 +158,7 @@ struct ContentView: View {
                 // Prop Editor
                 LazyVStack(alignment: .leading) {
                     Text("Prop Editor").font(.title2).fontWeight(.bold)
-                    PropEditorView()
+                    PropEditorView().environmentObject(data)
                         .frame(width: pannelStatus() ? width_s * 3 / 4 - size * 6 : width_s - size * 4, height: height_s - size * 8)
                         .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
                         .fixedSize()
@@ -177,6 +192,12 @@ struct ContentView: View {
                 .frame(width: size * 2, height: size * 2)
                 .offset(x: -width_s / 2 + size * 12, y: -height_s / 2 + size * 3)
                 .gesture(changeLockGesture)
+            
+            Image(systemName: editorStatus() ? "sun.min" : "sun.max.fill").resizable()
+                .renderingMode(.template)
+                .frame(width: size * 2, height: size * 2)
+                .offset(x: -width_s / 2 + size * 15, y: -height_s / 2 + size * 3)
+                .gesture(changeEditorGesture)
 
             // Slidebar to control the time being showed
             HStack(spacing: size / 2) {
