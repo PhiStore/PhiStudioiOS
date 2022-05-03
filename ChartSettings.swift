@@ -3,6 +3,28 @@ import PhotosUI
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
+struct ShareSheet: UIViewControllerRepresentable {
+    typealias Callback = (_ activityType: UIActivity.ActivityType?, _ completed: Bool, _ returnedItems: [Any]?, _ error: Error?) -> Void
+
+    let activityItems: [Any]
+    let applicationActivities: [UIActivity]? = nil
+    let excludedActivityTypes: [UIActivity.ActivityType]? = nil
+    let callback: Callback? = nil
+
+    func makeUIViewController(context _: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(
+            activityItems: activityItems,
+            applicationActivities: applicationActivities
+        )
+        controller.excludedActivityTypes = excludedActivityTypes
+        controller.completionWithItemsHandler = callback
+        return controller
+    }
+
+    func updateUIViewController(_: UIActivityViewController, context _: Context) {
+        // nothing to do here
+    }
+}
 
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var Image: UIImage?
@@ -56,7 +78,8 @@ struct ChartSettings: View {
     @State private var image: Image?
     @State private var showingImagePicker = false
     @State private var showingMusicPicker = false
-
+    @State private var zipURL: URL?
+    @State private var showingExporter = false
     var body: some View {
         List {
             Section(header: Text("File Operation:")) {
@@ -67,9 +90,24 @@ struct ChartSettings: View {
                 Button("Import Photo...") {
                     showingImagePicker = true
                 }
-                Button("Export '.pxf' file...") {
-                    /*@START_MENU_TOKEN@*//*@PLACEHOLDER=Action@*/ /*@END_MENU_TOKEN@*/
+                Button("Export '.zip' file...") {
+                    do {
+                        try _ = data.saveCache()
+                        try self.zipURL = data.exportZip()
+                        
+                    } catch {}
+                    showingExporter = true
                 }
+                Button("Save to local storage") {
+                    do {
+                        try _ = data.saveCache()
+                    } catch {}
+                }.foregroundColor(Color.red)
+                Button("Reload from local storage") {
+                    do {
+                        try _ = data.loadCache()
+                    } catch {}
+                }.foregroundColor(Color.red)
             }.textCase(nil)
             Section(header: Text("Information:")) {
                 HStack {
@@ -94,7 +132,7 @@ struct ChartSettings: View {
                     Button("[No copyright]", action: {})
                 }
             }.textCase(nil)
-            Section(header: Text("Variables:")) {
+            Section(header: Text("Variables:l")) {
                 Stepper(value: $data.offsetSecond, in: offsetRange, step: 0.005) {
                     Text("Offset: \(NSString(format: "%.3f", data.offsetSecond))s")
                 }
@@ -137,13 +175,13 @@ struct ChartSettings: View {
                     })
                 }
             }.onChange(of: data.highlightedTicks) { _ in
-//                dataK.highlightedTicks = data.highlightedTicks
+                //                dataK.highlightedTicks = data.highlightedTicks
             }.textCase(nil)
 
             Section(header: Text("Do not change these:")) {
                 Stepper(value: $data.tickPerBeat,
                         onEditingChanged: { _ in
-//                            dataK.tickPerBeat = data.tickPerBeat
+                            //                            dataK.tickPerBeat = data.tickPerBeat
                         }) {
                     Text("Tick: \(data.tickPerBeat)")
                 }
@@ -160,7 +198,19 @@ struct ChartSettings: View {
             do {
                 guard let selectedFile: URL = try result.get().first else { return }
                 if selectedFile.startAccessingSecurityScopedResource() {
-                    data.audioFileURL = selectedFile
+                    let fm = FileManager.default
+                    let urls = fm.urls(for: .documentDirectory, in: .userDomainMask)
+                    if let url = urls.first {
+                        let dirPath = url.appendingPathComponent("tmp")
+                        if !fm.fileExists(atPath: dirPath.path) {
+                            try fm.createDirectory(at: dirPath, withIntermediateDirectories: true, attributes: nil)
+                        }
+                        let fileURL = dirPath.appendingPathComponent("tmp.mp3")
+                        try fm.removeItem(at: fileURL)
+                        try FileManager.default.copyItem(at: selectedFile, to: fileURL)
+                        print(fileURL)
+                        data.audioFileURL = fileURL
+                    }
                 } else {
                     // Handle denied access
                 }
@@ -168,6 +218,32 @@ struct ChartSettings: View {
                 // Handle failure.
             }
         }
+        .fileExporter(isPresented: $showingExporter, document: URLDocument(data: data), contentType: .zip, onCompletion: {(result) in
+            
+        })
+        // add file export Logic here.
+    }
+}
+
+struct URLDocument: FileDocument{
+    static var readableContentTypes: [UTType] = [.zip]
+    
+    var data: DataStructure?
+    
+    init (data: DataStructure){
+//        self.url = url
+        self.data = data
+    }
+    
+    init(configuration: ReadConfiguration) throws {
+        
+    }
+    
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+//        if self.url != nil{
+//            return try FileWrapper(url: self.url!)
+//        }
+        return try FileWrapper(url: try data!.exportZip())
     }
 }
 

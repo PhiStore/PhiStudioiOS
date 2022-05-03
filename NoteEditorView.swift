@@ -101,7 +101,7 @@ class NoteEditorScene: SKScene {
 
             if currentLineTick % data!.tickPerBeat == 0 {
                 let judgeLineLabelNode = judgeLineLabelNodeTemplate!.copy() as! SKLabelNode
-                judgeLineLabelNode.text = String(currentLineTick / data!.tickPerBeat)
+                judgeLineLabelNode.text = String(currentLineTick)
                 judgeLineLabelNode.position = CGPoint(x: 0, y: RelativePostionY + CGFloat(currentLineTick - RelativeTick) * _distance)
                 link(nodeA: judgeLineLabelNode, to: judgeLineLabelNodeTemplate!)
                 addChild(judgeLineLabelNode)
@@ -160,7 +160,7 @@ class NoteEditorScene: SKScene {
                 noteNode.alpha /= 2
             }
             if note.isFake {
-                noteNode.fillColor = multiplyColor(noteNode.fillColor, by: 0.5)
+                noteNode.strokeColor = .purple
             }
 
             link(nodeA: noteNode, to: noteNodeTemplate!)

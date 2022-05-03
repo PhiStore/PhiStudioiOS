@@ -3,15 +3,49 @@ import SpriteKit
 import SwiftUI
 
 let _defaultTickPerBeat = 48
+public struct CodableColor {
+    let color: UIColor
+}
 
-public enum NOTETYPE: String, Equatable, CaseIterable {
+extension CodableColor: Encodable {
+    public func encode(to encoder: Encoder) throws {
+        let nsCoder = NSKeyedArchiver(requiringSecureCoding: true)
+        color.encode(with: nsCoder)
+        var container = encoder.unkeyedContainer()
+        try container.encode(nsCoder.encodedData)
+    }
+}
+
+extension CodableColor: Decodable {
+    public init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        let decodedData = try container.decode(Data.self)
+        let nsCoder = try NSKeyedUnarchiver(forReadingFrom: decodedData)
+
+        guard let color = UIColor(coder: nsCoder) else {
+            struct UnexpectedlyFoundNilError: Error {}
+
+            throw UnexpectedlyFoundNilError()
+        }
+
+        self.color = color
+    }
+}
+
+public extension UIColor {
+    func codable() -> CodableColor {
+        return CodableColor(color: self)
+    }
+}
+
+public enum NOTETYPE: String, Equatable, CaseIterable, Codable {
     case Tap
     case Hold
     case Flick
     case Drag
 }
 
-enum EASINGTYPE {
+enum EASINGTYPE: String, Equatable, CaseIterable, Codable {
     case linear
     case easeInSine
     case easeOutSine
@@ -45,14 +79,14 @@ enum EASINGTYPE {
     case easeInOutBounce
 }
 
-enum WINDOWSTATUS {
+enum WINDOWSTATUS: String, Equatable, CaseIterable, Codable {
     case pannelNote
     case pannelProp
     case note
     case prop
 }
 
-public class Note: Equatable, Identifiable, ObservableObject {
+public class Note: Equatable, Identifiable, ObservableObject, Codable {
     @Published public var id: Int // identify usage
     @Published var noteType: NOTETYPE
 
@@ -83,16 +117,46 @@ public class Note: Equatable, Identifiable, ObservableObject {
     public static func == (l: Note, r: Note) -> Bool {
         return l.id == r.id && l.fallSpeed == r.fallSpeed && l.noteType == r.noteType && l.timeTick == r.timeTick && l.holdTimeTick == r.holdTimeTick && l.posX == r.posX && l.width == r.width && l.fallSide == r.fallSide && l.isFake == r.isFake
     }
+
+    enum CodingKeys: String, CodingKey {
+        case id, noteType, posX, width, isFake, fallSpeed, fallSide, timeTick, holdTimeTick
+    }
+
+    public required init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(Int.self, forKey: .id)
+        noteType = try values.decode(NOTETYPE.self, forKey: .noteType)
+        posX = try values.decode(Double.self, forKey: .posX)
+        width = try values.decode(Double.self, forKey: .width)
+        isFake = try values.decode(Bool.self, forKey: .isFake)
+        fallSpeed = try values.decode(Double.self, forKey: .fallSpeed)
+        fallSide = try values.decode(Bool.self, forKey: .fallSide)
+        timeTick = try values.decode(Int.self, forKey: .timeTick)
+        holdTimeTick = try values.decode(Int.self, forKey: .holdTimeTick)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(noteType, forKey: .noteType)
+        try container.encode(posX, forKey: .posX)
+        try container.encode(width, forKey: .width)
+        try container.encode(isFake, forKey: .isFake)
+        try container.encode(fallSpeed, forKey: .fallSpeed)
+        try container.encode(fallSide, forKey: .fallSide)
+        try container.encode(timeTick, forKey: .timeTick)
+        try container.encode(holdTimeTick, forKey: .holdTimeTick)
+    }
 }
 
-struct PropStatus {
+struct PropStatus: Codable {
     var timeTick: Int?
     var value: Int?
     var followingEasing: EASINGTYPE?
 }
 
-public class JudgeLine: Identifiable, Equatable, ObservableObject {
-    class JudgeLineProps {
+public class JudgeLine: Identifiable, Equatable, ObservableObject, Codable {
+    class JudgeLineProps: Codable {
         var controlX: [PropStatus]?
         var controlY: [PropStatus]?
         var angle: [PropStatus]?
@@ -121,11 +185,34 @@ public class JudgeLine: Identifiable, Equatable, ObservableObject {
     }
 
     public static func == (l: JudgeLine, r: JudgeLine) -> Bool {
-        return l.id == r.id && r.noteList == r.noteList
+        return l.id == r.id && l.noteList == r.noteList
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, noteList, props
+    }
+
+    public required init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(Int.self, forKey: .id)
+        noteList = try values.decode([Note].self, forKey: .noteList)
+        do{
+            props = try values.decode(JudgeLineProps.self, forKey: .props)
+        }catch{
+            print(error)
+            props = nil
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(noteList, forKey: .noteList)
+        try container.encode(props, forKey: .props)
     }
 }
 
-public class ColoredInt: Equatable {
+public class ColoredInt: Equatable, Codable {
     var value: Int
     var color: Color = .white
     init(value: Int, color: Color = Color.white) {
@@ -136,9 +223,25 @@ public class ColoredInt: Equatable {
     public static func == (l: ColoredInt, r: ColoredInt) -> Bool {
         return l.value == r.value && l.color == r.color
     }
+
+    enum CodingKeys: String, CodingKey {
+        case value, color
+    }
+
+    public required init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        value = try values.decode(Int.self, forKey: .value)
+        color = Color(try values.decode(CodableColor.self, forKey: .color).color)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(value, forKey: .value)
+        try container.encode(UIColor(color).codable(), forKey: .color)
+    }
 }
 
-public class DataStructure: ObservableObject {
+public class DataStructure: ObservableObject, Codable {
     // global data structure.
     // @Published meaning the swiftUI should look out if the variable is changing
     // for performance issue, please double check the usage for that
@@ -195,7 +298,7 @@ public class DataStructure: ObservableObject {
         }
     }
 
-    @Published var imgFile: URL?
+    @Published var imgFileURL: URL?
     @Published var chartLevel: String
     @Published var chartAuthorName: String
     @Published var windowStatus: WINDOWSTATUS {
@@ -281,6 +384,78 @@ public class DataStructure: ObservableObject {
         noteEditScene.clearAndMakeNotes()
     }
 
+    func saveCache() throws -> Bool {
+        // when saving, the imageFile and data itself is handled here, but audioFile is handled when its imported
+        let dataEncoded = try JSONEncoder().encode(self)
+        let dataEncodedString = String(data: dataEncoded, encoding: .utf8)
+        let fm = FileManager.default
+        let urls = fm.urls(for: .documentDirectory, in: .userDomainMask)
+        if let url = urls.first {
+            let dirPath = url.appendingPathComponent("tmp")
+            if !fm.fileExists(atPath: dirPath.path) {
+                try fm.createDirectory(at: dirPath, withIntermediateDirectories: true, attributes: nil)
+            }
+            let fileURL = url.appendingPathComponent("tmp").appendingPathComponent("tmp.json")
+            try dataEncodedString?.write(to: fileURL, atomically: true, encoding: .utf8)
+            if let data = imageFile?.pngData(){
+                let fileURL = url.appendingPathComponent("tmp").appendingPathComponent("tmp.png")
+                try? data.write(to: fileURL)
+            }
+        }
+        return true
+    }
+    
+    func exportZip() throws -> URL {
+        let fm = FileManager.default
+        let urls = fm.urls(for: .documentDirectory, in: .userDomainMask)
+        let url = urls.first!
+        let archiveURL = url.appendingPathComponent("export.zip")
+        let tmpDirURL = url.appendingPathComponent("tmp")
+        try fm.removeItem(at: archiveURL)
+        let coordinator = NSFileCoordinator()
+        var error: NSError?
+        coordinator.coordinate(readingItemAt: tmpDirURL, options: [.forUploading], error: &error){(zipURL) in
+            try! fm.moveItem(at: zipURL, to: archiveURL)
+        }
+        return archiveURL
+    }
+
+    func loadCache() throws -> Bool {
+        let fm = FileManager.default
+        let urls = fm.urls(for: .documentDirectory, in: .userDomainMask)
+        if let url = urls.first {
+            let dirPath = url.appendingPathComponent("tmp")
+            if !fm.fileExists(atPath: dirPath.path) {
+                try fm.createDirectory(at: dirPath, withIntermediateDirectories: true, attributes: nil)
+            }
+            let fileURL = url.appendingPathComponent("tmp").appendingPathComponent("tmp.json")
+            let resolvedData = try String(contentsOf: fileURL)
+            let resolvedObject = try JSONDecoder().decode(DataStructure.self, from: resolvedData.data(using: .utf8)!)
+            offsetSecond = resolvedObject.offsetSecond
+            bpm = resolvedObject.bpm
+            bpmChangeAccrodingToTime = resolvedObject.bpmChangeAccrodingToTime
+            tickPerBeat = resolvedObject.tickPerBeat
+            highlightedTicks = resolvedObject.highlightedTicks
+            chartLengthSecond = resolvedObject.chartLengthSecond
+            musicName = resolvedObject.musicName
+            authorName = resolvedObject.authorName
+            audioFileURL = resolvedObject.audioFileURL
+            audioPlayer = resolvedObject.audioPlayer
+            imageFile = resolvedObject.imageFile
+            imgFileURL = resolvedObject.imgFileURL
+            chartLevel = resolvedObject.chartLevel
+            chartAuthorName = resolvedObject.chartAuthorName
+            windowStatus = resolvedObject.windowStatus
+            locked = resolvedObject.locked
+            currentNoteType = resolvedObject.currentNoteType
+            listOfJudgeLines = resolvedObject.listOfJudgeLines
+            editingJudgeLineNumber = resolvedObject.editingJudgeLineNumber
+            currentTimeTick = resolvedObject.currentTimeTick
+            isRunning = resolvedObject.isRunning
+        }
+        return true
+    }
+
     init() {
         offsetSecond = 0.0
         bpm = 160
@@ -300,5 +475,66 @@ public class DataStructure: ObservableObject {
         currentNoteType = NOTETYPE.Tap
         isRunning = false
         noteEditScene = NoteEditorScene()
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case offsetSecond
+        case bpm
+        case bpmChangeAccrodingToTime
+        case tickPerBeat
+        case highlightedTicks
+        case chartLengthSecond
+        case musicName
+        case authorName
+        case chartLevel
+        case chartAuthorName
+        case windowStatus
+        case listOfJudgeLines
+        case editingJudgeLineNumber
+        case currentTimeTick
+        case locked
+        case currentNoteType
+    }
+
+    public required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        offsetSecond = try container.decode(Double.self, forKey: .offsetSecond)
+        bpm = try container.decode(Int.self, forKey: .bpm)
+        bpmChangeAccrodingToTime = try container.decode(Bool.self, forKey: .bpmChangeAccrodingToTime)
+        tickPerBeat = try container.decode(Int.self, forKey: .tickPerBeat)
+        highlightedTicks = try container.decode([ColoredInt].self, forKey: .highlightedTicks)
+        chartLengthSecond = try container.decode(Int.self, forKey: .chartLengthSecond)
+        musicName = try container.decode(String.self, forKey: .musicName)
+        authorName = try container.decode(String.self, forKey: .authorName)
+        chartLevel = try container.decode(String.self, forKey: .chartLevel)
+        chartAuthorName = try container.decode(String.self, forKey: .chartAuthorName)
+        windowStatus = try container.decode(WINDOWSTATUS.self, forKey: .windowStatus)
+        listOfJudgeLines = try container.decode([JudgeLine].self, forKey: .listOfJudgeLines)
+        editingJudgeLineNumber = try container.decode(Int.self, forKey: .editingJudgeLineNumber)
+        currentTimeTick = try container.decode(Double.self, forKey: .currentTimeTick)
+        locked = try container.decode(Bool.self, forKey: .locked)
+        currentNoteType = try container.decode(NOTETYPE.self, forKey: .currentNoteType)
+        noteEditScene = NoteEditorScene()
+        isRunning = false
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(offsetSecond, forKey: .offsetSecond)
+        try container.encode(bpm, forKey: .bpm)
+        try container.encode(bpmChangeAccrodingToTime, forKey: .bpmChangeAccrodingToTime)
+        try container.encode(tickPerBeat, forKey: .tickPerBeat)
+        try container.encode(highlightedTicks, forKey: .highlightedTicks)
+        try container.encode(chartLengthSecond, forKey: .chartLengthSecond)
+        try container.encode(musicName, forKey: .musicName)
+        try container.encode(authorName, forKey: .authorName)
+        try container.encode(chartLevel, forKey: .chartLevel)
+        try container.encode(chartAuthorName, forKey: .chartAuthorName)
+        try container.encode(windowStatus, forKey: .windowStatus)
+        try container.encode(listOfJudgeLines, forKey: .listOfJudgeLines)
+        try container.encode(editingJudgeLineNumber, forKey: .editingJudgeLineNumber)
+        try container.encode(currentTimeTick, forKey: .currentTimeTick)
+        try container.encode(locked, forKey: .locked)
+        try container.encode(currentNoteType, forKey: .currentNoteType)
     }
 }

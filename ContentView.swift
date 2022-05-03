@@ -60,10 +60,10 @@ struct ContentView: View {
                 data.objectWillChange.send()
             }
     }
-    
-    var changeLockGesture: some Gesture{
+
+    var changeLockGesture: some Gesture {
         TapGesture(count: 1)
-            .onEnded{
+            .onEnded {
                 data.locked.toggle()
             }
     }
@@ -171,7 +171,7 @@ struct ContentView: View {
                 .frame(width: size * 2, height: size * 1.8)
                 .offset(x: -width_s / 2 + size * 9, y: -height_s / 2 + size * 3)
                 .gesture(refreshGesture)
-            
+
             Image(systemName: data.locked ? "lock.circle.fill" : "lock.circle").resizable()
                 .renderingMode(.template)
                 .frame(width: size * 2, height: size * 2)
