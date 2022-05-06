@@ -1,5 +1,7 @@
 # PhiStudio
 
+![visitors](https://visitor-badge.glitch.me/badge?page_id=tiankaima.PhiStudioiOS&left_color=green&right_color=red)
+
 PhiStudio 是 PhiX 项目组创建的一款社区系的制谱器。
 
 ## 简介
