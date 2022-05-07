@@ -142,21 +142,31 @@ public class Note: Equatable, Identifiable, ObservableObject, Codable {
 }
 
 struct PropStatus: Codable {
-    var timeTick: Int?
-    var value: Int?
-    var followingEasing: EASINGTYPE?
+    var timeTick: Int
+    var value: Double
+    var followingEasing: EASINGTYPE
+}
+
+enum PROPTYPE: String, Equatable, CaseIterable, Codable {
+    case controlX
+    case controlY
+    case angle
+    case speed
+    case noteAlpha
+    case lineAlpha
+    case displayRange
 }
 
 public class JudgeLineProps: Codable {
-    var controlX: [PropStatus]?
-    var controlY: [PropStatus]?
-    var angle: [PropStatus]?
-    var speed: [PropStatus]?
-    var noteAlpha: [PropStatus]?
-    var lineAlpha: [PropStatus]?
-    var displayRange: [PropStatus]?
+    var controlX: [PropStatus]
+    var controlY: [PropStatus]
+    var angle: [PropStatus]
+    var speed: [PropStatus]
+    var noteAlpha: [PropStatus]
+    var lineAlpha: [PropStatus]
+    var displayRange: [PropStatus]
     init() {
-        controlX = []
+        controlX = [PropStatus(timeTick: 0, value: 0.5, followingEasing: .linear)]
         controlY = []
         angle = []
         speed = []
@@ -164,16 +174,36 @@ public class JudgeLineProps: Codable {
         lineAlpha = []
         displayRange = []
     }
+
+    func returnProp(type: PROPTYPE) -> [PropStatus]? {
+        switch type {
+        case .controlX:
+            return controlX
+        case .controlY:
+            return controlY
+        case .angle:
+            return angle
+        case .speed:
+            return speed
+        case .noteAlpha:
+            return noteAlpha
+        case .lineAlpha:
+            return lineAlpha
+        case .displayRange:
+            return displayRange
+        }
+    }
 }
 
 public class JudgeLine: Identifiable, Equatable, ObservableObject, Codable {
     @Published public var id: Int
     @Published var noteList: [Note]
-    var props: JudgeLineProps?
+    var props: JudgeLineProps
 
     init(id: Int) {
         self.id = id
         noteList = []
+        props = JudgeLineProps()
     }
 
     public static func == (l: JudgeLine, r: JudgeLine) -> Bool {
@@ -191,7 +221,7 @@ public class JudgeLine: Identifiable, Equatable, ObservableObject, Codable {
         do {
             props = try values.decode(JudgeLineProps.self, forKey: .props)
         } catch {
-            props = nil
+            props = JudgeLineProps()
         }
     }
 
@@ -230,11 +260,6 @@ public class ColoredInt: Equatable, Codable {
         try container.encode(value, forKey: .value)
         try container.encode(UIColor(color).codable(), forKey: .color)
     }
-}
-
-public enum EDITORSHOWING {
-    case note
-    case prop
 }
 
 public class DataStructure: ObservableObject, Codable {
@@ -366,11 +391,17 @@ public class DataStructure: ObservableObject, Codable {
         let sceneHeight = UIScreen.main.bounds.height
         noteEditScene.size = CGSize(width: sceneWidth, height: sceneHeight)
         noteEditScene.data = self
-        noteEditScene.scaleMode = .resizeFill
+        noteEditScene.scaleMode = .aspectFit
         noteEditScene.clearAndMakeBackgroundImage()
         noteEditScene.clearAndMakeLint()
         noteEditScene.clearAndMakeJudgeLines()
         noteEditScene.clearAndMakeNotes()
+
+        propEditScene.size = CGSize(width: sceneWidth, height: sceneHeight)
+        propEditScene.data = self
+        propEditScene.scaleMode = .aspectFit
+        propEditScene.clearAndMakeIndexLines()
+        propEditScene.clearAndMakePropControlNodes()
     }
 
     func rebuildLineAndNote() {
@@ -416,7 +447,7 @@ public class DataStructure: ObservableObject, Codable {
         }
         return archiveURL
     }
-    
+
     func importZip() throws -> Bool {
         let fileManager = FileManager()
         let fm = FileManager.default
@@ -426,7 +457,7 @@ public class DataStructure: ObservableObject, Codable {
         let tmpDirURL = url.appendingPathComponent("tmp")
         try fm.createDirectory(at: tmpDirURL, withIntermediateDirectories: true, attributes: nil)
         try fileManager.unzipItem(at: archiveURL, to: tmpDirURL)
-        try _ = self.loadCache()
+        try _ = loadCache()
         return true
     }
 
@@ -437,7 +468,7 @@ public class DataStructure: ObservableObject, Codable {
             let tmpDirURL = url.appendingPathComponent("tmp")
             try fm.createDirectory(at: tmpDirURL, withIntermediateDirectories: true, attributes: nil)
             let jsonFileURL = tmpDirURL.appendingPathComponent("tmp.json")
-            if fm.fileExists(atPath: jsonFileURL.path){
+            if fm.fileExists(atPath: jsonFileURL.path) {
                 let resolvedData = try String(contentsOf: jsonFileURL)
                 let resolvedObject = try JSONDecoder().decode(DataStructure.self, from: resolvedData.data(using: .utf8)!)
                 offsetSecond = resolvedObject.offsetSecond
@@ -459,22 +490,19 @@ public class DataStructure: ObservableObject, Codable {
             }
             let imgFileURLtmp = tmpDirURL.appendingPathComponent("tmp.png")
             print(imgFileURLtmp)
-            if fm.fileExists(atPath: imgFileURLtmp.path){
+            if fm.fileExists(atPath: imgFileURLtmp.path) {
                 do {
                     let imageData = try Data(contentsOf: imgFileURLtmp)
-                    let loadedImage = UIImage(data:imageData)
-                            self.imageFile = loadedImage
-                    
-                }
-                catch{}
+                    let loadedImage = UIImage(data: imageData)
+                    imageFile = loadedImage
+                } catch {}
                 imageFile = UIImage(data: try! Data(contentsOf: imgFileURLtmp))
                 imgFileURL = imgFileURLtmp
             }
             let audioFileURLtmp = tmpDirURL.appendingPathComponent("tmp.mp3")
-            if fm.fileExists(atPath: audioFileURLtmp.path){
+            if fm.fileExists(atPath: audioFileURLtmp.path) {
                 audioFileURL = audioFileURLtmp
             }
-
         }
         return true
     }
@@ -504,6 +532,7 @@ public class DataStructure: ObservableObject, Codable {
         } catch {
             print(error)
         }
+        rebuildScene()
     }
 
     enum CodingKeys: String, CodingKey {

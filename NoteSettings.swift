@@ -21,6 +21,11 @@ struct NoteSettingsView: View {
                     Button("Quick Jump") {
                         data.currentTimeTick = Double(_note.timeTick)
                     }
+                    Button("Delete Note") {
+                        data.listOfJudgeLines[data.editingJudgeLineNumber].noteList.removeAll(where: { $0.timeTick == _note.timeTick && $0.posX == _note.posX })
+                        data.rebuildScene()
+                        data.objectWillChange.send()
+                    }.foregroundColor(Color.red)
                     Toggle(isOn: $_note.isFake) {
                         Text("Fake")
                     }
@@ -33,8 +38,8 @@ struct NoteSettingsView: View {
                     Stepper(value: $_note.timeTick, in: 0 ... data.chartLengthTick(), step: 1) {
                         Text("Time Tick: \(_note.timeTick)")
                     }
-                    Group{
-                        if _note.noteType == .Hold{
+                    Group {
+                        if _note.noteType == .Hold {
                             Stepper(value: $_note.holdTimeTick, in: 0 ... data.chartLengthTick(), step: 1) {
                                 Text("Hold Time Tick: \(_note.holdTimeTick)")
                             }

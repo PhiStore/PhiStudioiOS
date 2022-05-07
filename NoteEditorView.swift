@@ -4,8 +4,8 @@ import SwiftUI
 
 let _distance = 5.0
 let _maxAcceptableNotes = 10.0
-let _noteWidth = 150
-let _noteHeight = 20
+let _noteWidth = 200
+let _noteHeight = 25
 let _noteCornerRadius = 8.0
 
 class NoteEditorScene: SKScene {
