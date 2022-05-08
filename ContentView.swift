@@ -4,9 +4,9 @@ import SwiftUI
 struct ContentView: View {
     // these variables are used for location and alignment
     // guide: reserve size*2 for boundaries, keep everything fit in place
+    var screenHeight = UIScreen.main.bounds.height
+    var screenWidth = UIScreen.main.bounds.width
     var size = (UIScreen.main.bounds.width + UIScreen.main.bounds.height) / 100
-    var height_s = UIScreen.main.bounds.height
-    var width_s = UIScreen.main.bounds.width
 
     @StateObject private var data = DataStructure()
 
@@ -22,6 +22,7 @@ struct ContentView: View {
                 case .pannelNote: data.windowStatus = WINDOWSTATUS.note
                 case .note: data.windowStatus = WINDOWSTATUS.pannelNote
                 }
+                data.objectWillChange.send()
             }
     }
 
@@ -29,7 +30,7 @@ struct ContentView: View {
         // returns true if the left pannel show
         return (data.windowStatus == WINDOWSTATUS.pannelNote || data.windowStatus == WINDOWSTATUS.pannelProp)
     }
-    
+
     func editorStatus() -> Bool {
         return (data.windowStatus == WINDOWSTATUS.note || data.windowStatus == WINDOWSTATUS.pannelNote)
     }
@@ -59,7 +60,6 @@ struct ContentView: View {
         TapGesture(count: 1)
             .onEnded { _ in
                 data.rebuildScene()
-                data.objectWillChange.send()
             }
     }
 
@@ -69,12 +69,12 @@ struct ContentView: View {
                 data.locked.toggle()
             }
     }
-    
+
     var changeEditorGesture: some Gesture {
         TapGesture(count: 1)
             .onEnded {
                 data.isRunning = false
-                switch data.windowStatus{
+                switch data.windowStatus {
                 case .note: data.windowStatus = .prop
                 case .prop: data.windowStatus = .note
                 case .pannelNote: data.windowStatus = .pannelProp
@@ -129,12 +129,12 @@ struct ContentView: View {
                                 Label("Notes", systemImage: "bolt.horizontal")
                             }
                     }
-                    .frame(width: width_s / 4, height: height_s - size * 8)
+                    .frame(width: screenWidth / 4, height: screenHeight - size * 8)
                     .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
                     .fixedSize()
                 }
-                .frame(width: width_s / 4)
-                .offset(x: -width_s * 3 / 8 + size * 2, y: size * 2)
+                .frame(width: screenWidth / 4)
+                .offset(x: -screenWidth * 3 / 8 + size * 2, y: size * 2)
                 .fixedSize()
             }
 
@@ -144,12 +144,12 @@ struct ContentView: View {
                 LazyVStack(alignment: .leading) {
                     Text("Note Editor: on Line \(data.editingJudgeLineNumber) @ \(NSString(format: "%.3f", data.currentTimeTick))T/\(NSString(format: "%.3f", data.currentTimeTick / Double(data.tickPerBeat)))B").font(.title2).fontWeight(.bold)
                     NoteEditorView().environmentObject(data)
-                        .frame(width: pannelStatus() ? width_s * 3 / 4 - size * 6 : width_s - size * 4, height: height_s - size * 8)
+                        .frame(width: pannelStatus() ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
                         .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
                         .fixedSize()
                 }
-                .frame(width: pannelStatus() ? width_s * 3 / 4 - size * 6 : width_s - size * 4, height: height_s - size * 8)
-                .offset(x: pannelStatus() ? width_s / 8 + size : 0, y: size * 2)
+                .frame(width: pannelStatus() ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
+                .offset(x: pannelStatus() ? screenWidth / 8 + size : 0, y: size * 2)
                 .fixedSize()
                 .onAppear(perform: {
                     data.rebuildScene()
@@ -159,44 +159,44 @@ struct ContentView: View {
                 LazyVStack(alignment: .leading) {
                     Text("Prop Editor").font(.title2).fontWeight(.bold)
                     PropEditorView().environmentObject(data)
-                        .frame(width: pannelStatus() ? width_s * 3 / 4 - size * 6 : width_s - size * 4, height: height_s - size * 8)
+                        .frame(width: pannelStatus() ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
                         .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
                         .fixedSize()
                 }
-                .frame(width: pannelStatus() ? width_s * 3 / 4 - size * 6 : width_s - size * 4, height: height_s - size * 8)
-                .offset(x: pannelStatus() ? width_s / 8 + size : 0, y: size * 2)
+                .frame(width: pannelStatus() ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
+                .offset(x: pannelStatus() ? screenWidth / 8 + size : 0, y: size * 2)
                 .fixedSize()
             }
 
             // Switch to toggle the pannel on or off
             Image(systemName: pannelStatus() ? "command.circle" : "command.circle.fill").resizable()
                 .frame(width: size * 2, height: size * 2)
-                .offset(x: -width_s / 2 + size * 3, y: -height_s / 2 + size * 3)
+                .offset(x: -screenWidth / 2 + size * 3, y: -screenHeight / 2 + size * 3)
                 .gesture(pannelGesture)
 
             Image(systemName: "paintbrush.pointed").resizable()
                 .renderingMode(.template)
                 .foregroundColor(getColor())
                 .frame(width: size * 2, height: size * 2)
-                .offset(x: -width_s / 2 + size * 6, y: -height_s / 2 + size * 3)
+                .offset(x: -screenWidth / 2 + size * 6, y: -screenHeight / 2 + size * 3)
                 .gesture(switchColor)
 
             Image(systemName: "arrow.triangle.2.circlepath").resizable()
                 .renderingMode(.template)
                 .frame(width: size * 2, height: size * 1.8)
-                .offset(x: -width_s / 2 + size * 9, y: -height_s / 2 + size * 3)
+                .offset(x: -screenWidth / 2 + size * 9, y: -screenHeight / 2 + size * 3)
                 .gesture(refreshGesture)
 
             Image(systemName: data.locked ? "lock.circle.fill" : "lock.circle").resizable()
                 .renderingMode(.template)
                 .frame(width: size * 2, height: size * 2)
-                .offset(x: -width_s / 2 + size * 12, y: -height_s / 2 + size * 3)
+                .offset(x: -screenWidth / 2 + size * 12, y: -screenHeight / 2 + size * 3)
                 .gesture(changeLockGesture)
-            
+
             Image(systemName: editorStatus() ? "sun.min" : "sun.max.fill").resizable()
                 .renderingMode(.template)
                 .frame(width: size * 2, height: size * 2)
-                .offset(x: -width_s / 2 + size * 15, y: -height_s / 2 + size * 3)
+                .offset(x: -screenWidth / 2 + size * 15, y: -screenHeight / 2 + size * 3)
                 .gesture(changeEditorGesture)
 
             // Slidebar to control the time being showed
@@ -218,11 +218,11 @@ struct ContentView: View {
                     .gesture(fowardFive)
 
                 Slider(value: $data.currentTimeTick,
-                       in: 0 ... Double(data.chartLengthSecond * data.tickPerBeat * data.bpm / 60)).frame(width: width_s / 2 - 3 / 2 * size)
+                       in: 0 ... Double(data.chartLengthSecond * data.tickPerBeat * data.bpm / 60)).frame(width: screenWidth / 2 - 3 / 2 * size)
                 // need to add control buttons here
-            }.frame(width: width_s / 2 + size * 4, height: size * 2)
+            }.frame(width: screenWidth / 2 + size * 4, height: size * 2)
                 .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
-                .offset(x: width_s / 4 - size * 4, y: -height_s / 2 + size * 3)
+                .offset(x: screenWidth / 4 - size * 4, y: -screenHeight / 2 + size * 3)
                 .fixedSize()
         }
     }

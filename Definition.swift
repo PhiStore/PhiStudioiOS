@@ -325,6 +325,7 @@ public class DataStructure: ObservableObject, Codable {
     @Published var chartAuthorName: String
     @Published var windowStatus: WINDOWSTATUS {
         willSet {
+            objectWillChange.send()
             rebuildScene()
         }
     }
@@ -387,17 +388,20 @@ public class DataStructure: ObservableObject, Codable {
     }
 
     func rebuildScene() {
-        let sceneWidth = UIScreen.main.bounds.width
-        let sceneHeight = UIScreen.main.bounds.height
-        noteEditScene.size = CGSize(width: sceneWidth, height: sceneHeight)
+        let screenWidth = UIScreen.main.bounds.width
+        let screenHeight = UIScreen.main.bounds.height
+        let size = (screenWidth + screenHeight) / 100
+        let canvasSize = CGSize(width: (windowStatus == .pannelNote || windowStatus == .pannelProp) ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
+        noteEditScene.size = canvasSize
         noteEditScene.data = self
         noteEditScene.scaleMode = .aspectFit
+        noteEditScene.updateCanvasSize()
         noteEditScene.clearAndMakeBackgroundImage()
         noteEditScene.clearAndMakeLint()
         noteEditScene.clearAndMakeJudgeLines()
         noteEditScene.clearAndMakeNotes()
 
-        propEditScene.size = CGSize(width: sceneWidth, height: sceneHeight)
+        propEditScene.size = canvasSize
         propEditScene.data = self
         propEditScene.scaleMode = .aspectFit
         propEditScene.clearAndMakeIndexLines()

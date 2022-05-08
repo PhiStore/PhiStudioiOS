@@ -4,9 +4,9 @@ import SwiftUI
 
 let _distance = 5.0
 let _maxAcceptableNotes = 10.0
-let _noteWidth = 200
-let _noteHeight = 25
-let _noteCornerRadius = 8.0
+let _noteWidth = 120
+let _noteHeight = 15
+let _noteCornerRadius = 4.0
 
 class NoteEditorScene: SKScene {
     var data: DataStructure?
@@ -36,6 +36,16 @@ class NoteEditorScene: SKScene {
         }
         linkedNodes.forEach { $0.removeFromParent() }
         nodeLinks = nodeLinks.filter { $0.0 != node && $0.1 != node }
+    }
+
+    func updateCanvasSize() {
+        judgeLineNodeTemplate = {
+            let judgeLineNodeTemplate = SKShapeNode(rectOf: CGSize(width: size.width, height: 2))
+            judgeLineNodeTemplate.fillColor = SKColor.white
+            judgeLineNodeTemplate.name = "judgeLine"
+            judgeLineNodeTemplate.alpha = 0.2
+            return judgeLineNodeTemplate
+        }()
     }
 
     func clearAndMakeJudgeLines() {
