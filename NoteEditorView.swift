@@ -17,6 +17,9 @@ class NoteEditorScene: SKScene {
     var backgroundImageNodeTemplate: SKSpriteNode?
     var lintNodeTemplate: SKShapeNode?
 
+    var moveStartPoint: CGPoint?
+    var moveStartTimeTick: Double?
+
     var nodeLinks: [(SKNode, SKNode)] = []
     func link(nodeA: SKNode, to nodeB: SKNode) {
         let pair = (nodeA, nodeB)
@@ -241,12 +244,27 @@ class NoteEditorScene: SKScene {
             return res
         }
         linkedNodes.forEach {
-            if data!.isRunning {
-                $0.run(SKAction.repeatForever(SKAction.move(by: CGVector(dx: 0, dy: -data!.tickPerBeat * Int(_distance)), duration: 60.0 / Double(data!.bpm))), withKey: "moving")
-            } else {
-                if let _action = $0.action(forKey: "moving") {
-                    _action.speed = 0
-                }
+            $0.run(SKAction.repeatForever(SKAction.move(by: CGVector(dx: 0, dy: Double(-data!.tickPerBeat) * _distance), duration: 60.0 / Double(data!.bpm))), withKey: "moving")
+        }
+    }
+
+    func pauseRunning() {
+        if data == nil {
+            return
+        }
+        let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
+            var res = res
+            if pair.0 == judgeLineNodeTemplate || pair.0 == judgeLineLabelNodeTemplate || pair.0 == noteNodeTemplate {
+                res.insert(pair.1)
+            }
+            if pair.1 == judgeLineNodeTemplate || pair.1 == judgeLineLabelNodeTemplate || pair.1 == noteNodeTemplate {
+                res.insert(pair.0)
+            }
+            return res
+        }
+        linkedNodes.forEach {
+            if let _action = $0.action(forKey: "moving") {
+                _action.speed = 0
             }
         }
     }
@@ -256,13 +274,20 @@ class NoteEditorScene: SKScene {
     override func update(_: TimeInterval) {}
 
     override func touchesBegan(_ touches: Set<UITouch>, with _: UIEvent?) {
-        if data!.locked || data!.isRunning {
+        if data!.isRunning {
             return
         }
         let RelativePostionY = 50 + _distance * (data!.currentTimeTick - Double(Int(data!.currentTimeTick)))
-
-        for _touch in touches {
+        if let _touch = touches.first {
             let touchLocation = _touch.location(in: self)
+            if data!.locked {
+                moveStartPoint = touchLocation
+                moveStartTimeTick = data?.currentTimeTick
+                return
+            } else {
+                moveStartPoint = nil
+                moveStartTimeTick = nil
+            }
             let tmpTick: Double = (touchLocation.y - RelativePostionY) / _distance + data!.currentTimeTick
             var minTick = 0
             var minTickDistance = Double(data!.tickPerBeat)
@@ -302,9 +327,44 @@ class NoteEditorScene: SKScene {
                 for i in 0 ..< data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.count {
                     data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList[i].id = i
                 }
+                clearAndMakeNotes()
+                return
             }
         }
-        clearAndMakeNotes()
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with _: UIEvent?) {
+        if !data!.locked || data!.isRunning {
+            return
+        }
+
+        if moveStartPoint == nil || moveStartTimeTick == nil {
+            return
+        }
+
+        if let _touch = touches.first {
+            let touchLocation = _touch.location(in: self)
+            let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
+                var res = res
+                if pair.0 == judgeLineNodeTemplate || pair.0 == judgeLineLabelNodeTemplate || pair.0 == noteNodeTemplate {
+                    res.insert(pair.1)
+                }
+                if pair.1 == judgeLineNodeTemplate || pair.1 == judgeLineLabelNodeTemplate || pair.1 == noteNodeTemplate {
+                    res.insert(pair.0)
+                }
+                return res
+            }
+            linkedNodes.forEach {
+                $0.run(SKAction.move(by: CGVector(dx: 0, dy: touchLocation.y - moveStartPoint!.y), duration: 0.1))
+            }
+            data!.shouldUpdateFrame = false
+            data!.currentTimeTick = moveStartTimeTick! - (touchLocation.y - moveStartPoint!.y) / _distance
+            data!.shouldUpdateFrame = true
+
+            moveStartPoint = touchLocation
+            moveStartTimeTick = data!.currentTimeTick
+            return
+        }
     }
 }
 
