@@ -209,7 +209,6 @@ struct ChartSettings: View {
 
             } catch {
                 // Handle failure.
-                print(error)
             }
         }
         .fileExporter(isPresented: $showingExporter, document: URLExportDocument(data: data), contentType: .zip, onCompletion: { _ in })

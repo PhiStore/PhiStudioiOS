@@ -27,10 +27,12 @@ struct JudgeLineSettings: View {
                 Section(header: Text("JudgeLine \(String(_judgeLine.id))")) {
                     Button("Edit Notes") {
                         data.editingJudgeLineNumber = _judgeLine.id
+                        data.windowStatus = .pannelNote
                         data.rebuildScene()
                     }
                     Button("Edit Props") {
                         data.editingJudgeLineNumber = _judgeLine.id
+                        data.windowStatus = .pannelProp
                         data.rebuildScene()
                     }
 

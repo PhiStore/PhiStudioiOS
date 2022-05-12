@@ -9,6 +9,7 @@ struct ContentView: View {
     var size = (UIScreen.main.bounds.width + UIScreen.main.bounds.height) / 100
 
     @StateObject private var data = DataStructure()
+    @State private var updateToggle = false
 
     var pannelGesture: some Gesture {
         // this toggles the left pannel on or off
@@ -23,6 +24,7 @@ struct ContentView: View {
                 case .note: data.windowStatus = WINDOWSTATUS.pannelNote
                 }
                 data.objectWillChange.send()
+                updateToggle.toggle()
             }
     }
 
@@ -60,6 +62,8 @@ struct ContentView: View {
         TapGesture(count: 1)
             .onEnded { _ in
                 data.rebuildScene()
+                data.objectWillChange.send()
+                updateToggle.toggle()
             }
     }
 
@@ -123,11 +127,17 @@ struct ContentView: View {
                             .tabItem {
                                 Label("JudgeLine", systemImage: "pencil.tip.crop.circle")
                             }
-                        // unfinished section - reserved for Note
-                        NoteSettingsView().environmentObject(data)
-                            .tabItem {
-                                Label("Notes", systemImage: "bolt.horizontal")
-                            }
+                        if editorStatus() {
+                            NoteSettingsView().environmentObject(data)
+                                .tabItem {
+                                    Label("Notes", systemImage: "bolt.horizontal")
+                                }
+                        } else {
+                            PropSettingsView().environmentObject(data)
+                                .tabItem {
+                                    Label("Props", systemImage: "pencil.and.outline")
+                                }
+                        }
                     }
                     .frame(width: screenWidth / 4, height: screenHeight - size * 8)
                     .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
