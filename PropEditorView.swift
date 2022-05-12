@@ -2,14 +2,19 @@ import SpriteKit
 import SwiftUI
 
 let _distanceH = 5.0
+let _renderMin = 10.0
 
 class PropEditorScene: SKScene {
     var data: DataStructure?
 
     var controlNodeTemplate: SKShapeNode?
+    var controlCurveNodeTemplate: SKShapeNode?
     var indexLineNodeTemplate: SKShapeNode?
     var indexLineLabelNodeTemplate: SKLabelNode?
     var lintNodeTemplate: SKShapeNode?
+
+    var moveStartPoint: CGPoint?
+    var moveStartTimeTick: Double?
 
     var nodeLinks: [(SKNode, SKNode)] = []
     func link(nodeA: SKNode, to nodeB: SKNode) {
@@ -116,30 +121,67 @@ class PropEditorScene: SKScene {
                 controlNodeTemplate.fillColor = .red
                 controlNodeTemplate.strokeColor = .white
                 controlNodeTemplate.lineWidth = 2
-                controlNodeTemplate.alpha = 0.8
+                controlNodeTemplate.alpha = 0.4
+                controlNodeTemplate.name = "controlNode"
                 return controlNodeTemplate
             }()
         } else {
             removeNodesLinked(to: controlNodeTemplate!)
         }
 
+        if controlCurveNodeTemplate == nil {
+            controlCurveNodeTemplate = {
+                let controlCurveNodeTemplate = SKShapeNode()
+                return controlCurveNodeTemplate
+            }()
+        } else {
+            removeNodesLinked(to: controlCurveNodeTemplate!)
+        }
+
         let RelativePostionX = 50 + _distanceH * (data!.currentTimeTick - Double(Int(data!.currentTimeTick)))
 
         for propType in PROPTYPE.allCases {
+            let besselPath = UIBezierPath()
+            var controlNode = SKShapeNode()
             var prop = data!.listOfJudgeLines[data!.editingJudgeLineNumber].props.returnProp(type: propType)
-            if prop == nil {
-                continue
-            }
-            prop = prop?.sorted(by: { propA, propB in
+            prop = prop.sorted(by: { propA, propB in
                 propA.timeTick < propB.timeTick
             })
-            for indexI in 0 ..< prop!.count {
-                var controlNode: SKShapeNode
+            if prop.count != 0 {
+                besselPath.move(to: CGPoint(x: CGFloat(prop[0].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX, y: size.height * prop[0].value))
 
-                controlNode = controlNodeTemplate!.copy() as! SKShapeNode
-                controlNode.position = CGPoint(x: CGFloat(prop![indexI].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX, y: size.height * prop![indexI].value)
-                link(nodeA: controlNode, to: controlNodeTemplate!)
-                addChild(controlNode)
+                for indexI in 0 ..< prop.count {
+                    controlNode = controlNodeTemplate!.copy() as! SKShapeNode
+                    controlNode.position = CGPoint(x: CGFloat(prop[indexI].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX, y: size.height * prop[indexI].value)
+                    if propType == data!.currentPropType {
+                        controlNode.alpha = 1.0
+                    }
+                    besselPath.addLine(to: CGPoint(x: CGFloat(prop[indexI].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX, y: size.height * prop[indexI].value))
+
+                    if indexI != prop.count - 1 {
+                        let startX = CGFloat(prop[indexI].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX
+                        let endX = CGFloat(prop[indexI + 1].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX
+                        let startY = size.height * prop[indexI].value
+                        let endY = size.height * prop[indexI + 1].value
+                        var positionX = startX
+                        var positionY = 0.0
+                        while positionX < endX {
+                            positionX += _renderMin
+                            positionY = calculateEasing(x: (positionX - startX) / (endX - startX), type: prop[indexI].followingEasing) * (endY - startY) + startY
+                            besselPath.addLine(to: CGPoint(x: positionX, y: positionY))
+                        }
+                    }
+                    link(nodeA: controlNode, to: controlNodeTemplate!)
+                    addChild(controlNode)
+                }
+
+                let controlCurveNode = SKShapeNode()
+                controlCurveNode.path = besselPath.cgPath
+                controlCurveNode.strokeColor = .white
+                controlCurveNode.alpha = (propType == data!.currentPropType) ? 1.0 : 0.4
+                controlCurveNode.lineWidth = 8
+                addChild(controlCurveNode)
+                link(nodeA: controlCurveNode, to: controlCurveNodeTemplate!)
             }
         }
     }
@@ -166,16 +208,141 @@ class PropEditorScene: SKScene {
         addChild(lintNode)
     }
 
+    func startRunning() {
+        if data == nil {
+            return
+        }
+
+        let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
+            var res = res
+            if pair.0 == controlNodeTemplate || pair.0 == indexLineNodeTemplate || pair.0 == indexLineLabelNodeTemplate || pair.0 == controlCurveNodeTemplate {
+                res.insert(pair.1)
+            }
+            if pair.1 == controlNodeTemplate || pair.1 == indexLineNodeTemplate || pair.1 == indexLineLabelNodeTemplate || pair.1 == controlCurveNodeTemplate {
+                res.insert(pair.0)
+            }
+            return res
+        }
+        linkedNodes.forEach {
+            $0.run(SKAction.repeatForever(SKAction.move(by: CGVector(dx: -Double(data!.tickPerBeat * data!.bpm) * _distanceH, dy: 0), duration: 60.0)), withKey: "moving")
+        }
+    }
+
+    func pauseRunning() {
+        if data == nil {
+            return
+        }
+
+        let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
+            var res = res
+            if pair.0 == controlNodeTemplate || pair.0 == indexLineNodeTemplate || pair.0 == indexLineLabelNodeTemplate || pair.0 == controlCurveNodeTemplate {
+                res.insert(pair.1)
+            }
+            if pair.1 == controlNodeTemplate || pair.1 == indexLineNodeTemplate || pair.1 == indexLineLabelNodeTemplate || pair.1 == controlCurveNodeTemplate {
+                res.insert(pair.0)
+            }
+            return res
+        }
+        linkedNodes.forEach {
+            if let _action = $0.action(forKey: "moving") {
+                _action.speed = 0
+            }
+        }
+    }
+
     override func didMove(to _: SKView) {}
 
     override func update(_: TimeInterval) {}
 
-    override func touchesBegan(_: Set<UITouch>, with _: UIEvent?) {}
+    override func touchesBegan(_ touches: Set<UITouch>, with _: UIEvent?) {
+        if data!.isRunning {
+            return
+        }
+
+        let RelativePositionX = 50 + _distanceH * (data!.currentTimeTick - Double(Int(data!.currentTimeTick)))
+
+        if let touch = touches.first {
+            let touchLocation = touch.location(in: self)
+            if data!.locked {
+                moveStartPoint = touchLocation
+                moveStartTimeTick = data?.currentTimeTick
+                return
+            } else {
+                moveStartPoint = nil
+                moveStartTimeTick = nil
+            }
+
+            let tmpTick = (touchLocation.x - RelativePositionX) / _distanceH + data!.currentTimeTick
+            var minTick = 0
+            var minTickDistance = Double(data!.tickPerBeat)
+            for preferTick in data!.highlightedTicks + [ColoredInt(value: 1)] {
+                let tickDistance = Double(data!.tickPerBeat / preferTick.value)
+                if tmpTick.truncatingRemainder(dividingBy: tickDistance) < minTickDistance {
+                    minTickDistance = tmpTick.truncatingRemainder(dividingBy: tickDistance)
+                    minTick = Int(tmpTick / tickDistance) * Int(tickDistance)
+                }
+                if (tickDistance - tmpTick.truncatingRemainder(dividingBy: tickDistance)) < minTickDistance {
+                    minTickDistance = Double(tickDistance) - tmpTick.truncatingRemainder(dividingBy: Double(tickDistance))
+                    minTick = (Int(tmpTick / tickDistance) + 1) * Int(tickDistance)
+                }
+            }
+
+            for node in nodes(at: touchLocation) {
+                if node.name == "controlNode" {
+                    node.run(SKAction.fadeOut(withDuration: 0.1))
+                    data!.listOfJudgeLines[data!.editingJudgeLineNumber].props.removePropWhere(timeTick: minTick, value: touchLocation.y / size.height)
+                    clearAndMakePropControlNodes()
+                    return
+                }
+            }
+
+            if minTick >= 0, minTick <= data!.tickPerBeat * data!.chartLengthSecond * data!.bpm / 60 {
+                // make no conflict in tick problem ... or keep them?
+                data!.listOfJudgeLines[data!.editingJudgeLineNumber].props.appendNewProp(type: data!.currentPropType, timeTick: minTick, value: touchLocation.y / size.height, followingEasing: .easeInSine)
+                clearAndMakePropControlNodes()
+                data?.objectWillChange.send()
+                return
+            }
+        }
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with _: UIEvent?) {
+        if !data!.locked || data!.isRunning {
+            return
+        }
+
+        if moveStartPoint == nil || moveStartTimeTick == nil {
+            return
+        }
+
+        if let _touch = touches.first {
+            let touchLocation = _touch.location(in: self)
+            let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
+                var res = res
+                if pair.0 == controlNodeTemplate || pair.0 == indexLineNodeTemplate || pair.0 == indexLineLabelNodeTemplate || pair.0 == controlCurveNodeTemplate {
+                    res.insert(pair.1)
+                }
+                if pair.1 == controlNodeTemplate || pair.1 == indexLineNodeTemplate || pair.1 == indexLineLabelNodeTemplate || pair.1 == controlCurveNodeTemplate {
+                    res.insert(pair.0)
+                }
+                return res
+            }
+            linkedNodes.forEach {
+                $0.run(SKAction.move(by: CGVector(dx: min(touchLocation.x - moveStartPoint!.x, moveStartTimeTick! * _distanceH), dy: 0), duration: 0.1))
+            }
+            data!.shouldUpdateFrame = false
+            data!.currentTimeTick = moveStartTimeTick! - (touchLocation.x - moveStartPoint!.x) / _distanceH
+            data!.shouldUpdateFrame = true
+
+            moveStartPoint = touchLocation
+            moveStartTimeTick = data!.currentTimeTick
+            return
+        }
+    }
 }
 
 struct PropEditorView: View {
     @EnvironmentObject private var data: DataStructure
-
     var body: some View {
         SpriteView(scene: data.propEditScene)
     }

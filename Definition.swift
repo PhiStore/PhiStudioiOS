@@ -69,12 +69,61 @@ enum EASINGTYPE: String, Equatable, CaseIterable, Codable {
     case easeInBack
     case easeOutBack
     case easeInOutBack
-    case easeInElastic
-    case easeOutElastic
-    case easeInOutElastic
-    case easeInBounce
-    case easeOutBounce
-    case easeInOutBounce
+}
+
+func calculateEasing(x: Double, type: EASINGTYPE) -> Double {
+    switch type {
+    case .linear:
+        return x
+    case .easeInSine:
+        return 1 - cos(x * Double.pi / 2)
+    case .easeOutSine:
+        return sin(x * Double.pi / 2)
+    case .easeInOutSine:
+        return -(cos(Double.pi * x) - 1) / 2
+    case .easeInQuad:
+        return x * x
+    case .easeOutQuad:
+        return 1 - (1 - x) * (1 - x)
+    case .easeInOutQuad:
+        return (x < 0.5) ? 2 * x * x : 1 - pow(-2 * x + 2, 2) / 2
+    case .easeInCubic:
+        return x * x * x
+    case .easeOutCubic:
+        return 1 - pow(1 - x, 3)
+    case .easeInOutCubic:
+        return (x < 0.5) ? 4 * x * x * x : 1 - pow(-2 * x + 2, 3) / 2
+    case .easeInQuart:
+        return x * x * x * x
+    case .easeOutQuart:
+        return 1 - pow(1 - x, 4)
+    case .easeInOutQuart:
+        return (x < 0.5) ? 8 * x * x * x * x : 1 - pow(-2 * x + 2, 4) / 2
+    case .easeInQuint:
+        return x * x * x * x * x
+    case .easeOutQuint:
+        return 1 - pow(1 - x, 5)
+    case .easeInOutQuint:
+        return (x < 0.5) ? 16 * x * x * x * x * x : 1 - pow(-2 * x + 2, 5) / 2
+    case .easeInExpo:
+        return (x == 0) ? 0 : pow(2, 10 * x - 10)
+    case .easeOutExpo:
+        return (x == 1) ? 1 : 1 - pow(2, -10 * x)
+    case .easeInOutExpo:
+        return (x == 0) ? 0 : ((x == 1) ? 1 : ((x < 0.5) ? pow(2, 20 * x - 10) / 2 : (2 - pow(2, -20 * x + 10)) / 2))
+    case .easeInCirc:
+        return 1 - sqrt(1 - pow(x, 2))
+    case .easeOutCirc:
+        return sqrt(1 - pow(x - 1, 2))
+    case .easeInOutCirc:
+        return (x < 0.5) ? (1 - sqrt(1 - pow(2 * x, 2))) / 2 : (sqrt(1 - pow(-2 * x + 2, 2)) + 1) / 2
+    case .easeInBack:
+        return 2.70158 * x * x * x - 1.70158 * x * x
+    case .easeOutBack:
+        return 1 + 2.70158 * pow(x - 1, 3) + 1.70158 * pow(x - 1, 2)
+    case .easeInOutBack:
+        return (x < 0.5) ? (pow(2 * x, 2) * (7.189819 * x - 2.5949095)) / 2 : (pow(2 * x - 2, 2) * (3.5949095 * (x * 2 - 2) + 2.5949095) + 2) / 2
+    }
 }
 
 enum WINDOWSTATUS: String, Equatable, CaseIterable, Codable {
@@ -141,10 +190,16 @@ public class Note: Equatable, Identifiable, ObservableObject, Codable {
     }
 }
 
-struct PropStatus: Codable {
+class PropStatus: Codable {
     var timeTick: Int
     var value: Double
     var followingEasing: EASINGTYPE
+
+    init(timeTick: Int, value: Double, followingEasing: EASINGTYPE) {
+        self.timeTick = timeTick
+        self.value = value
+        self.followingEasing = followingEasing
+    }
 }
 
 enum PROPTYPE: String, Equatable, CaseIterable, Codable {
@@ -158,13 +213,14 @@ enum PROPTYPE: String, Equatable, CaseIterable, Codable {
 }
 
 public class JudgeLineProps: Codable {
-    var controlX: [PropStatus]
-    var controlY: [PropStatus]
-    var angle: [PropStatus]
-    var speed: [PropStatus]
-    var noteAlpha: [PropStatus]
-    var lineAlpha: [PropStatus]
-    var displayRange: [PropStatus]
+    @Published var controlX: [PropStatus]
+    @Published var controlY: [PropStatus]
+    @Published var angle: [PropStatus]
+    @Published var speed: [PropStatus]
+    @Published var noteAlpha: [PropStatus]
+    @Published var lineAlpha: [PropStatus]
+    @Published var displayRange: [PropStatus]
+
     init() {
         controlX = [PropStatus(timeTick: 0, value: 0.5, followingEasing: .linear)]
         controlY = []
@@ -175,7 +231,11 @@ public class JudgeLineProps: Codable {
         displayRange = []
     }
 
-    func returnProp(type: PROPTYPE) -> [PropStatus]? {
+    enum CodingKeys: String, CodingKey {
+        case controlX, controlY, angle, speed, noteAlpha, lineAlpha, displayRange
+    }
+
+    func returnProp(type: PROPTYPE) -> [PropStatus] {
         switch type {
         case .controlX:
             return controlX
@@ -193,12 +253,165 @@ public class JudgeLineProps: Codable {
             return displayRange
         }
     }
+
+    func removePropWhere(timeTick: Int, value: Double) {
+        controlX.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        controlY.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        angle.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        speed.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        noteAlpha.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        lineAlpha.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        displayRange.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+    }
+
+    func removePropAtOffset(type: PROPTYPE, offset: IndexSet) {
+        switch type {
+        case .controlX:
+            controlX.remove(atOffsets: offset)
+        case .controlY:
+            controlY.remove(atOffsets: offset)
+        case .angle:
+            angle.remove(atOffsets: offset)
+        case .speed:
+            speed.remove(atOffsets: offset)
+        case .noteAlpha:
+            noteAlpha.remove(atOffsets: offset)
+        case .lineAlpha:
+            lineAlpha.remove(atOffsets: offset)
+        case .displayRange:
+            displayRange.remove(atOffsets: offset)
+        }
+    }
+
+    func updateProp(type: PROPTYPE, timeTick: Int, value: Double?, followingEasing: EASINGTYPE?) {
+        switch type {
+        case .controlX:
+            if value != nil {
+                controlX.first(where: { $0.timeTick == timeTick })?.value = value!
+            }
+            if followingEasing != nil {
+                controlX.first(where: { $0.timeTick == timeTick })?.followingEasing = followingEasing!
+            }
+        case .controlY:
+            if value != nil {
+                controlY.first(where: { $0.timeTick == timeTick })?.value = value!
+            }
+            if followingEasing != nil {
+                controlY.first(where: { $0.timeTick == timeTick })?.followingEasing = followingEasing!
+            }
+        case .angle:
+            if value != nil {
+                angle.first(where: { $0.timeTick == timeTick })?.value = value!
+            }
+            if followingEasing != nil {
+                angle.first(where: { $0.timeTick == timeTick })?.followingEasing = followingEasing!
+            }
+        case .speed:
+            if value != nil {
+                speed.first(where: { $0.timeTick == timeTick })?.value = value!
+            }
+            if followingEasing != nil {
+                speed.first(where: { $0.timeTick == timeTick })?.followingEasing = followingEasing!
+            }
+        case .noteAlpha:
+            if value != nil {
+                noteAlpha.first(where: { $0.timeTick == timeTick })?.value = value!
+            }
+            if followingEasing != nil {
+                noteAlpha.first(where: { $0.timeTick == timeTick })?.followingEasing = followingEasing!
+            }
+        case .lineAlpha:
+            if value != nil {
+                lineAlpha.first(where: { $0.timeTick == timeTick })?.value = value!
+            }
+            if followingEasing != nil {
+                lineAlpha.first(where: { $0.timeTick == timeTick })?.followingEasing = followingEasing!
+            }
+        case .displayRange:
+            if value != nil {
+                displayRange.first(where: { $0.timeTick == timeTick })?.value = value!
+            }
+            if followingEasing != nil {
+                displayRange.first(where: { $0.timeTick == timeTick })?.followingEasing = followingEasing!
+            }
+        }
+    }
+
+    func appendNewProp(type: PROPTYPE, timeTick: Int, value: Double, followingEasing: EASINGTYPE) {
+        switch type {
+        case .controlX:
+            controlX.removeAll(where: {$0.timeTick == timeTick})
+            controlX.append(PropStatus(timeTick: timeTick, value: value, followingEasing: followingEasing))
+            controlX = controlX.sorted {
+                $0.timeTick < $1.timeTick
+            }
+        case .controlY:
+            controlY.removeAll(where: {$0.timeTick == timeTick})
+            controlY.append(PropStatus(timeTick: timeTick, value: value, followingEasing: followingEasing))
+            controlY = controlY.sorted {
+                $0.timeTick < $1.timeTick
+            }
+
+        case .angle:
+            angle.removeAll(where: {$0.timeTick == timeTick})
+            angle.append(PropStatus(timeTick: timeTick, value: value, followingEasing: followingEasing))
+            angle = angle.sorted {
+                $0.timeTick < $1.timeTick
+            }
+        case .speed:
+            speed.removeAll(where: {$0.timeTick == timeTick})
+            speed.append(PropStatus(timeTick: timeTick, value: value, followingEasing: followingEasing))
+            speed = speed.sorted {
+                $0.timeTick < $1.timeTick
+            }
+        case .noteAlpha:
+            noteAlpha.removeAll(where: {$0.timeTick == timeTick})
+            noteAlpha.append(PropStatus(timeTick: timeTick, value: value, followingEasing: followingEasing))
+            noteAlpha = noteAlpha.sorted {
+                $0.timeTick < $1.timeTick
+            }
+        case .lineAlpha:
+            lineAlpha.removeAll(where: {$0.timeTick == timeTick})
+            lineAlpha.append(PropStatus(timeTick: timeTick, value: value, followingEasing: followingEasing))
+            lineAlpha = lineAlpha.sorted {
+                $0.timeTick < $1.timeTick
+            }
+        case .displayRange:
+            displayRange.removeAll(where: {$0.timeTick == timeTick})
+            displayRange.append(PropStatus(timeTick: timeTick, value: value, followingEasing: followingEasing))
+            displayRange = displayRange.sorted {
+                $0.timeTick < $1.timeTick
+            }
+        }
+    }
+
+    public required init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        controlX = try values.decode([PropStatus].self, forKey: .controlX)
+        controlY = try values.decode([PropStatus].self, forKey: .controlY)
+        angle = try values.decode([PropStatus].self, forKey: .angle)
+        speed = try values.decode([PropStatus].self, forKey: .speed)
+        noteAlpha = try values.decode([PropStatus].self, forKey: .noteAlpha)
+        lineAlpha = try values.decode([PropStatus].self, forKey: .lineAlpha)
+        displayRange = try values.decode([PropStatus].self, forKey: .displayRange)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(controlX, forKey: .controlX)
+        try container.encode(controlY, forKey: .controlY)
+        try container.encode(angle, forKey: .angle)
+        try container.encode(speed, forKey: .speed)
+        try container.encode(noteAlpha, forKey: .noteAlpha)
+        try container.encode(lineAlpha, forKey: .lineAlpha)
+        try container.encode(displayRange, forKey: .displayRange)
+    }
 }
 
 public class JudgeLine: Identifiable, Equatable, ObservableObject, Codable {
     @Published public var id: Int
     @Published var noteList: [Note]
-    var props: JudgeLineProps
+    @Published public var props: JudgeLineProps
 
     init(id: Int) {
         self.id = id
@@ -332,18 +545,24 @@ public class DataStructure: ObservableObject, Codable {
 
     @Published var locked: Bool
     @Published var currentNoteType: NOTETYPE
+    @Published var currentPropType: PROPTYPE {
+        didSet{
+            rebuildScene()
+        }
+    }
     @Published var listOfJudgeLines: [JudgeLine]
     @Published var editingJudgeLineNumber: Int
+    @Published var shouldUpdateFrame: Bool = true // tmp variable passed to identify whether the frame should be refreshed, this should NOT be included in the exportFile
     @Published var currentTimeTick: Double {
         didSet {
             if currentTimeTick < 0 {
                 currentTimeTick = 0
                 return
             }
-            if !isRunning {
+            if !isRunning, shouldUpdateFrame {
                 rebuildLineAndNote()
             } else {
-                if currentTimeTick >= Double(chartLengthTick()) {
+                if currentTimeTick > Double(chartLengthTick()) {
                     isRunning = false
                     currentTimeTick = Double(chartLengthTick())
                 }
@@ -353,20 +572,25 @@ public class DataStructure: ObservableObject, Codable {
 
     @Published var isRunning: Bool {
         didSet {
-            noteEditScene.startRunning()
             if isRunning {
-                audioPlayer?.volume = 1.0
-                audioPlayer?.currentTime = currentTimeTick / Double(tickPerBeat) / Double(bpm) * 60.0 - offsetSecond
-                audioPlayer?.play()
+                noteEditScene.startRunning()
+                propEditScene.startRunning()
                 lastStartTick = currentTimeTick
                 timeWhenStartSecond = Date().timeIntervalSince1970
                 scheduleTimer = Timer.scheduledTimer(timeInterval: updateTimeIntervalSecond, target: self, selector: #selector(updateCurrentTime), userInfo: nil, repeats: true)
+                audioPlayer?.volume = 1.0
+                audioPlayer?.currentTime = currentTimeTick / Double(tickPerBeat) / Double(bpm) * 60.0 - offsetSecond
+                audioPlayer?.play()
             } else {
-                audioPlayer?.stop()
+                noteEditScene.pauseRunning()
+                propEditScene.pauseRunning()
                 if let t = timeWhenStartSecond {
-                    currentTimeTick = (Date().timeIntervalSince1970 - t) * Double(tickPerBeat) * Double(bpm) / 60.0 + lastStartTick
+                    shouldUpdateFrame = false
+                    currentTimeTick = min((Date().timeIntervalSince1970 - t) * Double(tickPerBeat) * Double(bpm) / 60.0 + lastStartTick, Double(chartLengthTick()))
                     timeWhenStartSecond = nil
+                    shouldUpdateFrame = true
                 }
+                audioPlayer?.stop()
             }
         }
     }
@@ -400,17 +624,21 @@ public class DataStructure: ObservableObject, Codable {
         noteEditScene.clearAndMakeLint()
         noteEditScene.clearAndMakeJudgeLines()
         noteEditScene.clearAndMakeNotes()
-
+//        noteEditScene.view?.showsFPS = true
+//        noteEditScene.view?.showsNodeCount = true
         propEditScene.size = canvasSize
         propEditScene.data = self
         propEditScene.scaleMode = .aspectFit
         propEditScene.clearAndMakeIndexLines()
         propEditScene.clearAndMakePropControlNodes()
+        propEditScene.clearAndMakeLint()
     }
 
     func rebuildLineAndNote() {
         noteEditScene.clearAndMakeJudgeLines()
         noteEditScene.clearAndMakeNotes()
+        propEditScene.clearAndMakeIndexLines()
+        propEditScene.clearAndMakePropControlNodes()
     }
 
     func saveCache() throws -> Bool {
@@ -488,12 +716,12 @@ public class DataStructure: ObservableObject, Codable {
                 windowStatus = resolvedObject.windowStatus
                 locked = resolvedObject.locked
                 currentNoteType = resolvedObject.currentNoteType
+                currentPropType = resolvedObject.currentPropType
                 listOfJudgeLines = resolvedObject.listOfJudgeLines
                 editingJudgeLineNumber = resolvedObject.editingJudgeLineNumber
                 currentTimeTick = resolvedObject.currentTimeTick
             }
             let imgFileURLtmp = tmpDirURL.appendingPathComponent("tmp.png")
-            print(imgFileURLtmp)
             if fm.fileExists(atPath: imgFileURLtmp.path) {
                 do {
                     let imageData = try Data(contentsOf: imgFileURLtmp)
@@ -528,14 +756,13 @@ public class DataStructure: ObservableObject, Codable {
         currentTimeTick = 0.0
         locked = false
         currentNoteType = NOTETYPE.Tap
+        currentPropType = PROPTYPE.controlX
         isRunning = false
         noteEditScene = NoteEditorScene()
         propEditScene = PropEditorScene()
         do {
             try _ = loadCache()
-        } catch {
-            print(error)
-        }
+        } catch {}
         rebuildScene()
     }
 
@@ -556,6 +783,7 @@ public class DataStructure: ObservableObject, Codable {
         case currentTimeTick
         case locked
         case currentNoteType
+        case currentPropType
     }
 
     public required init(from decoder: Decoder) throws {
@@ -576,6 +804,7 @@ public class DataStructure: ObservableObject, Codable {
         currentTimeTick = try container.decode(Double.self, forKey: .currentTimeTick)
         locked = try container.decode(Bool.self, forKey: .locked)
         currentNoteType = try container.decode(NOTETYPE.self, forKey: .currentNoteType)
+        currentPropType = try container.decode(PROPTYPE.self, forKey: .currentPropType)
         noteEditScene = NoteEditorScene()
         propEditScene = PropEditorScene()
         isRunning = false
@@ -599,5 +828,6 @@ public class DataStructure: ObservableObject, Codable {
         try container.encode(currentTimeTick, forKey: .currentTimeTick)
         try container.encode(locked, forKey: .locked)
         try container.encode(currentNoteType, forKey: .currentNoteType)
+        try container.encode(currentPropType, forKey: .currentPropType)
     }
 }
