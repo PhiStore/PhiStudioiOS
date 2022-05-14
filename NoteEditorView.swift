@@ -355,7 +355,7 @@ class NoteEditorScene: SKScene {
                 return res
             }
             linkedNodes.forEach {
-                $0.run(SKAction.move(by: CGVector(dx: 0, dy: touchLocation.y - moveStartPoint!.y), duration: 0.1))
+                $0.run(SKAction.move(by: CGVector(dx: 0, dy: min(touchLocation.y - moveStartPoint!.y, moveStartTimeTick! * _distance)), duration: 0))
             }
             data!.shouldUpdateFrame = false
             data!.currentTimeTick = moveStartTimeTick! - (touchLocation.y - moveStartPoint!.y) / _distance

@@ -298,7 +298,7 @@ class PropEditorScene: SKScene {
 
             if minTick >= 0, minTick <= data!.tickPerBeat * data!.chartLengthSecond * data!.bpm / 60 {
                 // make no conflict in tick problem ... or keep them?
-                data!.listOfJudgeLines[data!.editingJudgeLineNumber].props.appendNewProp(type: data!.currentPropType, timeTick: minTick, value: touchLocation.y / size.height, followingEasing: .easeInSine)
+                data!.listOfJudgeLines[data!.editingJudgeLineNumber].props.appendNewProp(type: data!.currentPropType, timeTick: minTick, value: touchLocation.y / size.height, followingEasing: .linear)
                 clearAndMakePropControlNodes()
                 data?.objectWillChange.send()
                 return
@@ -328,7 +328,7 @@ class PropEditorScene: SKScene {
                 return res
             }
             linkedNodes.forEach {
-                $0.run(SKAction.move(by: CGVector(dx: min(touchLocation.x - moveStartPoint!.x, moveStartTimeTick! * _distanceH), dy: 0), duration: 0.1))
+                $0.run(SKAction.move(by: CGVector(dx: min(touchLocation.x - moveStartPoint!.x, moveStartTimeTick! * _distanceH), dy: 0), duration: 0))
             }
             data!.shouldUpdateFrame = false
             data!.currentTimeTick = moveStartTimeTick! - (touchLocation.x - moveStartPoint!.x) / _distanceH
