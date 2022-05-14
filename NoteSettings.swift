@@ -50,9 +50,3 @@ struct NoteSettingsView: View {
         }
     }
 }
-
-struct NoteSettings_Previews: PreviewProvider {
-    static var previews: some View {
-        NoteSettingsView()
-    }
-}

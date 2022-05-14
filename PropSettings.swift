@@ -49,9 +49,3 @@ struct PropSettingsView: View {
         }
     }
 }
-
-struct PropSettings_Previews: PreviewProvider {
-    static var previews: some View {
-        PropSettingsView()
-    }
-}

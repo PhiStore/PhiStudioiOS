@@ -378,10 +378,3 @@ struct NoteEditorView: View {
         }
     }
 }
-
-struct NoteEditor_Previews: PreviewProvider {
-    static var previews: some View {
-        let tmpData = DataStructure()
-        NoteEditorView().environmentObject(tmpData)
-    }
-}

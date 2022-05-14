@@ -347,10 +347,3 @@ struct PropEditorView: View {
         SpriteView(scene: data.propEditScene)
     }
 }
-
-struct PropEditorView_Previews: PreviewProvider {
-    static var previews: some View {
-        let tmpData = DataStructure()
-        PropEditorView().environmentObject(tmpData)
-    }
-}

@@ -236,10 +236,3 @@ struct URLExportDocument: FileDocument {
         return try FileWrapper(url: try data!.exportZip())
     }
 }
-
-struct MyPreviewProvider_Previews: PreviewProvider {
-    static var previews: some View {
-        let tmpData = DataStructure()
-        ChartSettings().environmentObject(tmpData)
-    }
-}

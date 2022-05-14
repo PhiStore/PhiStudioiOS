@@ -55,10 +55,3 @@ struct JudgeLineSettings: View {
         }
     }
 }
-
-struct JudgeLineSettings_Previews: PreviewProvider {
-    static var previews: some View {
-        let tmpData = DataStructure()
-        JudgeLineSettings().environmentObject(tmpData)
-    }
-}

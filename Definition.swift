@@ -592,6 +592,8 @@ public class DataStructure: ObservableObject, Codable {
                 audioPlayer?.currentTime = currentTimeTick / Double(tickPerBeat) / Double(bpm) * 60.0 - offsetSecond
                 audioPlayer?.play()
             } else {
+                // FIXME: timetick handle is not correct here...
+                // in order to sync with spriteKit, you should use ... uh move detection to find how much distance each node has traveled
                 noteEditScene.pauseRunning()
                 propEditScene.pauseRunning()
                 if let t = timeWhenStartSecond {
