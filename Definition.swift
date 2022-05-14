@@ -340,44 +340,44 @@ public class JudgeLineProps: Codable {
     func appendNewProp(type: PROPTYPE, timeTick: Int, value: Double, followingEasing: EASINGTYPE) {
         switch type {
         case .controlX:
-            controlX.removeAll(where: {$0.timeTick == timeTick})
+            controlX.removeAll(where: { $0.timeTick == timeTick })
             controlX.append(PropStatus(timeTick: timeTick, value: value, followingEasing: followingEasing))
             controlX = controlX.sorted {
                 $0.timeTick < $1.timeTick
             }
         case .controlY:
-            controlY.removeAll(where: {$0.timeTick == timeTick})
+            controlY.removeAll(where: { $0.timeTick == timeTick })
             controlY.append(PropStatus(timeTick: timeTick, value: value, followingEasing: followingEasing))
             controlY = controlY.sorted {
                 $0.timeTick < $1.timeTick
             }
 
         case .angle:
-            angle.removeAll(where: {$0.timeTick == timeTick})
+            angle.removeAll(where: { $0.timeTick == timeTick })
             angle.append(PropStatus(timeTick: timeTick, value: value, followingEasing: followingEasing))
             angle = angle.sorted {
                 $0.timeTick < $1.timeTick
             }
         case .speed:
-            speed.removeAll(where: {$0.timeTick == timeTick})
+            speed.removeAll(where: { $0.timeTick == timeTick })
             speed.append(PropStatus(timeTick: timeTick, value: value, followingEasing: followingEasing))
             speed = speed.sorted {
                 $0.timeTick < $1.timeTick
             }
         case .noteAlpha:
-            noteAlpha.removeAll(where: {$0.timeTick == timeTick})
+            noteAlpha.removeAll(where: { $0.timeTick == timeTick })
             noteAlpha.append(PropStatus(timeTick: timeTick, value: value, followingEasing: followingEasing))
             noteAlpha = noteAlpha.sorted {
                 $0.timeTick < $1.timeTick
             }
         case .lineAlpha:
-            lineAlpha.removeAll(where: {$0.timeTick == timeTick})
+            lineAlpha.removeAll(where: { $0.timeTick == timeTick })
             lineAlpha.append(PropStatus(timeTick: timeTick, value: value, followingEasing: followingEasing))
             lineAlpha = lineAlpha.sorted {
                 $0.timeTick < $1.timeTick
             }
         case .displayRange:
-            displayRange.removeAll(where: {$0.timeTick == timeTick})
+            displayRange.removeAll(where: { $0.timeTick == timeTick })
             displayRange.append(PropStatus(timeTick: timeTick, value: value, followingEasing: followingEasing))
             displayRange = displayRange.sorted {
                 $0.timeTick < $1.timeTick
@@ -546,10 +546,11 @@ public class DataStructure: ObservableObject, Codable {
     @Published var locked: Bool
     @Published var currentNoteType: NOTETYPE
     @Published var currentPropType: PROPTYPE {
-        didSet{
+        didSet {
             rebuildScene()
         }
     }
+
     @Published var listOfJudgeLines: [JudgeLine]
     @Published var editingJudgeLineNumber: Int
     @Published var shouldUpdateFrame: Bool = true // tmp variable passed to identify whether the frame should be refreshed, this should NOT be included in the exportFile
