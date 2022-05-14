@@ -109,10 +109,16 @@ struct ChartSettings: View {
                     Text("Chart Author:")
                     TextField("Chart Author", text: $data.chartAuthorName).foregroundColor(Color.orange)
                 }
-                Menu("Copyright Info") {
-                    Button("[Full copyright]", action: {})
-                    Button("[Limited copyright]", action: {})
-                    Button("[No copyright]", action: {})
+                Menu("Copyright Info: " + String(describing: data.copyright)) {
+                    Button("[Full copyright]", action: {
+                        data.copyright = .full
+                    })
+                    Button("[Limited copyright]", action: {
+                        data.copyright = .limited
+                    })
+                    Button("[No copyright]", action: {
+                        data.copyright = .none
+                    })
                 }
             }.textCase(nil)
             Section(header: Text("Variables:")) {

@@ -129,8 +129,10 @@ func calculateEasing(x: Double, type: EASINGTYPE) -> Double {
 enum WINDOWSTATUS: String, Equatable, CaseIterable, Codable {
     case pannelNote
     case pannelProp
+    case pannelPreview
     case note
     case prop
+    case preview
 }
 
 public class Note: Equatable, Identifiable, ObservableObject, Codable {
@@ -475,6 +477,12 @@ public class ColoredInt: Equatable, Codable {
     }
 }
 
+enum COPYRIGHTTYPE: String, Equatable, CaseIterable, Codable {
+    case full
+    case limited
+    case none
+}
+
 public class DataStructure: ObservableObject, Codable {
     // global data structure.
     // @Published meaning the swiftUI should look out if the variable is changing
@@ -513,6 +521,7 @@ public class DataStructure: ObservableObject, Codable {
 
     @Published var musicName: String
     @Published var authorName: String
+    @Published var copyright: COPYRIGHTTYPE
     @Published var audioFileURL: URL? {
         didSet {
             if audioFileURL != nil {
@@ -751,6 +760,7 @@ public class DataStructure: ObservableObject, Codable {
         authorName = ""
         chartLevel = ""
         chartAuthorName = ""
+        copyright = .full
         windowStatus = WINDOWSTATUS.pannelNote
         listOfJudgeLines = [JudgeLine(id: 0)]
         editingJudgeLineNumber = 0
@@ -776,6 +786,7 @@ public class DataStructure: ObservableObject, Codable {
         case chartLengthSecond
         case musicName
         case authorName
+        case copyright
         case chartLevel
         case chartAuthorName
         case windowStatus
@@ -799,6 +810,7 @@ public class DataStructure: ObservableObject, Codable {
         authorName = try container.decode(String.self, forKey: .authorName)
         chartLevel = try container.decode(String.self, forKey: .chartLevel)
         chartAuthorName = try container.decode(String.self, forKey: .chartAuthorName)
+        copyright = try container.decode(COPYRIGHTTYPE.self, forKey: .copyright)
         windowStatus = try container.decode(WINDOWSTATUS.self, forKey: .windowStatus)
         listOfJudgeLines = try container.decode([JudgeLine].self, forKey: .listOfJudgeLines)
         editingJudgeLineNumber = try container.decode(Int.self, forKey: .editingJudgeLineNumber)
@@ -823,6 +835,7 @@ public class DataStructure: ObservableObject, Codable {
         try container.encode(authorName, forKey: .authorName)
         try container.encode(chartLevel, forKey: .chartLevel)
         try container.encode(chartAuthorName, forKey: .chartAuthorName)
+        try container.encode(copyright, forKey: .copyright)
         try container.encode(windowStatus, forKey: .windowStatus)
         try container.encode(listOfJudgeLines, forKey: .listOfJudgeLines)
         try container.encode(editingJudgeLineNumber, forKey: .editingJudgeLineNumber)
