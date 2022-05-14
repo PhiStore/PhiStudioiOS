@@ -22,19 +22,26 @@ struct ContentView: View {
                 case .prop: data.windowStatus = WINDOWSTATUS.pannelProp
                 case .pannelNote: data.windowStatus = WINDOWSTATUS.note
                 case .note: data.windowStatus = WINDOWSTATUS.pannelNote
+                case .pannelPreview: data.windowStatus = WINDOWSTATUS.preview
+                case .preview: data.windowStatus = WINDOWSTATUS.pannelPreview
                 }
+                // FIXME: Logic problem here, editor size not changing properly when the button is handled
                 data.objectWillChange.send()
                 updateToggle.toggle()
             }
     }
 
-    func pannelStatus() -> Bool {
+    func shouldShowPannel() -> Bool {
         // returns true if the left pannel show
-        return (data.windowStatus == WINDOWSTATUS.pannelNote || data.windowStatus == WINDOWSTATUS.pannelProp)
+        return (data.windowStatus == WINDOWSTATUS.pannelNote || data.windowStatus == WINDOWSTATUS.pannelProp || data.windowStatus == WINDOWSTATUS.pannelPreview)
     }
 
-    func editorStatus() -> Bool {
+    func shouldShowNote() -> Bool {
         return (data.windowStatus == WINDOWSTATUS.note || data.windowStatus == WINDOWSTATUS.pannelNote)
+    }
+
+    func shouldShowProp() -> Bool {
+        return (data.windowStatus == WINDOWSTATUS.prop || data.windowStatus == WINDOWSTATUS.pannelProp)
     }
 
     func getColor() -> Color {
@@ -80,9 +87,11 @@ struct ContentView: View {
                 data.isRunning = false
                 switch data.windowStatus {
                 case .note: data.windowStatus = .prop
-                case .prop: data.windowStatus = .note
+                case .prop: data.windowStatus = .preview
+                case .preview: data.windowStatus = .note
                 case .pannelNote: data.windowStatus = .pannelProp
-                case .pannelProp: data.windowStatus = .pannelNote
+                case .pannelProp: data.windowStatus = .pannelPreview
+                case .pannelPreview: data.windowStatus = .pannelNote
                 }
             }
     }
@@ -113,7 +122,7 @@ struct ContentView: View {
     var body: some View {
         ZStack(alignment: .center) {
             // left pannel
-            if pannelStatus() {
+            if shouldShowPannel() {
                 LazyVStack(alignment: .leading) {
                     // title
                     Text("PhiStudio").font(.title2).fontWeight(.bold)
@@ -127,7 +136,7 @@ struct ContentView: View {
                             .tabItem {
                                 Label("JudgeLine", systemImage: "pencil.tip.crop.circle")
                             }
-                        if editorStatus() {
+                        if shouldShowNote() {
                             NoteSettingsView().environmentObject(data)
                                 .tabItem {
                                     Label("Notes", systemImage: "bolt.horizontal")
@@ -149,37 +158,39 @@ struct ContentView: View {
             }
 
             // Note editor & Prop Editor
-            if editorStatus() {
+            if shouldShowNote() {
                 // Note editor
                 LazyVStack(alignment: .leading) {
                     Text("Note Editor: on Line \(data.editingJudgeLineNumber) @ \(NSString(format: "%.3f", data.currentTimeTick))T/\(NSString(format: "%.3f", data.currentTimeTick / Double(data.tickPerBeat)))B").font(.title2).fontWeight(.bold)
                     NoteEditorView().environmentObject(data)
-                        .frame(width: pannelStatus() ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
+                        .frame(width: shouldShowPannel() ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
                         .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
                         .fixedSize()
                 }
-                .frame(width: pannelStatus() ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
-                .offset(x: pannelStatus() ? screenWidth / 8 + size : 0, y: size * 2)
+                .frame(width: shouldShowPannel() ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
+                .offset(x: shouldShowPannel() ? screenWidth / 8 + size : 0, y: size * 2)
                 .fixedSize()
                 .onAppear(perform: {
                     data.rebuildScene()
                 })
             } else {
-                // Prop Editor
-                LazyVStack(alignment: .leading) {
-                    Text("Prop Editor").font(.title2).fontWeight(.bold)
-                    PropEditorView().environmentObject(data)
-                        .frame(width: pannelStatus() ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
-                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
-                        .fixedSize()
+                if shouldShowProp() {
+                    // Prop Editor
+                    LazyVStack(alignment: .leading) {
+                        Text("Prop Editor").font(.title2).fontWeight(.bold)
+                        PropEditorView().environmentObject(data)
+                            .frame(width: shouldShowPannel() ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
+                            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
+                            .fixedSize()
+                    }
+                    .frame(width: shouldShowPannel() ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
+                    .offset(x: shouldShowPannel() ? screenWidth / 8 + size : 0, y: size * 2)
+                    .fixedSize()
                 }
-                .frame(width: pannelStatus() ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
-                .offset(x: pannelStatus() ? screenWidth / 8 + size : 0, y: size * 2)
-                .fixedSize()
             }
 
             // Switch to toggle the pannel on or off
-            Image(systemName: pannelStatus() ? "command.circle" : "command.circle.fill").resizable()
+            Image(systemName: shouldShowPannel() ? "command.circle" : "command.circle.fill").resizable()
                 .frame(width: size * 2, height: size * 2)
                 .offset(x: -screenWidth / 2 + size * 3, y: -screenHeight / 2 + size * 3)
                 .gesture(pannelGesture)
@@ -203,13 +214,13 @@ struct ContentView: View {
                 .offset(x: -screenWidth / 2 + size * 12, y: -screenHeight / 2 + size * 3)
                 .gesture(changeLockGesture)
 
-            Image(systemName: editorStatus() ? "sun.min" : "sun.max.fill").resizable()
+            Image(systemName: shouldShowNote() ? "sun.min" : (shouldShowProp() ? "sun.max.fill" : "sparkles")).resizable()
                 .renderingMode(.template)
                 .frame(width: size * 2, height: size * 2)
                 .offset(x: -screenWidth / 2 + size * 15, y: -screenHeight / 2 + size * 3)
                 .gesture(changeEditorGesture)
 
-            // Slidebar to control the time being showed
+            // Slidebar to control current time
             HStack(spacing: size / 2) {
                 Image(systemName: "gobackward.5").resizable()
                     .renderingMode(.template)
@@ -229,7 +240,6 @@ struct ContentView: View {
 
                 Slider(value: $data.currentTimeTick,
                        in: 0 ... Double(data.chartLengthSecond * data.tickPerBeat * data.bpm / 60)).frame(width: screenWidth / 2 - 3 / 2 * size)
-                // need to add control buttons here
             }.frame(width: screenWidth / 2 + size * 4, height: size * 2)
                 .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
                 .offset(x: screenWidth / 4 - size * 4, y: -screenHeight / 2 + size * 3)
