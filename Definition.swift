@@ -4,6 +4,19 @@ import SwiftUI
 import ZIPFoundation
 
 let _defaultTickPerBeat = 48
+
+// add 'capitalizingFirstLetter()' func for string operations
+extension String {
+    func capitalizingFirstLetter() -> String {
+        return prefix(1).uppercased() + dropFirst()
+    }
+
+    mutating func capitalizeFirstLetter() {
+        self = capitalizingFirstLetter()
+    }
+}
+
+// Used for encoding color, a better solution is wanted.
 public struct CodableColor {
     let color: UIColor
 }
@@ -36,6 +49,7 @@ public extension UIColor {
     }
 }
 
+// All supported note type
 public enum NOTETYPE: String, Equatable, CaseIterable, Codable {
     case Tap
     case Hold
@@ -43,7 +57,7 @@ public enum NOTETYPE: String, Equatable, CaseIterable, Codable {
     case Drag
 }
 
-enum EASINGTYPE: String, Equatable, CaseIterable, Codable {
+public enum EASINGTYPE: String, Equatable, CaseIterable, Codable {
     case linear
     case easeInSine
     case easeOutSine
@@ -71,6 +85,7 @@ enum EASINGTYPE: String, Equatable, CaseIterable, Codable {
     case easeInOutBack
 }
 
+// The following function gives a func from [0,1] -> [0,1] (usually, sometimes exceed, but f(0)=0, f(1)= 1 always holds)
 func calculateEasing(x: Double, type: EASINGTYPE) -> Double {
     switch type {
     case .linear:
@@ -139,7 +154,7 @@ public class Note: Equatable, Identifiable, ObservableObject, Codable {
     @Published public var id: Int // identify usage
     @Published var noteType: NOTETYPE
     @Published var posX: Double
-    @Published var width: Double // relative size to default, keep 1 for most cases
+    @Published var width: Double // relative size to default, not implented actually
     @Published var isFake: Bool
     @Published var fallSpeed: Double // HSL per tick, relative to default
     @Published var fallSide: Bool
@@ -192,15 +207,33 @@ public class Note: Equatable, Identifiable, ObservableObject, Codable {
     }
 }
 
-class PropStatus: Codable {
-    var timeTick: Int
-    var value: Double
-    var followingEasing: EASINGTYPE
+class PropStatus: Codable, ObservableObject {
+    @Published var timeTick: Int
+    @Published var value: Double
+    @Published var followingEasing: EASINGTYPE
 
     init(timeTick: Int, value: Double, followingEasing: EASINGTYPE) {
         self.timeTick = timeTick
         self.value = value
         self.followingEasing = followingEasing
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case timeTick, value, followingEasing
+    }
+
+    public required init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        timeTick = try values.decode(Int.self, forKey: .timeTick)
+        value = try values.decode(Double.self, forKey: .value)
+        followingEasing = try values.decode(EASINGTYPE.self, forKey: .followingEasing)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(timeTick, forKey: .timeTick)
+        try container.encode(value, forKey: .value)
+        try container.encode(followingEasing, forKey: .followingEasing)
     }
 }
 
@@ -214,7 +247,7 @@ enum PROPTYPE: String, Equatable, CaseIterable, Codable {
     case displayRange
 }
 
-public class JudgeLineProps: Codable {
+public class JudgeLineProps: Codable, ObservableObject {
     @Published var controlX: [PropStatus]
     @Published var controlY: [PropStatus]
     @Published var angle: [PropStatus]
@@ -237,6 +270,7 @@ public class JudgeLineProps: Codable {
         case controlX, controlY, angle, speed, noteAlpha, lineAlpha, displayRange
     }
 
+    // I started these ... as a tmp fix, now that I think about it ... it doesn't really matter (although a bit ugly)
     func returnProp(type: PROPTYPE) -> [PropStatus] {
         switch type {
         case .controlX:
@@ -256,14 +290,42 @@ public class JudgeLineProps: Codable {
         }
     }
 
-    func removePropWhere(timeTick: Int, value: Double) {
-        controlX.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
-        controlY.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
-        angle.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
-        speed.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
-        noteAlpha.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
-        lineAlpha.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
-        displayRange.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+    func returnPropPublished(type: PROPTYPE) -> Published<[PropStatus]>.Publisher {
+        switch type {
+        case .controlX:
+            return $controlX
+        case .controlY:
+            return $controlY
+        case .angle:
+            return $angle
+        case .speed:
+            return $speed
+        case .noteAlpha:
+            return $noteAlpha
+        case .lineAlpha:
+            return $lineAlpha
+        case .displayRange:
+            return $displayRange
+        }
+    }
+
+    func removePropWhere(type: PROPTYPE, timeTick: Int, value: Double) {
+        switch type {
+        case .controlX:
+            controlX.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        case .controlY:
+            controlY.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        case .angle:
+            angle.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        case .speed:
+            speed.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        case .noteAlpha:
+            noteAlpha.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        case .lineAlpha:
+            lineAlpha.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        case .displayRange:
+            displayRange.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        }
     }
 
     func removePropAtOffset(type: PROPTYPE, offset: IndexSet) {
@@ -710,7 +772,11 @@ public class DataStructure: ObservableObject, Codable {
         let urls = fm.urls(for: .documentDirectory, in: .userDomainMask)
         if let url = urls.first {
             let tmpDirURL = url.appendingPathComponent("tmp")
-            try fm.createDirectory(at: tmpDirURL, withIntermediateDirectories: true, attributes: nil)
+            if !fm.fileExists(atPath: tmpDirURL.path) {
+                try fm.createDirectory(at: tmpDirURL, withIntermediateDirectories: true, attributes: nil)
+                // No cache to load
+                return false
+            }
             let jsonFileURL = tmpDirURL.appendingPathComponent("tmp.json")
             if fm.fileExists(atPath: jsonFileURL.path) {
                 let resolvedData = try String(contentsOf: jsonFileURL)

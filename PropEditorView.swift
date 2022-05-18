@@ -290,7 +290,7 @@ class PropEditorScene: SKScene {
             for node in nodes(at: touchLocation) {
                 if node.name == "controlNode" {
                     node.run(SKAction.fadeOut(withDuration: 0.1))
-                    data!.listOfJudgeLines[data!.editingJudgeLineNumber].props.removePropWhere(timeTick: minTick, value: touchLocation.y / size.height)
+                    data!.listOfJudgeLines[data!.editingJudgeLineNumber].props.removePropWhere(type: data!.currentPropType, timeTick: minTick, value: touchLocation.y / size.height)
                     clearAndMakePropControlNodes()
                     return
                 }

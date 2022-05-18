@@ -4,6 +4,186 @@ import SwiftUI
 struct PropSettingsView: View {
     @EnvironmentObject private var data: DataStructure
 
+    func currentPropList() -> some View {
+        switch data.currentPropType {
+        case .controlX:
+            return ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.controlX, id: \.timeTick) { $prop in
+                VStack {
+                    HStack {
+                        Text("@\(String(prop.timeTick))T:")
+                        Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
+                            Text(String(NSString(format: "%.3f", prop.value)))
+                        }
+                    }
+                    Menu {
+                        Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
+                            ForEach(EASINGTYPE.allCases, id: \.self) { type in
+                                Text(String(describing: type))
+                            }
+                        }
+                    } label: {
+                        Text(String(describing: prop.followingEasing))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }.onDelete(perform: { offset in
+                data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
+                data.rebuildScene()
+                data.objectWillChange.send()
+            })
+        case .controlY:
+            return ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.controlY, id: \.timeTick) { $prop in
+                VStack {
+                    HStack {
+                        Text("@\(String(prop.timeTick))T:")
+                        Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
+                            Text(String(NSString(format: "%.3f", prop.value)))
+                        }
+                    }
+                    Menu {
+                        Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
+                            ForEach(EASINGTYPE.allCases, id: \.self) { type in
+                                Text(String(describing: type))
+                            }
+                        }
+                    } label: {
+                        Text(String(describing: prop.followingEasing))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }.onDelete(perform: { offset in
+                data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
+                data.rebuildScene()
+                data.objectWillChange.send()
+            })
+        case .angle:
+            return ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.angle, id: \.timeTick) { $prop in
+                VStack {
+                    HStack {
+                        Text("@\(String(prop.timeTick))T:")
+                        Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
+                            Text(String(NSString(format: "%.3f", prop.value)))
+                        }
+                    }
+                    Menu {
+                        Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
+                            ForEach(EASINGTYPE.allCases, id: \.self) { type in
+                                Text(String(describing: type))
+                            }
+                        }
+                    } label: {
+                        Text(String(describing: prop.followingEasing))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }.onDelete(perform: { offset in
+                data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
+                data.rebuildScene()
+                data.objectWillChange.send()
+            })
+        case .speed:
+            return ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.speed, id: \.timeTick) { $prop in
+                VStack {
+                    HStack {
+                        Text("@\(String(prop.timeTick))T:")
+                        Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
+                            Text(String(NSString(format: "%.3f", prop.value)))
+                        }
+                    }
+                    Menu {
+                        Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
+                            ForEach(EASINGTYPE.allCases, id: \.self) { type in
+                                Text(String(describing: type))
+                            }
+                        }
+                    } label: {
+                        Text(String(describing: prop.followingEasing))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }.onDelete(perform: { offset in
+                data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
+                data.rebuildScene()
+                data.objectWillChange.send()
+            })
+        case .noteAlpha:
+            return ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.noteAlpha, id: \.timeTick) { $prop in
+                VStack {
+                    HStack {
+                        Text("@\(String(prop.timeTick))T:")
+                        Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
+                            Text(String(NSString(format: "%.3f", prop.value)))
+                        }
+                    }
+                    Menu {
+                        Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
+                            ForEach(EASINGTYPE.allCases, id: \.self) { type in
+                                Text(String(describing: type))
+                            }
+                        }
+                    } label: {
+                        Text(String(describing: prop.followingEasing))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }.onDelete(perform: { offset in
+                data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
+                data.rebuildScene()
+                data.objectWillChange.send()
+            })
+        case .lineAlpha:
+            return ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.lineAlpha, id: \.timeTick) { $prop in
+                VStack {
+                    HStack {
+                        Text("@\(String(prop.timeTick))T:")
+                        Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
+                            Text(String(NSString(format: "%.3f", prop.value)))
+                        }
+                    }
+                    Menu {
+                        Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
+                            ForEach(EASINGTYPE.allCases, id: \.self) { type in
+                                Text(String(describing: type))
+                            }
+                        }
+                    } label: {
+                        Text(String(describing: prop.followingEasing))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }.onDelete(perform: { offset in
+                data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
+                data.rebuildScene()
+                data.objectWillChange.send()
+            })
+        case .displayRange:
+            return ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.displayRange, id: \.timeTick) { $prop in
+                VStack {
+                    HStack {
+                        Text("@\(String(prop.timeTick))T:")
+                        Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
+                            Text(String(NSString(format: "%.3f", prop.value)))
+                        }
+                    }
+                    Menu {
+                        Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
+                            ForEach(EASINGTYPE.allCases, id: \.self) { type in
+                                Text(String(describing: type))
+                            }
+                        }
+                    } label: {
+                        Text(String(describing: prop.followingEasing))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }.onDelete(perform: { offset in
+                data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
+                data.rebuildScene()
+                data.objectWillChange.send()
+            })
+        }
+    }
+
     var body: some View {
         VStack {
             List {
@@ -17,34 +197,10 @@ struct PropSettingsView: View {
                     }
                 }
                 .pickerStyle(.menu)
-                // ForEach(PROPTYPE.allCases, id: \.rawValue) { propType in
                 Section(header: Text(String(describing: data.currentPropType))) {
-                    ForEach(data.listOfJudgeLines[data.editingJudgeLineNumber].props.returnProp(type: data.currentPropType), id: \.timeTick) { prop in
-                        // need update here
-                        HStack {
-                            Text("[" + String(prop.timeTick) + "T]:")
-                            Text(String(NSString(format: "%.3f", prop.value)))
-                        }
-                        HStack {
-                            Text(String(describing: prop.followingEasing))
-                            Menu("Edit") {
-                                ForEach(EASINGTYPE.allCases, id: \.self) { type in
-                                    Button(String(describing: type), action: {
-                                        data.listOfJudgeLines[data.editingJudgeLineNumber].props.updateProp(type: data.currentPropType, timeTick: prop.timeTick, value: nil, followingEasing: type)
-                                        data.objectWillChange.send()
-                                        data.rebuildScene()
-                                    })
-                                }
-                            }
-                        }
-                    }.onDelete(perform: { offset in
-                        data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
-                        data.rebuildScene()
-                        data.objectWillChange.send()
-                    })
+                    currentPropList()
                 }
                 .textCase(nil)
-                // }
             }
         }
     }
