@@ -1,9 +1,11 @@
-// this is the editor's main entrance here
+// ContentView.swift
+// Author: TianKai Ma
+// Last Reviewed: 2022-05-17 00:38
 import SwiftUI
 
 struct ContentView: View {
-    // these variables are used for location and alignment
-    // guide: reserve size*2 for boundaries, keep everything fit in place
+    // These variables are used for location and alignment
+    // Guide: reserve size*2 for boundaries, keep everything fit in place
     var screenHeight = UIScreen.main.bounds.height
     var screenWidth = UIScreen.main.bounds.width
     var size = (UIScreen.main.bounds.width + UIScreen.main.bounds.height) / 100
@@ -16,7 +18,7 @@ struct ContentView: View {
         TapGesture(count: 1)
             .onEnded { _ in
                 data.isRunning = false
-                // switch the pannel Status
+                // Change Logic of windowStatus (just reverse the pannel status)
                 switch data.windowStatus {
                 case .pannelProp: data.windowStatus = WINDOWSTATUS.prop
                 case .prop: data.windowStatus = WINDOWSTATUS.pannelProp
@@ -25,23 +27,15 @@ struct ContentView: View {
                 case .pannelPreview: data.windowStatus = WINDOWSTATUS.preview
                 case .preview: data.windowStatus = WINDOWSTATUS.pannelPreview
                 }
-                // FIXME: Logic problem here, editor size not changing properly when the button is handled
+                // FIXME: Logic problem here, editor size not changing properly when the button is handled; the problem here might be the refresh is called before the canvas realize it size is updated, so a fix to call the following function somewhere in definition.swift might help...
                 data.objectWillChange.send()
                 updateToggle.toggle()
             }
     }
 
     func shouldShowPannel() -> Bool {
-        // returns true if the left pannel show
+        // returns true if the left pannel should show up
         return (data.windowStatus == WINDOWSTATUS.pannelNote || data.windowStatus == WINDOWSTATUS.pannelProp || data.windowStatus == WINDOWSTATUS.pannelPreview)
-    }
-
-    func shouldShowNote() -> Bool {
-        return (data.windowStatus == WINDOWSTATUS.note || data.windowStatus == WINDOWSTATUS.pannelNote)
-    }
-
-    func shouldShowProp() -> Bool {
-        return (data.windowStatus == WINDOWSTATUS.prop || data.windowStatus == WINDOWSTATUS.pannelProp)
     }
 
     func getColor() -> Color {
@@ -119,6 +113,56 @@ struct ContentView: View {
             }
     }
 
+    func workSpaceTitle() -> String {
+        switch data.windowStatus {
+        case .note: return "Note Editor (on Line \(data.editingJudgeLineNumber))"
+        case .pannelNote: return "Note Editor (on Line \(data.editingJudgeLineNumber))"
+        case .prop: return "Prop Editor"
+        case .pannelProp: return "Prop Editor"
+        case .preview: return "Preview"
+        case .pannelPreview: return "Preview"
+        }
+    }
+
+    func workSpaceIcon() -> String {
+        switch data.windowStatus {
+        case .note: return "sun.min"
+        case .pannelNote: return "sun.min"
+        case .prop: return "sun.max.fill"
+        case .pannelProp: return "sun.max.fill"
+        case .preview: return "sparkles"
+        case .pannelPreview: return "sparkles"
+        }
+    }
+
+    @ViewBuilder
+    func workSpace() -> some View {
+        switch data.windowStatus {
+        case .pannelNote:
+            NoteEditorView().environmentObject(data)
+                .frame(width: screenWidth * 3 / 4 - size * 6, height: screenHeight - size * 8)
+                .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
+                .fixedSize()
+        case .note:
+            NoteEditorView().environmentObject(data)
+                .frame(width: screenWidth - size * 4, height: screenHeight - size * 8)
+                .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
+                .fixedSize()
+        case .pannelProp:
+            PropEditorView().environmentObject(data)
+                .frame(width: screenWidth * 3 / 4 - size * 6, height: screenHeight - size * 8)
+                .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
+                .fixedSize()
+        case .prop:
+            PropEditorView().environmentObject(data)
+                .frame(width: screenWidth - size * 4, height: screenHeight - size * 8)
+                .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
+                .fixedSize()
+        case .pannelPreview: Text("Unfinished")
+        case .preview: Text("Unfinished")
+        }
+    }
+
     var body: some View {
         ZStack(alignment: .center) {
             // left pannel
@@ -126,7 +170,7 @@ struct ContentView: View {
                 LazyVStack(alignment: .leading) {
                     // title
                     Text("PhiStudio").font(.title2).fontWeight(.bold)
-                    // FIXME: The tabItem is showing different on iPad, especially when you add four tabs and more, I'm not sure whether that is a feature or a bug, but please take care
+                    // FIXME: The tabItem is showing different on iPad, especially when you add four tabs and more (the VStack will then turns into a HStack... for some reason), I'm not sure whether that is a feature or a bug, but please take care (I've searched a lot about these and the following code might be the best way Apple intended, but the problem just won't fix itself)
                     TabView {
                         ChartSettings().environmentObject(data)
                             .tabItem {
@@ -136,16 +180,18 @@ struct ContentView: View {
                             .tabItem {
                                 Label("JudgeLine", systemImage: "pencil.tip.crop.circle")
                             }
-                        if shouldShowNote() {
+                        if data.windowStatus == .note || data.windowStatus == .pannelNote {
                             NoteSettingsView().environmentObject(data)
                                 .tabItem {
                                     Label("Notes", systemImage: "bolt.horizontal")
                                 }
                         } else {
-                            PropSettingsView().environmentObject(data)
-                                .tabItem {
-                                    Label("Props", systemImage: "pencil.and.outline")
-                                }
+                            if data.windowStatus == .prop || data.windowStatus == .pannelProp {
+                                PropSettingsView().environmentObject(data)
+                                    .tabItem {
+                                        Label("Props", systemImage: "pencil.and.outline")
+                                    }
+                            }
                         }
                     }
                     .frame(width: screenWidth / 4, height: screenHeight - size * 8)
@@ -157,37 +203,16 @@ struct ContentView: View {
                 .fixedSize()
             }
 
-            // Note editor & Prop Editor
-            if shouldShowNote() {
-                // Note editor
-                LazyVStack(alignment: .leading) {
-                    Text("Note Editor: on Line \(data.editingJudgeLineNumber) @ \(NSString(format: "%.3f", data.currentTimeTick))T/\(NSString(format: "%.3f", data.currentTimeTick / Double(data.tickPerBeat)))B").font(.title2).fontWeight(.bold)
-                    NoteEditorView().environmentObject(data)
-                        .frame(width: shouldShowPannel() ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
-                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
-                        .fixedSize()
-                }
-                .frame(width: shouldShowPannel() ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
-                .offset(x: shouldShowPannel() ? screenWidth / 8 + size : 0, y: size * 2)
-                .fixedSize()
-                .onAppear(perform: {
-                    data.rebuildScene()
-                })
-            } else {
-                if shouldShowProp() {
-                    // Prop Editor
-                    LazyVStack(alignment: .leading) {
-                        Text("Prop Editor").font(.title2).fontWeight(.bold)
-                        PropEditorView().environmentObject(data)
-                            .frame(width: shouldShowPannel() ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
-                            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
-                            .fixedSize()
-                    }
-                    .frame(width: shouldShowPannel() ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
-                    .offset(x: shouldShowPannel() ? screenWidth / 8 + size : 0, y: size * 2)
-                    .fixedSize()
-                }
+            LazyVStack(alignment: .leading) {
+                Text("\(workSpaceTitle()): @ \(NSString(format: "%.3f", data.currentTimeTick))T/\(NSString(format: "%.3f", data.currentTimeTick / Double(data.tickPerBeat)))B").font(.title2).fontWeight(.bold)
+                workSpace()
             }
+            .frame(width: shouldShowPannel() ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
+            .offset(x: shouldShowPannel() ? screenWidth / 8 + size : 0, y: size * 2)
+            .fixedSize()
+            .onAppear(perform: {
+                data.rebuildScene()
+            })
 
             // Switch to toggle the pannel on or off
             Image(systemName: shouldShowPannel() ? "command.circle" : "command.circle.fill").resizable()
@@ -214,7 +239,7 @@ struct ContentView: View {
                 .offset(x: -screenWidth / 2 + size * 12, y: -screenHeight / 2 + size * 3)
                 .gesture(changeLockGesture)
 
-            Image(systemName: shouldShowNote() ? "sun.min" : (shouldShowProp() ? "sun.max.fill" : "sparkles")).resizable()
+            Image(systemName: workSpaceIcon()).resizable()
                 .renderingMode(.template)
                 .frame(width: size * 2, height: size * 2)
                 .offset(x: -screenWidth / 2 + size * 15, y: -screenHeight / 2 + size * 3)

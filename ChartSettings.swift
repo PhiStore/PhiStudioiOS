@@ -1,7 +1,8 @@
-import Photos
+// ChartSettings.swift
+// Author: TianKai Ma
+// Last Reviewed: 2022-05-17 00:55
 import PhotosUI
 import SwiftUI
-import UIKit
 import UniformTypeIdentifiers
 
 let offsetRange = -10.0 ... 10.0 // acceptable offset range
@@ -64,6 +65,7 @@ struct ChartSettings: View {
     @State private var newPreferTick = 3.0
     @State private var image: Image?
     @State private var zipURL: URL?
+    @State private var showAlert = false
     @State private var showingImagePicker = false
     @State private var showingExporter = false
     @State private var showingImporter = false
@@ -79,7 +81,6 @@ struct ChartSettings: View {
                 }
                 Button("Export '.zip' file") {
                     do {
-                        // save the data first
                         try _ = data.saveCache()
                         try self.zipURL = data.exportZip()
                         showingExporter = true
@@ -94,17 +95,15 @@ struct ChartSettings: View {
                     } catch {}
                 }
                 Button("Reload from local storage") {
-                    // let alertController = UIAlertController(title: "Confirm", message: "This would override everything", preferredStyle: .actionSheet)
-                    // let cancelAction = UIAlertAction(title: "No", style: .cancel, handler: nil)
-                    // let confirmAction = UIAlertAction(title: "Confirm,", style: .default, handler: { _ in
-                    //     do {
-                    //         try _ = data.loadCache()
-                    //     } catch {}
-                    // })
-                    // alertController.addAction(cancelAction)
-                    // alertController.addAction(confirmAction)	
-                    // alertController.present(.self, animated: true, completion: nil)
-                }.foregroundColor(Color.red)
+                    showAlert = true
+                }.alert(isPresented: $showAlert) {
+                    Alert(title: Text("Confirm reload?"), message: Text("This would override all current settings"), primaryButton: .default(Text("cancel")), secondaryButton: .destructive(Text("Reload"), action: {
+                        do {
+                            try _ = data.loadCache()
+                        } catch {}
+                    }))
+                }
+                .foregroundColor(Color.red)
             }.textCase(nil)
             Section(header: Text("Information:")) {
                 HStack {
@@ -123,7 +122,7 @@ struct ChartSettings: View {
                     Text("Chart Author:")
                     TextField("Chart Author", text: $data.chartAuthorName).foregroundColor(Color.orange)
                 }
-                Menu("Copyright: \(String(describing: data.copyright).uppercased())") {
+                Menu("Copyright: \(String(describing: data.copyright).capitalizingFirstLetter())") {
                     Button("[Full copyright]", action: {
                         data.copyright = .full
                     })
@@ -135,13 +134,14 @@ struct ChartSettings: View {
                     })
                 }
             }.textCase(nil)
-            Section(header: Text("Variables:")) {
+            Section(header: Text("Settings:")) {
                 Stepper(value: $data.offsetSecond, in: offsetRange, step: 0.005) {
-                    Text("Offset: \(NSString(format: "%.3f", data.offsetSecond))s")
+                    Text("Offset: \(NSString(format: "%.3f", data.offsetSecond)) s")
                 }
 
                 Toggle(isOn: $data.bpmChangeAccrodingToTime) {
                     Text("Allow BPM changes")
+                        .foregroundColor(.red)
                 }
                 if !data.bpmChangeAccrodingToTime {
                     Stepper(value: $data.bpm) {
@@ -152,13 +152,13 @@ struct ChartSettings: View {
                     Button("Edit BPM Props") {}
                 }
                 Stepper(value: $data.chartLengthSecond, in: chartLengthRange) {
-                    Text("Length: \(data.chartLengthSecond)s")
+                    Text("Length: \(data.chartLengthSecond) s")
                 }
             }.textCase(nil)
 
-            Section(header: Text("Preferred Ticks")) {
+            Section(header: Text("HighLight Tick:")) {
                 ForEach($data.highlightedTicks, id: \.value) { $tick in
-                    ColorPicker("Tick: 1/" + String(tick.value), selection: $tick.color)
+                    ColorPicker("Beat: 1/" + String(tick.value), selection: $tick.color)
 
                 }.onDelete(perform: { offset in
                     data.highlightedTicks.remove(atOffsets: offset)
@@ -166,9 +166,9 @@ struct ChartSettings: View {
 
                 VStack {
                     Stepper(value: $newPreferTick, in: 0 ... Double(data.tickPerBeat), step: 1) {
-                        Text("NewTick: 1/\(Int(newPreferTick))")
+                        Text("New Beat: 1/\(Int(newPreferTick))")
                     }
-                    Button("Add tick", action: {
+                    Button("Add", action: {
                         if data.highlightedTicks.filter({ $0.value == Int(newPreferTick) }).count != 0 || data.tickPerBeat % Int(newPreferTick) != 0 {
                             return
                         } else {
@@ -185,35 +185,29 @@ struct ChartSettings: View {
                 Stepper(value: $data.tickPerBeat,
                         onEditingChanged: { _ in }) {
                     Text("Tick: \(data.tickPerBeat)")
-                }
+                }.foregroundColor(.red)
             }
         }.sheet(isPresented: $showingImagePicker) {
             let configuration = PHPickerConfiguration(photoLibrary: PHPhotoLibrary.shared())
             ImagePicker(Image: $data.imageFile, isPresented: $showingImagePicker, configuration: configuration)
         }
         .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.zip, .mp3], allowsMultipleSelection: false) { result in
+            // Hint here: the file importer doesn't actually care which button user hit, whether it's importing a .zip file or a .mp3 file, they're all handled here.
             do {
                 guard let selectedFile: URL = try result.get().first else { return }
-                if selectedFile.pathExtension == "zip" {
-                    if selectedFile.startAccessingSecurityScopedResource() {
-                        let fm = FileManager.default
-                        let urls = fm.urls(for: .documentDirectory, in: .userDomainMask)
-                        if let url = urls.first {
+                if selectedFile.startAccessingSecurityScopedResource() {
+                    let fm = FileManager.default
+                    let urls = fm.urls(for: .documentDirectory, in: .userDomainMask)
+                    if let url = urls.first {
+                        // TODO: I would probably argue that this part of logic should move to definition.swift...
+                        if selectedFile.pathExtension == "zip" {
                             let fileURL = url.appendingPathComponent("import.zip")
                             if fm.fileExists(atPath: fileURL.path) {
                                 try fm.removeItem(at: fileURL)
                             }
                             try fm.copyItem(at: selectedFile, to: fileURL)
                             try _ = self.data.importZip()
-                        }
-                    } else {
-                        // Handle denied access
-                    }
-                } else {
-                    if selectedFile.startAccessingSecurityScopedResource() {
-                        let fm = FileManager.default
-                        let urls = fm.urls(for: .documentDirectory, in: .userDomainMask)
-                        if let url = urls.first {
+                        } else {
                             let dirPath = url.appendingPathComponent("tmp")
                             if !fm.fileExists(atPath: dirPath.path) {
                                 try fm.createDirectory(at: dirPath, withIntermediateDirectories: true, attributes: nil)
@@ -225,11 +219,12 @@ struct ChartSettings: View {
                             try fm.copyItem(at: selectedFile, to: fileURL)
                             data.audioFileURL = fileURL
                         }
-                    } else {}
+                    }
+                } else {
+                    print("[Err]: Denied access to user-seleted file at ChartSettings.swift")
                 }
-
             } catch {
-                // Handle failure.
+                print(error)
             }
         }
         .fileExporter(isPresented: $showingExporter, document: URLExportDocument(data: data), contentType: .zip, onCompletion: { _ in })

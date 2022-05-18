@@ -4,13 +4,11 @@ public var editingProps: JudgeLineProps = .init()
 
 struct JudgeLineSettings: View {
     @EnvironmentObject private var data: DataStructure
-
     var body: some View {
         List {
             Section(header: Text("Global Operations")) {
                 Button("New JudgeLine") {
-                    // automatically append to the end,
-                    // new judgeLine's id will be the last id + 1
+                    // Automatically append to the end, new judgeLine's id will be the last id + 1
                     for i in 0 ..< data.listOfJudgeLines.count {
                         data.listOfJudgeLines[i].id = i
                     }
@@ -38,7 +36,7 @@ struct JudgeLineSettings: View {
 
                     Button(action: {
                         data.listOfJudgeLines.removeAll(where: { $0.id == _judgeLine.id && $0.id != 0 })
-                        // refuse to delete id = 1 judgeLine.
+                        // Refuse to delete id = 0 judgeLine.
                         for i in 0 ..< data.listOfJudgeLines.count {
                             data.listOfJudgeLines[i].id = i
                         }
