@@ -269,6 +269,40 @@ public class JudgeLineProps: Codable, ObservableObject {
     enum CodingKeys: String, CodingKey {
         case controlX, controlY, angle, speed, noteAlpha, lineAlpha, displayRange
     }
+    
+    func calculateValue(type: PROPTYPE, timeTick: Double) -> Double {
+        var prop = returnProp(type: type)
+        if prop.count == 0{
+            return 0 // WARNING: this should NOT happen, add logic so the user cannot delete the first prop
+        }
+        prop = prop.sorted {$0.timeTick < $1.timeTick}
+        if timeTick < Double(prop[0].timeTick){
+            return prop[0].value
+        }
+        for index in 1..<(prop.count - 1) {
+            if Double(prop[index].timeTick) > timeTick {
+                return prop[index-1].value + calculateEasing(x: (timeTick - Double(prop[index-1].timeTick)) / (Double(prop[index].timeTick) - Double(prop[index-1].timeTick)), type: prop[index-1].followingEasing) * (prop[index].value -  prop[index-1].value)
+            }
+        }
+        return prop[prop.count-1].value // remain the same at the end
+    }
+    
+    func calculatePosition(timeTick: Double) -> Double {
+        if speed.count == 0 {
+            return 0 // this should not happen as well
+        }
+        speed = speed.sorted {$0.timeTick < $1.timeTick}
+        if timeTick < Double(speed[0].timeTick) {
+            return 0 // also, this should not be possible because timeTick is >=0 and the first value at point 0 is un-deletable
+        }
+        var result = 0.0
+        for index in 1..<(speed.count - 1) {
+            if (Double(speed[index].timeTick) <= timeTick) {
+                
+            }
+        }
+        return 0.0 //tmp fix
+    }
 
     // I started these ... as a tmp fix, now that I think about it ... it doesn't really matter (although a bit ugly)
     func returnProp(type: PROPTYPE) -> [PropStatus] {
@@ -287,25 +321,6 @@ public class JudgeLineProps: Codable, ObservableObject {
             return lineAlpha
         case .displayRange:
             return displayRange
-        }
-    }
-
-    func returnPropPublished(type: PROPTYPE) -> Published<[PropStatus]>.Publisher {
-        switch type {
-        case .controlX:
-            return $controlX
-        case .controlY:
-            return $controlY
-        case .angle:
-            return $angle
-        case .speed:
-            return $speed
-        case .noteAlpha:
-            return $noteAlpha
-        case .lineAlpha:
-            return $lineAlpha
-        case .displayRange:
-            return $displayRange
         }
     }
 
@@ -552,7 +567,7 @@ public class DataStructure: ObservableObject, Codable {
     private var scheduleTimer = Timer()
     private var timeWhenStartSecond: Double?
     private var lastStartTick = 0.0
-    private let updateTimeIntervalSecond = 0.5
+    private let updateTimeIntervalSecond = 0.1
     @Published var offsetSecond: Double
     @Published var bpm: Int {
         didSet {
@@ -656,13 +671,13 @@ public class DataStructure: ObservableObject, Codable {
             } else {
                 // FIXME: timetick handle is not correct here...
                 // in order to sync with spriteKit, you should use ... uh move detection to find how much distance each node has traveled
-                noteEditScene.pauseRunning()
-                propEditScene.pauseRunning()
-                if let t = timeWhenStartSecond {
-                    shouldUpdateFrame = false
-                    currentTimeTick = min((Date().timeIntervalSince1970 - t) * Double(tickPerBeat) * Double(bpm) / 60.0 + lastStartTick, Double(chartLengthTick()))
+                if timeWhenStartSecond != nil {
+                    noteEditScene.pauseRunning()
+                    propEditScene.pauseRunning()
+//                    shouldUpdateFrame = false
+//                    currentTimeTick = min((Date().timeIntervalSince1970 - t) * Double(tickPerBeat) * Double(bpm) / 60.0 + lastStartTick, Double(chartLengthTick()))
                     timeWhenStartSecond = nil
-                    shouldUpdateFrame = true
+//                    shouldUpdateFrame = true
                 }
                 audioPlayer?.stop()
             }
@@ -671,6 +686,7 @@ public class DataStructure: ObservableObject, Codable {
 
     var noteEditScene: NoteEditorScene
     var propEditScene: PropEditorScene
+    var chartPreviewScene: ChartPreviewScene
 
     @objc func updateCurrentTime() {
         if isRunning {
@@ -698,8 +714,6 @@ public class DataStructure: ObservableObject, Codable {
         noteEditScene.clearAndMakeLint()
         noteEditScene.clearAndMakeJudgeLines()
         noteEditScene.clearAndMakeNotes()
-//        noteEditScene.view?.showsFPS = true
-//        noteEditScene.view?.showsNodeCount = true
         propEditScene.size = canvasSize
         propEditScene.data = self
         propEditScene.scaleMode = .aspectFit
@@ -839,6 +853,7 @@ public class DataStructure: ObservableObject, Codable {
         isRunning = false
         noteEditScene = NoteEditorScene()
         propEditScene = PropEditorScene()
+        chartPreviewScene = ChartPreviewScene()
         do {
             try _ = loadCache()
         } catch {}
@@ -888,6 +903,7 @@ public class DataStructure: ObservableObject, Codable {
         currentPropType = try container.decode(PROPTYPE.self, forKey: .currentPropType)
         noteEditScene = NoteEditorScene()
         propEditScene = PropEditorScene()
+        chartPreviewScene = ChartPreviewScene()
         isRunning = false
     }
 

@@ -263,9 +263,10 @@ class NoteEditorScene: SKScene {
             return res
         }
         linkedNodes.forEach {
-            if let _action = $0.action(forKey: "moving") {
-                _action.speed = 0
-            }
+//            if let _action = $0.action(forKey: "moving") {
+//                _action.speed = 0
+//            }
+            $0.removeAllActions()
         }
     }
 
