@@ -9,10 +9,10 @@ struct ContentView: View {
     var screenHeight = UIScreen.main.bounds.height
     var screenWidth = UIScreen.main.bounds.width
     var size = (UIScreen.main.bounds.width + UIScreen.main.bounds.height) / 100
-    
+
     @StateObject private var data = DataStructure()
     @State private var updateToggle = false
-    
+
     var pannelGesture: some Gesture {
         TapGesture(count: 1)
             .onEnded { _ in
@@ -30,11 +30,11 @@ struct ContentView: View {
                 updateToggle.toggle()
             }
     }
-    
+
     func shouldShowPannel() -> Bool {
         return (data.windowStatus == WINDOWSTATUS.pannelNote || data.windowStatus == WINDOWSTATUS.pannelProp || data.windowStatus == WINDOWSTATUS.pannelPreview)
     }
-    
+
     func getColor() -> Color {
         switch data.currentNoteType {
         case .Tap: return Color.blue
@@ -43,7 +43,7 @@ struct ContentView: View {
         case .Drag: return Color.yellow
         }
     }
-    
+
     var switchColor: some Gesture {
         TapGesture(count: 1)
             .onEnded { _ in
@@ -55,7 +55,7 @@ struct ContentView: View {
                 }
             }
     }
-    
+
     var refreshGesture: some Gesture {
         TapGesture(count: 1)
             .onEnded { _ in
@@ -64,14 +64,14 @@ struct ContentView: View {
                 updateToggle.toggle()
             }
     }
-    
+
     var changeLockGesture: some Gesture {
         TapGesture(count: 1)
             .onEnded {
                 data.locked.toggle()
             }
     }
-    
+
     var changeEditorGesture: some Gesture {
         TapGesture(count: 1)
             .onEnded {
@@ -86,14 +86,14 @@ struct ContentView: View {
                 }
             }
     }
-    
+
     var playOrStop: some Gesture {
         TapGesture(count: 1)
             .onEnded { _ in
                 data.isRunning.toggle()
             }
     }
-    
+
     var fowardFive: some Gesture {
         TapGesture(count: 1)
             .onEnded { _ in
@@ -101,7 +101,7 @@ struct ContentView: View {
                 data.currentTimeTick += 5.0
             }
     }
-    
+
     var backwardFive: some Gesture {
         TapGesture(count: 1)
             .onEnded { _ in
@@ -109,7 +109,7 @@ struct ContentView: View {
                 data.currentTimeTick -= 5.0
             }
     }
-    
+
     func workSpaceTitle() -> String {
         switch data.windowStatus {
         case .note: return "Note Editor (on Line \(data.editingJudgeLineNumber))"
@@ -120,7 +120,7 @@ struct ContentView: View {
         case .pannelPreview: return "Preview"
         }
     }
-    
+
     func workSpaceIcon() -> String {
         switch data.windowStatus {
         case .note: return "sun.min"
@@ -131,7 +131,7 @@ struct ContentView: View {
         case .pannelPreview: return "sparkles"
         }
     }
-    
+
     @ViewBuilder
     func workSpace() -> some View {
         switch data.windowStatus {
@@ -163,7 +163,7 @@ struct ContentView: View {
         case .preview: Text("Unfinished")
         }
     }
-    
+
     var body: some View {
         ZStack(alignment: .center) {
             // left pannel
