@@ -134,33 +134,25 @@ struct ContentView: View {
 
     @ViewBuilder
     func workSpace() -> some View {
-        switch data.windowStatus {
-        case .pannelNote:
+        if data.windowStatus == .pannelNote || data.windowStatus == .note {
             NoteEditorView().environmentObject(data)
-                .frame(width: screenWidth * 3 / 4 - size * 6, height: screenHeight - size * 8)
+                .frame(width: (data.windowStatus == .pannelNote) ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
                 .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
                 .fixedSize()
-        case .note:
-            NoteEditorView().environmentObject(data)
-                .frame(width: screenWidth - size * 4, height: screenHeight - size * 8)
-                .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
-                .fixedSize()
-        case .pannelProp:
-            PropEditorView().environmentObject(data)
-                .frame(width: screenWidth * 3 / 4 - size * 6, height: screenHeight - size * 8)
-                .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
-                .fixedSize()
-        case .prop:
-            PropEditorView().environmentObject(data)
-                .frame(width: screenWidth - size * 4, height: screenHeight - size * 8)
-                .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
-                .fixedSize()
-        case .pannelPreview:
-            ChartPreview().environmentObject(data)
-                .frame(width: screenWidth * 3 / 4 - size * 6, height: screenHeight - size * 8)
-                .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
-                .fixedSize()
-        case .preview: Text("Unfinished")
+        } else {
+            if data.windowStatus == .pannelProp || data.windowStatus == .prop {
+                PropEditorView().environmentObject(data)
+                    .frame(width: (data.windowStatus == .pannelProp) ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
+                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
+                    .fixedSize()
+            } else {
+                if data.windowStatus == .pannelPreview || data.windowStatus == .preview {
+                    ChartPreview().environmentObject(data)
+                        .frame(width: (data.windowStatus == .pannelPreview) ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
+                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
+                        .fixedSize()
+                }
+            }
         }
     }
 

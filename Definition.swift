@@ -269,39 +269,37 @@ public class JudgeLineProps: Codable, ObservableObject {
     enum CodingKeys: String, CodingKey {
         case controlX, controlY, angle, speed, noteAlpha, lineAlpha, displayRange
     }
-    
+
     func calculateValue(type: PROPTYPE, timeTick: Double) -> Double {
         var prop = returnProp(type: type)
-        if prop.count == 0{
+        if prop.count == 0 {
             return 0 // WARNING: this should NOT happen, add logic so the user cannot delete the first prop
         }
-        prop = prop.sorted {$0.timeTick < $1.timeTick}
-        if timeTick < Double(prop[0].timeTick){
+        prop = prop.sorted { $0.timeTick < $1.timeTick }
+        if timeTick < Double(prop[0].timeTick) {
             return prop[0].value
         }
-        for index in 1..<(prop.count - 1) {
+        for index in 1 ..< (prop.count - 1) {
             if Double(prop[index].timeTick) > timeTick {
-                return prop[index-1].value + calculateEasing(x: (timeTick - Double(prop[index-1].timeTick)) / (Double(prop[index].timeTick) - Double(prop[index-1].timeTick)), type: prop[index-1].followingEasing) * (prop[index].value -  prop[index-1].value)
+                return prop[index - 1].value + calculateEasing(x: (timeTick - Double(prop[index - 1].timeTick)) / (Double(prop[index].timeTick) - Double(prop[index - 1].timeTick)), type: prop[index - 1].followingEasing) * (prop[index].value - prop[index - 1].value)
             }
         }
-        return prop[prop.count-1].value // remain the same at the end
+        return prop[prop.count - 1].value // remain the same at the end
     }
-    
+
     func calculatePosition(timeTick: Double) -> Double {
         if speed.count == 0 {
             return 0 // this should not happen as well
         }
-        speed = speed.sorted {$0.timeTick < $1.timeTick}
+        speed = speed.sorted { $0.timeTick < $1.timeTick }
         if timeTick < Double(speed[0].timeTick) {
             return 0 // also, this should not be possible because timeTick is >=0 and the first value at point 0 is un-deletable
         }
         var result = 0.0
-        for index in 1..<(speed.count - 1) {
-            if (Double(speed[index].timeTick) <= timeTick) {
-                
-            }
+        for index in 1 ..< (speed.count - 1) {
+            if Double(speed[index].timeTick) <= timeTick {}
         }
-        return 0.0 //tmp fix
+        return 0.0 // tmp fix
     }
 
     // I started these ... as a tmp fix, now that I think about it ... it doesn't really matter (although a bit ugly)
@@ -624,9 +622,10 @@ public class DataStructure: ObservableObject, Codable {
     @Published var chartAuthorName: String
     @Published var windowStatus: WINDOWSTATUS {
         willSet {
+            rebuildScene(_windowStatus: newValue)
             objectWillChange.send()
-            rebuildScene()
         }
+        didSet {}
     }
 
     @Published var locked: Bool
@@ -639,7 +638,7 @@ public class DataStructure: ObservableObject, Codable {
 
     @Published var listOfJudgeLines: [JudgeLine]
     @Published var editingJudgeLineNumber: Int
-    @Published var shouldUpdateFrame: Bool = true // tmp variable passed to identify whether the frame should be refreshed, this should NOT be included in the exportFile
+    @Published var shouldUpdateFrame: Bool = true
     @Published var currentTimeTick: Double {
         didSet {
             if currentTimeTick < 0 {
@@ -669,15 +668,10 @@ public class DataStructure: ObservableObject, Codable {
                 audioPlayer?.currentTime = currentTimeTick / Double(tickPerBeat) / Double(bpm) * 60.0 - offsetSecond
                 audioPlayer?.play()
             } else {
-                // FIXME: timetick handle is not correct here...
-                // in order to sync with spriteKit, you should use ... uh move detection to find how much distance each node has traveled
                 if timeWhenStartSecond != nil {
                     noteEditScene.pauseRunning()
                     propEditScene.pauseRunning()
-//                    shouldUpdateFrame = false
-//                    currentTimeTick = min((Date().timeIntervalSince1970 - t) * Double(tickPerBeat) * Double(bpm) / 60.0 + lastStartTick, Double(chartLengthTick()))
                     timeWhenStartSecond = nil
-//                    shouldUpdateFrame = true
                 }
                 audioPlayer?.stop()
             }
@@ -701,11 +695,17 @@ public class DataStructure: ObservableObject, Codable {
         return chartLengthSecond * tickPerBeat * bpm / 60
     }
 
-    func rebuildScene() {
+    func rebuildScene(_windowStatus: WINDOWSTATUS? = nil) {
+        var renderStatus: WINDOWSTATUS?
+        if _windowStatus == nil {
+            renderStatus = windowStatus
+        } else {
+            renderStatus = _windowStatus
+        }
         let screenWidth = UIScreen.main.bounds.width
         let screenHeight = UIScreen.main.bounds.height
         let size = (screenWidth + screenHeight) / 100
-        let canvasSize = CGSize(width: (windowStatus == .pannelNote || windowStatus == .pannelProp) ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
+        let canvasSize = CGSize(width: (renderStatus == .pannelNote || renderStatus == .pannelProp || renderStatus == .pannelPreview) ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
         noteEditScene.size = canvasSize
         noteEditScene.data = self
         noteEditScene.scaleMode = .aspectFit

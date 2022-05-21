@@ -7,13 +7,13 @@ class ChartPreviewScene: SKScene {
     var noteNodeTemplate: SKShapeNode?
     var backgroundImageNodeTemplate: SKSpriteNode?
     var timeLintNodeTemplate: SKLabelNode?
-    
-    var nodeLinks: [(SKNode,SKNode)] = []
+
+    var nodeLinks: [(SKNode, SKNode)] = []
     func link(nodeA: SKNode, to nodeB: SKNode) {
         let pair = (nodeA, nodeB)
         nodeLinks.append(pair)
     }
-    
+
     func removeNodesLinked(to node: SKNode) {
         let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
             var res = res
@@ -28,7 +28,7 @@ class ChartPreviewScene: SKScene {
         linkedNodes.forEach { $0.removeFromParent() }
         nodeLinks = nodeLinks.filter { $0.0 != node && $0.1 != node }
     }
-    
+
     func updateCanvasSize() {
         judgeLineNodeTemplate = {
             let judgeLineNodeTemplate = SKShapeNode(rectOf: CGSize(width: size.width, height: 2))
@@ -38,8 +38,6 @@ class ChartPreviewScene: SKScene {
             return judgeLineNodeTemplate
         }()
     }
-    
-    
 }
 
 struct ChartPreview: View {
