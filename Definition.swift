@@ -247,6 +247,25 @@ enum PROPTYPE: String, Equatable, CaseIterable, Codable {
     case displayRange
 }
 
+func descriptionForPropType(type: PROPTYPE) -> String {
+    switch type {
+    case .controlX:
+        return "Control X is to identify the X location of the judgeLine, a number between [0,1], 0 means left and 1 means right, this controls one point on the judgeLine (that is also used to control the movements of other notes)"
+    case .controlY:
+        return "Control Y is to identify the Y location of the judgeLine, a number between [0,1], 0 means buttom and 1 means top, this controls one point on the judgeLine (that is also used to control the movements of other notes)"
+    case .angle:
+        return "Angle is to identify the angle of the judgeLine, a number between [0,1), 0 means horizontal and 1/4 means vertical (left being the default fallside) ... eta, this * 2 pi means the angle between the judgeLine and the horizontal line"
+    case .speed:
+        return "Speed is to control the fallspeed of all notes on the judgeLine, the value should * 10 to get the real result (0.1 means default speed)"
+    case .noteAlpha:
+        return "Note Alpha is to control the alpha of all notes on the judgeLine, 0 being completely transparent and 1 being completely opaque"
+    case .lineAlpha:
+        return "Line Alpha is to control the alpha of the judgeLine, 0 being completely transparent and 1 being completely opaque"
+    case .displayRange:
+        return "Display Range is to control the range of the judgeLine, a number between [0,1], 0 means the note on judgeLine is completely invisible during falldown and 1 means the note on judgeLine is completely visible during falldown, the value is handled with the screen's width"
+    }
+}
+
 public class JudgeLineProps: Codable, ObservableObject {
     @Published var controlX: [PropStatus]
     @Published var controlY: [PropStatus]
@@ -258,12 +277,12 @@ public class JudgeLineProps: Codable, ObservableObject {
 
     init() {
         controlX = [PropStatus(timeTick: 0, value: 0.5, followingEasing: .linear)]
-        controlY = []
-        angle = []
-        speed = []
-        noteAlpha = []
-        lineAlpha = []
-        displayRange = []
+        controlY = [PropStatus(timeTick: 0, value: 0.5, followingEasing: .linear)]
+        angle = [PropStatus(timeTick: 0, value: 0, followingEasing: .linear)]
+        speed = [PropStatus(timeTick: 0, value: 0.1, followingEasing: .linear)]
+        noteAlpha = [PropStatus(timeTick: 0, value: 1, followingEasing: .linear)]
+        lineAlpha = [PropStatus(timeTick: 0, value: 1, followingEasing: .linear)]
+        displayRange = [PropStatus(timeTick: 0, value: 1, followingEasing: .linear)]
     }
 
     enum CodingKeys: String, CodingKey {
@@ -279,9 +298,11 @@ public class JudgeLineProps: Codable, ObservableObject {
         if timeTick < Double(prop[0].timeTick) {
             return prop[0].value
         }
-        for index in 1 ..< (prop.count - 1) {
-            if Double(prop[index].timeTick) > timeTick {
-                return prop[index - 1].value + calculateEasing(x: (timeTick - Double(prop[index - 1].timeTick)) / (Double(prop[index].timeTick) - Double(prop[index - 1].timeTick)), type: prop[index - 1].followingEasing) * (prop[index].value - prop[index - 1].value)
+        if prop.count > 1 {
+            for index in 1 ..< (prop.count - 1) {
+                if Double(prop[index].timeTick) > timeTick {
+                    return prop[index - 1].value + calculateEasing(x: (timeTick - Double(prop[index - 1].timeTick)) / (Double(prop[index].timeTick) - Double(prop[index - 1].timeTick)), type: prop[index - 1].followingEasing) * (prop[index].value - prop[index - 1].value)
+                }
             }
         }
         return prop[prop.count - 1].value // remain the same at the end
@@ -674,6 +695,7 @@ public class DataStructure: ObservableObject, Codable {
                     timeWhenStartSecond = nil
                 }
                 audioPlayer?.stop()
+                rebuildLineAndNote()
             }
         }
     }
@@ -706,6 +728,7 @@ public class DataStructure: ObservableObject, Codable {
         let screenHeight = UIScreen.main.bounds.height
         let size = (screenWidth + screenHeight) / 100
         let canvasSize = CGSize(width: (renderStatus == .pannelNote || renderStatus == .pannelProp || renderStatus == .pannelPreview) ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
+
         noteEditScene.size = canvasSize
         noteEditScene.data = self
         noteEditScene.scaleMode = .aspectFit
@@ -714,12 +737,19 @@ public class DataStructure: ObservableObject, Codable {
         noteEditScene.clearAndMakeLint()
         noteEditScene.clearAndMakeJudgeLines()
         noteEditScene.clearAndMakeNotes()
+
         propEditScene.size = canvasSize
         propEditScene.data = self
         propEditScene.scaleMode = .aspectFit
         propEditScene.clearAndMakeIndexLines()
         propEditScene.clearAndMakePropControlNodes()
         propEditScene.clearAndMakeLint()
+
+        chartPreviewScene.size = canvasSize
+        chartPreviewScene.data = self
+        chartPreviewScene.scaleMode = .aspectFit
+        chartPreviewScene.updateCanvasSize()
+        chartPreviewScene.prepareStaticJudgeLines()
     }
 
     func rebuildLineAndNote() {
@@ -727,6 +757,7 @@ public class DataStructure: ObservableObject, Codable {
         noteEditScene.clearAndMakeNotes()
         propEditScene.clearAndMakeIndexLines()
         propEditScene.clearAndMakePropControlNodes()
+        chartPreviewScene.prepareStaticJudgeLines()
     }
 
     func saveCache() throws -> Bool {

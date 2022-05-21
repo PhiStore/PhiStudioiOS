@@ -9,6 +9,7 @@ class PropEditorScene: SKScene {
 
     var controlNodeTemplate: SKShapeNode?
     var controlCurveNodeTemplate: SKShapeNode?
+    var controlCurveLabelNodeTemplate: SKLabelNode?
     var indexLineNodeTemplate: SKShapeNode?
     var indexLineLabelNodeTemplate: SKLabelNode?
     var lintNodeTemplate: SKShapeNode?
@@ -138,6 +139,20 @@ class PropEditorScene: SKScene {
             removeNodesLinked(to: controlCurveNodeTemplate!)
         }
 
+        if controlCurveLabelNodeTemplate == nil {
+            controlCurveLabelNodeTemplate = {
+                let controlCurveLabelNodeTemplate = SKLabelNode(fontNamed: "AmericanTypewriter")
+                controlCurveLabelNodeTemplate.fontSize = 15
+                controlCurveLabelNodeTemplate.fontColor = SKColor.green
+                controlCurveLabelNodeTemplate.name = "controlCurveLabel"
+                controlCurveLabelNodeTemplate.verticalAlignmentMode = .center
+                controlCurveLabelNodeTemplate.horizontalAlignmentMode = .left
+                return controlCurveLabelNodeTemplate
+            }()
+        } else {
+            removeNodesLinked(to: controlCurveLabelNodeTemplate!)
+        }
+
         let RelativePostionX = 50 + _distanceH * (data!.currentTimeTick - Double(Int(data!.currentTimeTick)))
 
         for propType in PROPTYPE.allCases {
@@ -183,6 +198,11 @@ class PropEditorScene: SKScene {
                 addChild(controlCurveNode)
                 link(nodeA: controlCurveNode, to: controlCurveNodeTemplate!)
             }
+            var controlCurveLabel = controlCurveLabelNodeTemplate!.copy() as! SKLabelNode
+            controlCurveLabel.position = CGPoint(x: 50, y: size.height * data!.listOfJudgeLines[data!.editingJudgeLineNumber].props.calculateValue(type: propType, timeTick: data!.currentTimeTick))
+            controlCurveLabel.text = String(describing: propType)
+            link(nodeA: controlCurveLabel, to: controlCurveLabelNodeTemplate!)
+            addChild(controlCurveLabel)
         }
     }
 
@@ -319,10 +339,10 @@ class PropEditorScene: SKScene {
             let touchLocation = _touch.location(in: self)
             let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
                 var res = res
-                if pair.0 == controlNodeTemplate || pair.0 == indexLineNodeTemplate || pair.0 == indexLineLabelNodeTemplate || pair.0 == controlCurveNodeTemplate {
+                if pair.0 == controlNodeTemplate || pair.0 == indexLineNodeTemplate || pair.0 == indexLineLabelNodeTemplate || pair.0 == controlCurveNodeTemplate || pair.0 == controlCurveLabelNodeTemplate {
                     res.insert(pair.1)
                 }
-                if pair.1 == controlNodeTemplate || pair.1 == indexLineNodeTemplate || pair.1 == indexLineLabelNodeTemplate || pair.1 == controlCurveNodeTemplate {
+                if pair.1 == controlNodeTemplate || pair.1 == indexLineNodeTemplate || pair.1 == indexLineLabelNodeTemplate || pair.1 == controlCurveNodeTemplate || pair.1 == controlCurveLabelNodeTemplate {
                     res.insert(pair.0)
                 }
                 return res

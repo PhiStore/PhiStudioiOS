@@ -197,6 +197,8 @@ struct PropSettingsView: View {
                     }
                 }
                 .pickerStyle(.menu)
+                Text(descriptionForPropType(type: data.currentPropType))
+
                 Section(header: Text(String(describing: data.currentPropType))) {
                     currentPropList()
                 }

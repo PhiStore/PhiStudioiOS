@@ -114,8 +114,8 @@ struct ContentView: View {
         switch data.windowStatus {
         case .note: return "Note Editor (on Line \(data.editingJudgeLineNumber))"
         case .pannelNote: return "Note Editor (on Line \(data.editingJudgeLineNumber))"
-        case .prop: return "Prop Editor"
-        case .pannelProp: return "Prop Editor"
+        case .prop: return "Prop Editor (on Line \(data.editingJudgeLineNumber))"
+        case .pannelProp: return "Prop Editor (on Line \(data.editingJudgeLineNumber))"
         case .preview: return "Preview"
         case .pannelPreview: return "Preview"
         }
