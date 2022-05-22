@@ -291,14 +291,11 @@ public class JudgeLineProps: Codable, ObservableObject {
 
     func calculateValue(type: PROPTYPE, timeTick: Double) -> Double {
         var prop = returnProp(type: type)
-        if prop.count == 0 {
-            return 0 // WARNING: this should NOT happen, add logic so the user cannot delete the first prop
-        }
         prop = prop.sorted { $0.timeTick < $1.timeTick }
         if timeTick < Double(prop[0].timeTick) {
             return prop[0].value
         }
-        if prop.count > 1 {
+        if prop.count >= 2 {
             for index in 1 ..< (prop.count - 1) {
                 if Double(prop[index].timeTick) > timeTick {
                     return prop[index - 1].value + calculateEasing(x: (timeTick - Double(prop[index - 1].timeTick)) / (Double(prop[index].timeTick) - Double(prop[index - 1].timeTick)), type: prop[index - 1].followingEasing) * (prop[index].value - prop[index - 1].value)
@@ -309,9 +306,6 @@ public class JudgeLineProps: Codable, ObservableObject {
     }
 
     func calculatePosition(timeTick: Double) -> Double {
-        if speed.count == 0 {
-            return 0 // this should not happen as well
-        }
         speed = speed.sorted { $0.timeTick < $1.timeTick }
         if timeTick < Double(speed[0].timeTick) {
             return 0 // also, this should not be possible because timeTick is >=0 and the first value at point 0 is un-deletable
@@ -344,6 +338,9 @@ public class JudgeLineProps: Codable, ObservableObject {
     }
 
     func removePropWhere(type: PROPTYPE, timeTick: Int, value: Double) {
+        if timeTick == 0 {
+            return
+        }
         switch type {
         case .controlX:
             controlX.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
@@ -682,6 +679,7 @@ public class DataStructure: ObservableObject, Codable {
             if isRunning {
                 noteEditScene.startRunning()
                 propEditScene.startRunning()
+                chartPreviewScene.startRunning()
                 lastStartTick = currentTimeTick
                 timeWhenStartSecond = Date().timeIntervalSince1970
                 scheduleTimer = Timer.scheduledTimer(timeInterval: updateTimeIntervalSecond, target: self, selector: #selector(updateCurrentTime), userInfo: nil, repeats: true)
@@ -692,6 +690,7 @@ public class DataStructure: ObservableObject, Codable {
                 if timeWhenStartSecond != nil {
                     noteEditScene.pauseRunning()
                     propEditScene.pauseRunning()
+                    chartPreviewScene.pauseRunning()
                     timeWhenStartSecond = nil
                 }
                 audioPlayer?.stop()
@@ -715,6 +714,10 @@ public class DataStructure: ObservableObject, Codable {
 
     func chartLengthTick() -> Int {
         return chartLengthSecond * tickPerBeat * bpm / 60
+    }
+
+    func tickToSecond(_ tick: Double) -> Double {
+        return tick / Double(tickPerBeat * bpm) * 60.0
     }
 
     func rebuildScene(_windowStatus: WINDOWSTATUS? = nil) {
