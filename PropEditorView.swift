@@ -190,6 +190,7 @@ class PropEditorScene: SKScene {
                     addChild(controlNode)
                 }
 
+                besselPath.addLine(to: CGPoint(x: (Double(data!.chartLengthTick()) - data!.currentTimeTick) * _distanceH + RelativePostionX, y: size.height * prop[prop.count - 1].value))
                 let controlCurveNode = SKShapeNode()
                 controlCurveNode.path = besselPath.cgPath
                 controlCurveNode.strokeColor = .white
@@ -198,7 +199,7 @@ class PropEditorScene: SKScene {
                 addChild(controlCurveNode)
                 link(nodeA: controlCurveNode, to: controlCurveNodeTemplate!)
             }
-            var controlCurveLabel = controlCurveLabelNodeTemplate!.copy() as! SKLabelNode
+            let controlCurveLabel = controlCurveLabelNodeTemplate!.copy() as! SKLabelNode
             controlCurveLabel.position = CGPoint(x: 50, y: size.height * data!.listOfJudgeLines[data!.editingJudgeLineNumber].props.calculateValue(type: propType, timeTick: data!.currentTimeTick))
             controlCurveLabel.text = String(describing: propType)
             link(nodeA: controlCurveLabel, to: controlCurveLabelNodeTemplate!)
@@ -264,9 +265,7 @@ class PropEditorScene: SKScene {
             return res
         }
         linkedNodes.forEach {
-            if let _action = $0.action(forKey: "moving") {
-                _action.speed = 0
-            }
+            $0.removeAllActions()
         }
     }
 

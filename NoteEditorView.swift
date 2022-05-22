@@ -42,6 +42,10 @@ class NoteEditorScene: SKScene {
     }
 
     func updateCanvasSize() {
+        if judgeLineNodeTemplate != nil {
+            removeNodesLinked(to: judgeLineNodeTemplate!)
+        }
+
         judgeLineNodeTemplate = {
             let judgeLineNodeTemplate = SKShapeNode(rectOf: CGSize(width: size.width, height: 2))
             judgeLineNodeTemplate.fillColor = SKColor.white
@@ -57,6 +61,7 @@ class NoteEditorScene: SKScene {
         }
 
         if judgeLineNodeTemplate == nil {
+            // FIXME: I doubt this part of code really matters, since before this function is called, the updateCanvasSize is always called ahead, therefore judgeLineNodeTemplate is always not nil.
             judgeLineNodeTemplate = {
                 let judgeLineNodeTemplate = SKShapeNode(rectOf: CGSize(width: size.width, height: 2))
                 judgeLineNodeTemplate.fillColor = SKColor.white
@@ -263,9 +268,6 @@ class NoteEditorScene: SKScene {
             return res
         }
         linkedNodes.forEach {
-//            if let _action = $0.action(forKey: "moving") {
-//                _action.speed = 0
-//            }
             $0.removeAllActions()
         }
     }
