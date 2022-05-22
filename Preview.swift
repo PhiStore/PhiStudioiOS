@@ -1,6 +1,10 @@
 import SpriteKit
 import SwiftUI
 
+// let _noteWidth = 120
+// let _noteHeight = 15
+// let _noteCornerRadius = 4.0
+
 class ChartPreviewScene: SKScene {
     var data: DataStructure?
     var judgeLineNodeTemplate: SKShapeNode?
@@ -61,13 +65,34 @@ class ChartPreviewScene: SKScene {
             removeNodesLinked(to: judgeLineNodeTemplate!)
         }
 
+        if noteNodeTemplate == nil {
+            noteNodeTemplate = {
+                let noteNodeTemplate = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight), cornerRadius: _noteCornerRadius)
+                noteNodeTemplate.name = "note"
+                noteNodeTemplate.alpha = 1.0
+                noteNodeTemplate.lineWidth = 8
+                return noteNodeTemplate
+            }()
+        } else {
+            removeNodesLinked(to: noteNodeTemplate!)
+        }
+
         for judgeLine in data!.listOfJudgeLines {
             let judgeLineNode = judgeLineNodeTemplate!.copy() as! SKShapeNode
-            judgeLineNode.position = CGPoint(x: judgeLine.props.calculateValue(type: .controlX, timeTick: data!.currentTimeTick) * size.width, y: judgeLine.props.calculateValue(type: .controlY, timeTick: data!.currentTimeTick) * size.width)
+            judgeLineNode.position = CGPoint(x: judgeLine.props.calculateValue(type: .controlX, timeTick: data!.currentTimeTick) * size.width, y: judgeLine.props.calculateValue(type: .controlY, timeTick: data!.currentTimeTick) * size.height)
             judgeLineNode.zRotation = judgeLine.props.calculateValue(type: .angle, timeTick: data!.currentTimeTick) * 2.0 * .pi
-
             link(nodeA: judgeLineNode, to: judgeLineNodeTemplate!)
             addChild(judgeLineNode)
+            for note in judgeLine.noteList {
+                if Double(note.timeTick) < data!.currentTimeTick {
+                    continue
+                }
+                let noteNode = noteNodeTemplate!.copy() as! SKShapeNode
+                noteNode.position = CGPoint(x: -judgeLine.props.calculatePositionX(startTimeTick: data!.currentTimeTick, endTimeTick: Double(note.timeTick) * _distance) + (judgeLine.props.calculateValue(type: .controlX, timeTick: data!.currentTimeTick) + note.posX * cos(judgeLine.props.calculateValue(type: .angle, timeTick: data!.currentTimeTick) * 2.0 * .pi) - 1.0 / 2.0) * size.width, y: judgeLine.props.calculatePositionY(startTimeTick: data!.currentTimeTick, endTimeTick: Double(note.timeTick)) * _distance + (judgeLine.props.calculateValue(type: .controlY, timeTick: data!.currentTimeTick) + note.posX * sin(judgeLine.props.calculateValue(type: .angle, timeTick: data!.currentTimeTick) * 2.0 * .pi)) * size.height)
+                noteNode.zRotation = judgeLine.props.calculateValue(type: .angle, timeTick: data!.currentTimeTick) * 2.0 * .pi
+                link(nodeA: noteNode, to: noteNodeTemplate!)
+                addChild(noteNode)
+            }
         }
     }
 
@@ -93,9 +118,21 @@ class ChartPreviewScene: SKScene {
             removeNodesLinked(to: judgeLineNodeTemplate!)
         }
 
+        if noteNodeTemplate == nil {
+            noteNodeTemplate = {
+                let noteNodeTemplate = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight), cornerRadius: _noteCornerRadius)
+                noteNodeTemplate.name = "note"
+                noteNodeTemplate.alpha = 1.0
+                noteNodeTemplate.lineWidth = 8
+                return noteNodeTemplate
+            }()
+        } else {
+            removeNodesLinked(to: noteNodeTemplate!)
+        }
+
         for judgeLine in data!.listOfJudgeLines {
             let judgeLineNode = judgeLineNodeTemplate!.copy() as! SKShapeNode
-            judgeLineNode.position = CGPoint(x: judgeLine.props.calculateValue(type: .controlX, timeTick: data!.currentTimeTick) * size.width, y: judgeLine.props.calculateValue(type: .controlY, timeTick: data!.currentTimeTick) * size.width)
+            judgeLineNode.position = CGPoint(x: judgeLine.props.calculateValue(type: .controlX, timeTick: data!.currentTimeTick) * size.width, y: judgeLine.props.calculateValue(type: .controlY, timeTick: data!.currentTimeTick) * size.height)
             judgeLineNode.zRotation = judgeLine.props.calculateValue(type: .angle, timeTick: data!.currentTimeTick) * 2.0 * .pi
             var indexK = 0
             var movingActions: [SKAction] = []
@@ -210,6 +247,8 @@ class ChartPreviewScene: SKScene {
             judgeLineNode.run(groupAction, withKey: "movingJudgeLine")
             link(nodeA: judgeLineNode, to: judgeLineNodeTemplate!)
             addChild(judgeLineNode)
+
+            for note in judgeLine.noteList {}
         }
     }
 

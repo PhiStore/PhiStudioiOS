@@ -1,3 +1,4 @@
+import Accelerate
 import AVFoundation
 import SpriteKit
 import SwiftUI
@@ -305,16 +306,43 @@ public class JudgeLineProps: Codable, ObservableObject {
         return prop[prop.count - 1].value // remain the same at the end
     }
 
-    func calculatePosition(timeTick: Double) -> Double {
-        speed = speed.sorted { $0.timeTick < $1.timeTick }
-        if timeTick < Double(speed[0].timeTick) {
-            return 0 // also, this should not be possible because timeTick is >=0 and the first value at point 0 is un-deletable
+    func calculatePositionX(startTimeTick: Double, endTimeTick: Double) -> Double {
+        if endTimeTick < startTimeTick {
+            return 0
         }
-        var result = 0.0
-        for index in 1 ..< (speed.count - 1) {
-            if Double(speed[index].timeTick) <= timeTick {}
+        let quadrature = Quadrature(integrator: .qags(maxIntervals: 10),
+                                    absoluteTolerance: 1.0e-8,
+                                    relativeTolerance: 1.0e-2)
+        let result = quadrature.integrate(over: startTimeTick ... endTimeTick) { x in
+            let speed = calculateValue(type: .speed, timeTick: x)
+            let angle = calculateValue(type: .angle, timeTick: x)
+            return speed * sin(angle * 2 * Double.pi)
         }
-        return 0.0 // tmp fix
+        switch result {
+        case let .success(integralResult, estimatedAbsoluteError):
+            return integralResult * 10
+        case let .failure(error):
+            print(error)
+            return 0
+        }
+    }
+
+    func calculatePositionY(startTimeTick: Double, endTimeTick: Double) -> Double {
+        let quadrature = Quadrature(integrator: .qags(maxIntervals: 10),
+                                    absoluteTolerance: 1.0e-8,
+                                    relativeTolerance: 1.0e-2)
+        let result = quadrature.integrate(over: startTimeTick ... endTimeTick) { x in
+            let speed = calculateValue(type: .speed, timeTick: x)
+            let angle = calculateValue(type: .angle, timeTick: x)
+            return speed * cos(angle * 2 * Double.pi)
+        }
+        switch result {
+        case let .success(integralResult, estimatedAbsoluteError):
+            return integralResult * 10
+        case let .failure(error):
+            print(error)
+            return 0
+        }
     }
 
     // I started these ... as a tmp fix, now that I think about it ... it doesn't really matter (although a bit ugly)
