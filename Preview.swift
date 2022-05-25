@@ -167,11 +167,13 @@ class ChartPreviewScene: SKScene {
                 let judgeLinePosX = judgeLine.props.calculateValue(.controlX, tmpTick) * size.width
                 let judgeLinePosY = judgeLine.props.calculateValue(.controlY, tmpTick) * size.width
                 let judgeLineAngle = judgeLine.props.calculateValue(.angle, tmpTick) * 2.0 * .pi
+                let judgeLineAlpha = judgeLine.props.calculateValue(.lineAlpha, tmpTick)
 
                 let tmpActionX = SKAction.moveTo(x: judgeLinePosX, duration: data!.tickToSecond(_refreshTick))
                 let tmpActionY = SKAction.moveTo(y: judgeLinePosY, duration: data!.tickToSecond(_refreshTick))
                 let tmpActionRotation = SKAction.rotate(toAngle: judgeLineAngle, duration: data!.tickToSecond(_refreshTick))
-                movingActions.append(SKAction.group([tmpActionX, tmpActionY, tmpActionRotation]))
+                let tmpActionAlpha = SKAction.fadeAlpha(to: judgeLineAlpha, duration: data!.tickToSecond(_refreshTick))
+                movingActions.append(SKAction.group([tmpActionX, tmpActionY, tmpActionRotation, tmpActionAlpha]))
                 tmpTick += _refreshTick
             }
             let groupAction = SKAction.sequence(movingActions)
@@ -214,16 +216,20 @@ class ChartPreviewScene: SKScene {
                         let noteRelativePosition = judgeLine.props.calculateNoteDistance(tmpTick, Double(note.timeTick)) * _distance
                         let noteDeltaX = (note.posX - 1 / 2) * size.width * cos(judgeLineAngle)
                         let noteDeltaY = (note.posX - 1 / 2) * size.width * sin(judgeLineAngle)
+                        let noteAlpha = judgeLine.props.calculateValue(.noteAlpha, tmpTick)
+
                         let tmpActionX = SKAction.moveTo(x: (note.fallSide ? -1.0 : 1.0) * (noteRelativePosition + Double(note.holdTimeTick) / 2 * _distance) * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, duration: data!.tickToSecond(_refreshTick))
 
                         let tmpActionY = SKAction.moveTo(y: (note.fallSide ? 1.0 : -1.0) * (noteRelativePosition + Double(note.holdTimeTick) / 2 * _distance) * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY, duration: data!.tickToSecond(_refreshTick))
 
                         let tmpActionAngle = SKAction.rotate(toAngle: judgeLineAngle, duration: data!.tickToSecond(_refreshTick))
 
-                        noteMoveAction.append(SKAction.group([tmpActionX, tmpActionY, tmpActionAngle]))
+                        let tmpActionAlpha = SKAction.fadeAlpha(to: noteAlpha, duration: data!.tickToSecond(_refreshTick))
+
+                        noteMoveAction.append(SKAction.group([tmpActionX, tmpActionY, tmpActionAngle, tmpActionAlpha]))
                         tmpTick += _refreshTick
                     }
-                    noteMoveFunctions.append(SKAction.sequence([SKAction.wait(forDuration: data!.tickToSecond(Double(note.timeTick) - data!.currentTimeTick)), SKAction.fadeOut(withDuration: data!.tickToSecond(Double(note.holdTimeTick)))]))
+                    noteMoveFunctions.append(SKAction.sequence([SKAction.wait(forDuration: data!.tickToSecond(Double(note.timeTick) - data!.currentTimeTick)), SKAction.fadeOut(withDuration: data!.tickToSecond(Double(note.holdTimeTick))), SKAction.removeFromParent()]))
                     noteMoveFunctions.append(SKAction.sequence(noteMoveAction))
                 } else {
                     noteNode.position = CGPoint(x: (note.fallSide ? -1.0 : 1.0) * noteRelativePosition * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, y: (note.fallSide ? 1.0 : -1.0) * noteRelativePosition * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY)
@@ -243,13 +249,17 @@ class ChartPreviewScene: SKScene {
                         let noteRelativePosition = judgeLine.props.calculateNoteDistance(tmpTick, Double(note.timeTick)) * _distance
                         let noteDeltaX = (note.posX - 1 / 2) * size.width * cos(judgeLineAngle)
                         let noteDeltaY = (note.posX - 1 / 2) * size.width * sin(judgeLineAngle)
+                        let noteAlpha = judgeLine.props.calculateValue(.noteAlpha, tmpTick)
+
                         let tmpActionX = SKAction.moveTo(x: (note.fallSide ? -1.0 : 1.0) * noteRelativePosition * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, duration: data!.tickToSecond(_refreshTick))
 
                         let tmpActionY = SKAction.moveTo(y: (note.fallSide ? 1.0 : -1.0) * noteRelativePosition * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY, duration: data!.tickToSecond(_refreshTick))
 
                         let tmpActionAngle = SKAction.rotate(toAngle: judgeLineAngle, duration: data!.tickToSecond(_refreshTick))
 
-                        noteMoveAction.append(SKAction.group([tmpActionX, tmpActionY, tmpActionAngle]))
+                        let tmpActionAlpha = SKAction.fadeAlpha(to: noteAlpha, duration: data!.tickToSecond(_refreshTick))
+
+                        noteMoveAction.append(SKAction.group([tmpActionX, tmpActionY, tmpActionAngle, tmpActionAlpha]))
                         tmpTick += _refreshTick
                     }
                     noteMoveAction.append(SKAction.removeFromParent())
