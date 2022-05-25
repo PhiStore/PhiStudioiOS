@@ -161,107 +161,20 @@ class ChartPreviewScene: SKScene {
             judgeLineNode.position = CGPoint(x: judgeLinePosX, y: judgeLinePosY)
             judgeLineNode.zRotation = judgeLineAngle
 
-            var indexK = 0
             var movingActions: [SKAction] = []
-            judgeLine.props.controlX = judgeLine.props.controlX.sorted { $0.timeTick < $1.timeTick }
-            judgeLine.props.controlY = judgeLine.props.controlY.sorted { $0.timeTick < $1.timeTick }
-            judgeLine.props.angle = judgeLine.props.angle.sorted { $0.timeTick < $1.timeTick }
-            if judgeLine.props.controlX.count > 1, Double(judgeLine.props.controlX[judgeLine.props.controlX.count - 1].timeTick) > data!.currentTimeTick {
-                // only one propStatus -> don't need to be updated
-                indexK = 0
-                var moveActionsX: [SKAction] = []
-                for index in 0 ..< judgeLine.props.controlX.count {
-                    if Double(judgeLine.props.controlX[index].timeTick) > data!.currentTimeTick {
-                        break
-                    }
-                    indexK += 1
-                }
-                // [indexK - 1] - currentTimeTick - [indexK]
-                if indexK < judgeLine.props.controlX.count {
-                    let tmpAction = SKAction.moveTo(x: judgeLine.props.controlX[indexK].value * size.width, duration: data!.tickToSecond(Double(judgeLine.props.controlX[indexK].timeTick) - data!.currentTimeTick))
-                    tmpAction.timingFunction = { time in
-                        let p = (self.data!.currentTimeTick - Double(judgeLine.props.controlX[indexK - 1].timeTick)) / (Double(judgeLine.props.controlX[indexK].timeTick) - Double(judgeLine.props.controlX[indexK - 1].timeTick))
-                        let t = (1.0 - p) * Double(time) + p
-                        let ft = calculateEasing(x: t, type: judgeLine.props.controlX[indexK - 1].followingEasing)
-                        let fpt = (ft - judgeLine.props.calculateValue(.controlX, self.data!.currentTimeTick)) / (1 - judgeLine.props.calculateValue(.controlX, self.data!.currentTimeTick))
-                        return Float(fpt)
-                    }
-                    moveActionsX.append(tmpAction)
-                    for index in indexK + 1 ..< judgeLine.props.controlX.count {
-                        let tmpAction = SKAction.moveTo(x: (judgeLine.props.controlX[index].value) * size.width, duration: data!.tickToSecond(Double(judgeLine.props.controlX[index].timeTick) - Double(judgeLine.props.controlX[index - 1].timeTick)))
-                        tmpAction.timingFunction = { time in
-                            Float(calculateEasing(x: Double(time), type: judgeLine.props.controlX[index - 1].followingEasing))
-                        }
-                        moveActionsX.append(tmpAction)
-                    }
-                    movingActions.append(SKAction.sequence(moveActionsX))
-                }
-            }
+            var tmpTick = data!.currentTimeTick
+            while tmpTick < Double(data!.chartLengthTick()) {
+                let judgeLinePosX = judgeLine.props.calculateValue(.controlX, tmpTick) * size.width
+                let judgeLinePosY = judgeLine.props.calculateValue(.controlY, tmpTick) * size.width
+                let judgeLineAngle = judgeLine.props.calculateValue(.angle, tmpTick) * 2.0 * .pi
 
-            if judgeLine.props.controlY.count > 1, Double(judgeLine.props.controlY[judgeLine.props.controlY.count - 1].timeTick) > data!.currentTimeTick {
-                // only one propStatus -> don't need to be updated
-                indexK = 0
-                var moveActionsY: [SKAction] = []
-                for index in 0 ..< judgeLine.props.controlY.count {
-                    if Double(judgeLine.props.controlY[index].timeTick) > data!.currentTimeTick {
-                        break
-                    }
-                    indexK += 1
-                }
-                // [indexK - 1] - currentTimeTick - [indexK]
-                if indexK < judgeLine.props.controlY.count {
-                    let tmpAction = SKAction.moveTo(y: (judgeLine.props.controlY[indexK].value) * size.width, duration: data!.tickToSecond(Double(judgeLine.props.controlY[indexK].timeTick) - data!.currentTimeTick))
-                    tmpAction.timingFunction = { time in
-                        let p = (self.data!.currentTimeTick - Double(judgeLine.props.controlY[indexK - 1].timeTick)) / (Double(judgeLine.props.controlY[indexK].timeTick) - Double(judgeLine.props.controlY[indexK - 1].timeTick))
-                        let t = (1.0 - p) * Double(time) + p
-                        let ft = calculateEasing(x: t, type: judgeLine.props.controlY[indexK - 1].followingEasing)
-                        let fpt = (ft - judgeLine.props.calculateValue(.controlY, self.data!.currentTimeTick)) / (1 - judgeLine.props.calculateValue(.controlY, self.data!.currentTimeTick))
-                        return Float(fpt)
-                    }
-                    moveActionsY.append(tmpAction)
-                    for index in indexK + 1 ..< judgeLine.props.controlY.count {
-                        let tmpAction = SKAction.moveTo(y: (judgeLine.props.controlY[index].value) * size.width, duration: data!.tickToSecond(Double(judgeLine.props.controlY[index].timeTick) - Double(judgeLine.props.controlY[index - 1].timeTick)))
-                        tmpAction.timingFunction = { time in
-                            Float(calculateEasing(x: Double(time), type: judgeLine.props.controlY[index - 1].followingEasing))
-                        }
-                        moveActionsY.append(tmpAction)
-                    }
-                    movingActions.append(SKAction.sequence(moveActionsY))
-                }
+                let tmpActionX = SKAction.moveTo(x: judgeLinePosX, duration: data!.tickToSecond(_refreshTick))
+                let tmpActionY = SKAction.moveTo(y: judgeLinePosY, duration: data!.tickToSecond(_refreshTick))
+                let tmpActionRotation = SKAction.rotate(toAngle: judgeLineAngle, duration: data!.tickToSecond(_refreshTick))
+                movingActions.append(SKAction.group([tmpActionX, tmpActionY, tmpActionRotation]))
+                tmpTick += _refreshTick
             }
-
-            if judgeLine.props.angle.count > 1, Double(judgeLine.props.angle[judgeLine.props.angle.count - 1].timeTick) > data!.currentTimeTick {
-                // only one propStatus -> don't need to be updated
-                indexK = 0
-                var moveActionsAngle: [SKAction] = []
-                for index in 0 ..< judgeLine.props.angle.count {
-                    if Double(judgeLine.props.angle[index].timeTick) > data!.currentTimeTick {
-                        break
-                    }
-                    indexK += 1
-                }
-                // [indexK - 1] - currentTimeTick - [indexK]
-                if indexK < judgeLine.props.angle.count {
-                    let tmpAction = SKAction.rotate(toAngle: judgeLine.props.angle[indexK].value * 2.0 * .pi, duration: data!.tickToSecond(Double(judgeLine.props.angle[indexK - 1].timeTick) - data!.currentTimeTick))
-                    tmpAction.timingFunction = { time in
-                        let p = (self.data!.currentTimeTick - Double(judgeLine.props.angle[indexK - 1].timeTick)) / (Double(judgeLine.props.angle[indexK].timeTick) - Double(judgeLine.props.angle[indexK - 1].timeTick))
-                        let t = (1.0 - p) * Double(time) + p
-                        let ft = calculateEasing(x: t, type: judgeLine.props.angle[indexK - 1].followingEasing)
-                        let fpt = (ft - judgeLine.props.calculateValue(.angle, self.data!.currentTimeTick)) / (1 - judgeLine.props.calculateValue(.angle, self.data!.currentTimeTick))
-                        return Float(fpt)
-                    }
-                    moveActionsAngle.append(tmpAction)
-                    for index in indexK + 1 ..< judgeLine.props.angle.count {
-                        let tmpAction = SKAction.rotate(toAngle: judgeLine.props.angle[index].value * 2.0 * .pi, duration: data!.tickToSecond(Double(judgeLine.props.angle[index].timeTick) - Double(judgeLine.props.angle[index - 1].timeTick)))
-                        tmpAction.timingFunction = { time in
-                            Float(calculateEasing(x: Double(time), type: judgeLine.props.angle[index - 1].followingEasing))
-                        }
-                        moveActionsAngle.append(tmpAction)
-                    }
-                    movingActions.append(SKAction.sequence(moveActionsAngle))
-                }
-            }
-            let groupAction = SKAction.group(movingActions)
+            let groupAction = SKAction.sequence(movingActions)
             judgeLineNode.run(groupAction, withKey: "movingJudgeLine")
             link(nodeA: judgeLineNode, to: judgeLineNodeTemplate!)
             addChild(judgeLineNode)
@@ -295,7 +208,6 @@ class ChartPreviewScene: SKScene {
                     var noteMoveAction: [SKAction] = []
                     var tmpTick = data!.currentTimeTick
                     while tmpTick < Double(note.timeTick + note.holdTimeTick) {
-                        tmpTick += _refreshTick
                         let judgeLineAngle = judgeLine.props.calculateValue(.angle, tmpTick) * 2.0 * .pi
                         let judgeLinePosX = judgeLine.props.calculateValue(.controlX, tmpTick) * size.width
                         let judgeLinePosY = judgeLine.props.calculateValue(.controlY, tmpTick) * size.width
@@ -309,6 +221,7 @@ class ChartPreviewScene: SKScene {
                         let tmpActionAngle = SKAction.rotate(toAngle: judgeLineAngle, duration: data!.tickToSecond(_refreshTick))
 
                         noteMoveAction.append(SKAction.group([tmpActionX, tmpActionY, tmpActionAngle]))
+                        tmpTick += _refreshTick
                     }
                     noteMoveFunctions.append(SKAction.sequence([SKAction.wait(forDuration: data!.tickToSecond(Double(note.timeTick) - data!.currentTimeTick)), SKAction.fadeOut(withDuration: data!.tickToSecond(Double(note.holdTimeTick)))]))
                     noteMoveFunctions.append(SKAction.sequence(noteMoveAction))
@@ -324,7 +237,6 @@ class ChartPreviewScene: SKScene {
                     var noteMoveAction: [SKAction] = []
                     var tmpTick = data!.currentTimeTick
                     while tmpTick < Double(note.timeTick) {
-                        tmpTick += _refreshTick
                         let judgeLineAngle = judgeLine.props.calculateValue(.angle, tmpTick) * 2.0 * .pi
                         let judgeLinePosX = judgeLine.props.calculateValue(.controlX, tmpTick) * size.width
                         let judgeLinePosY = judgeLine.props.calculateValue(.controlY, tmpTick) * size.width
@@ -338,6 +250,7 @@ class ChartPreviewScene: SKScene {
                         let tmpActionAngle = SKAction.rotate(toAngle: judgeLineAngle, duration: data!.tickToSecond(_refreshTick))
 
                         noteMoveAction.append(SKAction.group([tmpActionX, tmpActionY, tmpActionAngle]))
+                        tmpTick += _refreshTick
                     }
                     noteMoveAction.append(SKAction.removeFromParent())
                     noteMoveFunctions.append(SKAction.sequence(noteMoveAction))

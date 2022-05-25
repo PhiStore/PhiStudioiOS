@@ -296,13 +296,13 @@ public class JudgeLineProps: Codable, ObservableObject {
     func calculateValue(_ type: PROPTYPE, _ timeTick: Double) -> Double {
         var prop = returnProp(type: type)
         prop = prop.sorted { $0.timeTick < $1.timeTick }
-        if timeTick <= Double(prop[0].timeTick) {
+        if timeTick <= Double(prop[0].timeTick) || prop.count == 1 {
             return prop[0].value
         }
-        if prop.count >= 2 {
+        if prop.count > 1 {
             for index in 1 ..< prop.count {
                 if Double(prop[index].timeTick) > timeTick {
-                    return prop[index - 1].value + calculateEasing(x: (timeTick - Double(prop[index - 1].timeTick)) / (Double(prop[index].timeTick) - Double(prop[index - 1].timeTick)), type: prop[index - 1].followingEasing) * (prop[index].value - prop[index - 1].value)
+                    return prop[index - 1].value + calculateEasing(x: ((timeTick - Double(prop[index - 1].timeTick)) / Double(prop[index].timeTick - prop[index - 1].timeTick)), type: prop[index - 1].followingEasing) * (prop[index].value - prop[index - 1].value)
                 }
             }
         }
