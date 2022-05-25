@@ -1,9 +1,10 @@
+// Preview.swift
+// Author: TianKai Ma
+// Last Reviewed: NONE
 import SpriteKit
 import SwiftUI
 
-// let _noteWidth = 120
-// let _noteHeight = 15
-// let _noteCornerRadius = 4.0
+let _refreshTick = 2.0
 
 class ChartPreviewScene: SKScene {
     var data: DataStructure?
@@ -51,9 +52,7 @@ class ChartPreviewScene: SKScene {
         if size.width == 0 || size.height == 0 || data == nil {
             return
         }
-
         if judgeLineNodeTemplate == nil {
-            // FIXME: I doubt this part of code really matters, since before this function is called, the updateCanvasSize is always called ahead, therefore judgeLineNodeTemplate is always not nil.
             judgeLineNodeTemplate = {
                 let judgeLineNodeTemplate = SKShapeNode(rectOf: CGSize(width: size.width * 3, height: 2))
                 judgeLineNodeTemplate.fillColor = SKColor.white
@@ -64,7 +63,6 @@ class ChartPreviewScene: SKScene {
         } else {
             removeNodesLinked(to: judgeLineNodeTemplate!)
         }
-
         if noteNodeTemplate == nil {
             noteNodeTemplate = {
                 let noteNodeTemplate = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight), cornerRadius: _noteCornerRadius)
@@ -76,20 +74,50 @@ class ChartPreviewScene: SKScene {
         } else {
             removeNodesLinked(to: noteNodeTemplate!)
         }
-
         for judgeLine in data!.listOfJudgeLines {
             let judgeLineNode = judgeLineNodeTemplate!.copy() as! SKShapeNode
-            judgeLineNode.position = CGPoint(x: judgeLine.props.calculateValue(type: .controlX, timeTick: data!.currentTimeTick) * size.width, y: judgeLine.props.calculateValue(type: .controlY, timeTick: data!.currentTimeTick) * size.height)
-            judgeLineNode.zRotation = judgeLine.props.calculateValue(type: .angle, timeTick: data!.currentTimeTick) * 2.0 * .pi
+            let judgeLinePosX = judgeLine.props.calculateValue(.controlX, data!.currentTimeTick) * size.width
+            let judgeLinePosY = judgeLine.props.calculateValue(.controlY, data!.currentTimeTick) * size.width
+            let judgeLineAngle = judgeLine.props.calculateValue(.angle, data!.currentTimeTick) * 2.0 * .pi
+            judgeLineNode.position = CGPoint(x: judgeLinePosX, y: judgeLinePosY)
+            judgeLineNode.zRotation = judgeLineAngle
             link(nodeA: judgeLineNode, to: judgeLineNodeTemplate!)
             addChild(judgeLineNode)
             for note in judgeLine.noteList {
-                if Double(note.timeTick) < data!.currentTimeTick {
+                if note.noteType == .Hold {
+                    if Double(note.timeTick + note.holdTimeTick) <= data!.currentTimeTick {
+                        continue
+                    }
+                } else if Double(note.timeTick) <= data!.currentTimeTick {
                     continue
                 }
-                let noteNode = noteNodeTemplate!.copy() as! SKShapeNode
-                noteNode.position = CGPoint(x: -judgeLine.props.calculatePositionX(startTimeTick: data!.currentTimeTick, endTimeTick: Double(note.timeTick) * _distance) + (judgeLine.props.calculateValue(type: .controlX, timeTick: data!.currentTimeTick) + note.posX * cos(judgeLine.props.calculateValue(type: .angle, timeTick: data!.currentTimeTick) * 2.0 * .pi) - 1.0 / 2.0) * size.width, y: judgeLine.props.calculatePositionY(startTimeTick: data!.currentTimeTick, endTimeTick: Double(note.timeTick)) * _distance + (judgeLine.props.calculateValue(type: .controlY, timeTick: data!.currentTimeTick) + note.posX * sin(judgeLine.props.calculateValue(type: .angle, timeTick: data!.currentTimeTick) * 2.0 * .pi)) * size.height)
-                noteNode.zRotation = judgeLine.props.calculateValue(type: .angle, timeTick: data!.currentTimeTick) * 2.0 * .pi
+                var noteNode = noteNodeTemplate!.copy() as! SKShapeNode
+                let noteRelativePosition = judgeLine.props.calculateNoteDistance(data!.currentTimeTick, Double(note.timeTick)) * _distance
+                let noteDeltaX = (note.posX - 1 / 2) * size.width * cos(judgeLineAngle)
+                let noteDeltaY = (note.posX - 1 / 2) * size.width * sin(judgeLineAngle)
+                if note.noteType == .Hold {
+                    let topColor = CIColor(red: 0.0, green: 0.0, blue: 1.0, alpha: 1.0)
+                    let bottomColor = CIColor(red: 0.0, green: 0.0, blue: 1.0, alpha: 0.0)
+                    let texture = SKTexture(size: CGSize(width: 200, height: 200), color1: topColor, color2: bottomColor, direction: GradientDirection.up)
+                    texture.filteringMode = .nearest
+                    noteNode = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight + Int(_distance) * note.holdTimeTick), cornerRadius: _noteCornerRadius)
+                    noteNode.fillTexture = texture
+                    noteNode.fillColor = .white
+                    noteNode.position = CGPoint(x: (note.fallSide ? -1.0 : 1.0) * (noteRelativePosition + Double(note.holdTimeTick) / 2) * _distance * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, y: (note.fallSide ? 1.0 : -1.0) * (noteRelativePosition + Double(note.holdTimeTick) / 2 * _distance) * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY)
+                    noteNode.zRotation = judgeLineAngle
+                    noteNode.name = "note"
+                    noteNode.alpha = 1.0
+                    noteNode.lineWidth = 8
+                } else {
+                    noteNode.position = CGPoint(x: (note.fallSide ? -1.0 : 1.0) * noteRelativePosition * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, y: (note.fallSide ? 1.0 : -1.0) * noteRelativePosition * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY)
+                    noteNode.zRotation = judgeLineAngle
+                    switch note.noteType {
+                    case .Tap: noteNode.fillColor = SKColor.blue
+                    case .Hold: continue
+                    case .Drag: noteNode.fillColor = SKColor.yellow
+                    case .Flick: noteNode.fillColor = SKColor.red
+                    }
+                }
                 link(nodeA: noteNode, to: noteNodeTemplate!)
                 addChild(noteNode)
             }
@@ -100,13 +128,10 @@ class ChartPreviewScene: SKScene {
         if data == nil {
             return
         }
-
         if size.width == 0 || size.height == 0 || data == nil {
             return
         }
-
         if judgeLineNodeTemplate == nil {
-            // FIXME: I doubt this part of code really matters, since before this function is called, the updateCanvasSize is always called ahead, therefore judgeLineNodeTemplate is always not nil.
             judgeLineNodeTemplate = {
                 let judgeLineNodeTemplate = SKShapeNode(rectOf: CGSize(width: size.width * 3, height: 2))
                 judgeLineNodeTemplate.fillColor = SKColor.white
@@ -117,7 +142,6 @@ class ChartPreviewScene: SKScene {
         } else {
             removeNodesLinked(to: judgeLineNodeTemplate!)
         }
-
         if noteNodeTemplate == nil {
             noteNodeTemplate = {
                 let noteNodeTemplate = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight), cornerRadius: _noteCornerRadius)
@@ -129,11 +153,14 @@ class ChartPreviewScene: SKScene {
         } else {
             removeNodesLinked(to: noteNodeTemplate!)
         }
-
         for judgeLine in data!.listOfJudgeLines {
             let judgeLineNode = judgeLineNodeTemplate!.copy() as! SKShapeNode
-            judgeLineNode.position = CGPoint(x: judgeLine.props.calculateValue(type: .controlX, timeTick: data!.currentTimeTick) * size.width, y: judgeLine.props.calculateValue(type: .controlY, timeTick: data!.currentTimeTick) * size.height)
-            judgeLineNode.zRotation = judgeLine.props.calculateValue(type: .angle, timeTick: data!.currentTimeTick) * 2.0 * .pi
+            let judgeLinePosX = judgeLine.props.calculateValue(.controlX, data!.currentTimeTick) * size.width
+            let judgeLinePosY = judgeLine.props.calculateValue(.controlY, data!.currentTimeTick) * size.width
+            let judgeLineAngle = judgeLine.props.calculateValue(.angle, data!.currentTimeTick) * 2.0 * .pi
+            judgeLineNode.position = CGPoint(x: judgeLinePosX, y: judgeLinePosY)
+            judgeLineNode.zRotation = judgeLineAngle
+
             var indexK = 0
             var movingActions: [SKAction] = []
             judgeLine.props.controlX = judgeLine.props.controlX.sorted { $0.timeTick < $1.timeTick }
@@ -154,12 +181,9 @@ class ChartPreviewScene: SKScene {
                     let tmpAction = SKAction.moveTo(x: judgeLine.props.controlX[indexK].value * size.width, duration: data!.tickToSecond(Double(judgeLine.props.controlX[indexK].timeTick) - data!.currentTimeTick))
                     tmpAction.timingFunction = { time in
                         let p = (self.data!.currentTimeTick - Double(judgeLine.props.controlX[indexK - 1].timeTick)) / (Double(judgeLine.props.controlX[indexK].timeTick) - Double(judgeLine.props.controlX[indexK - 1].timeTick))
-
                         let t = (1.0 - p) * Double(time) + p
                         let ft = calculateEasing(x: t, type: judgeLine.props.controlX[indexK - 1].followingEasing)
-
-                        let fpt = (ft - judgeLine.props.calculateValue(type: .controlX, timeTick: self.data!.currentTimeTick)) / (1 - judgeLine.props.calculateValue(type: .controlX, timeTick: self.data!.currentTimeTick))
-
+                        let fpt = (ft - judgeLine.props.calculateValue(.controlX, self.data!.currentTimeTick)) / (1 - judgeLine.props.calculateValue(.controlX, self.data!.currentTimeTick))
                         return Float(fpt)
                     }
                     moveActionsX.append(tmpAction)
@@ -189,12 +213,9 @@ class ChartPreviewScene: SKScene {
                     let tmpAction = SKAction.moveTo(y: (judgeLine.props.controlY[indexK].value) * size.width, duration: data!.tickToSecond(Double(judgeLine.props.controlY[indexK].timeTick) - data!.currentTimeTick))
                     tmpAction.timingFunction = { time in
                         let p = (self.data!.currentTimeTick - Double(judgeLine.props.controlY[indexK - 1].timeTick)) / (Double(judgeLine.props.controlY[indexK].timeTick) - Double(judgeLine.props.controlY[indexK - 1].timeTick))
-
                         let t = (1.0 - p) * Double(time) + p
                         let ft = calculateEasing(x: t, type: judgeLine.props.controlY[indexK - 1].followingEasing)
-
-                        let fpt = (ft - judgeLine.props.calculateValue(type: .controlY, timeTick: self.data!.currentTimeTick)) / (1 - judgeLine.props.calculateValue(type: .controlY, timeTick: self.data!.currentTimeTick))
-
+                        let fpt = (ft - judgeLine.props.calculateValue(.controlY, self.data!.currentTimeTick)) / (1 - judgeLine.props.calculateValue(.controlY, self.data!.currentTimeTick))
                         return Float(fpt)
                     }
                     moveActionsY.append(tmpAction)
@@ -224,12 +245,9 @@ class ChartPreviewScene: SKScene {
                     let tmpAction = SKAction.rotate(toAngle: judgeLine.props.angle[indexK].value * 2.0 * .pi, duration: data!.tickToSecond(Double(judgeLine.props.angle[indexK - 1].timeTick) - data!.currentTimeTick))
                     tmpAction.timingFunction = { time in
                         let p = (self.data!.currentTimeTick - Double(judgeLine.props.angle[indexK - 1].timeTick)) / (Double(judgeLine.props.angle[indexK].timeTick) - Double(judgeLine.props.angle[indexK - 1].timeTick))
-
                         let t = (1.0 - p) * Double(time) + p
                         let ft = calculateEasing(x: t, type: judgeLine.props.angle[indexK - 1].followingEasing)
-
-                        let fpt = (ft - judgeLine.props.calculateValue(type: .angle, timeTick: self.data!.currentTimeTick)) / (1 - judgeLine.props.calculateValue(type: .angle, timeTick: self.data!.currentTimeTick))
-
+                        let fpt = (ft - judgeLine.props.calculateValue(.angle, self.data!.currentTimeTick)) / (1 - judgeLine.props.calculateValue(.angle, self.data!.currentTimeTick))
                         return Float(fpt)
                     }
                     moveActionsAngle.append(tmpAction)
@@ -248,7 +266,87 @@ class ChartPreviewScene: SKScene {
             link(nodeA: judgeLineNode, to: judgeLineNodeTemplate!)
             addChild(judgeLineNode)
 
-            for note in judgeLine.noteList {}
+            for note in judgeLine.noteList {
+                var noteMoveFunctions: [SKAction] = []
+                if note.noteType == .Hold {
+                    if Double(note.timeTick + note.holdTimeTick) <= data!.currentTimeTick {
+                        continue
+                    }
+                } else if Double(note.timeTick) <= data!.currentTimeTick {
+                    continue
+                }
+                var noteNode = noteNodeTemplate!.copy() as! SKShapeNode
+                let noteRelativePosition = judgeLine.props.calculateNoteDistance(data!.currentTimeTick, Double(note.timeTick)) * _distance
+                let noteDeltaX = (note.posX - 1 / 2) * size.width * cos(judgeLineAngle)
+                let noteDeltaY = (note.posX - 1 / 2) * size.width * sin(judgeLineAngle)
+                if note.noteType == .Hold {
+                    let topColor = CIColor(red: 0.0, green: 0.0, blue: 1.0, alpha: 1.0)
+                    let bottomColor = CIColor(red: 0.0, green: 0.0, blue: 1.0, alpha: 0.0)
+                    let texture = SKTexture(size: CGSize(width: 200, height: 200), color1: topColor, color2: bottomColor, direction: GradientDirection.up)
+                    texture.filteringMode = .nearest
+                    noteNode = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight + Int(_distance) * note.holdTimeTick), cornerRadius: _noteCornerRadius)
+                    noteNode.fillTexture = texture
+                    noteNode.fillColor = .white
+                    noteNode.position = CGPoint(x: (note.fallSide ? -1.0 : 1.0) * (noteRelativePosition + Double(note.holdTimeTick) / 2) * _distance * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, y: (note.fallSide ? 1.0 : -1.0) * (noteRelativePosition + Double(note.holdTimeTick) / 2 * _distance) * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY)
+                    noteNode.zRotation = judgeLineAngle
+                    noteNode.name = "note"
+                    noteNode.alpha = 1.0
+                    noteNode.lineWidth = 8
+                    var noteMoveAction: [SKAction] = []
+                    var tmpTick = data!.currentTimeTick
+                    while tmpTick < Double(note.timeTick + note.holdTimeTick) {
+                        tmpTick += _refreshTick
+                        let judgeLineAngle = judgeLine.props.calculateValue(.angle, tmpTick) * 2.0 * .pi
+                        let judgeLinePosX = judgeLine.props.calculateValue(.controlX, tmpTick) * size.width
+                        let judgeLinePosY = judgeLine.props.calculateValue(.controlY, tmpTick) * size.width
+                        let noteRelativePosition = judgeLine.props.calculateNoteDistance(tmpTick, Double(note.timeTick)) * _distance
+                        let noteDeltaX = (note.posX - 1 / 2) * size.width * cos(judgeLineAngle)
+                        let noteDeltaY = (note.posX - 1 / 2) * size.width * sin(judgeLineAngle)
+                        let tmpActionX = SKAction.moveTo(x: (note.fallSide ? -1.0 : 1.0) * (noteRelativePosition + Double(note.holdTimeTick) / 2 * _distance) * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, duration: data!.tickToSecond(_refreshTick))
+
+                        let tmpActionY = SKAction.moveTo(y: (note.fallSide ? 1.0 : -1.0) * (noteRelativePosition + Double(note.holdTimeTick) / 2 * _distance) * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY, duration: data!.tickToSecond(_refreshTick))
+
+                        let tmpActionAngle = SKAction.rotate(toAngle: judgeLineAngle, duration: data!.tickToSecond(_refreshTick))
+
+                        noteMoveAction.append(SKAction.group([tmpActionX, tmpActionY, tmpActionAngle]))
+                    }
+                    noteMoveFunctions.append(SKAction.sequence([SKAction.wait(forDuration: data!.tickToSecond(Double(note.timeTick) - data!.currentTimeTick)), SKAction.fadeOut(withDuration: data!.tickToSecond(Double(note.holdTimeTick)))]))
+                    noteMoveFunctions.append(SKAction.sequence(noteMoveAction))
+                } else {
+                    noteNode.position = CGPoint(x: (note.fallSide ? -1.0 : 1.0) * noteRelativePosition * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, y: (note.fallSide ? 1.0 : -1.0) * noteRelativePosition * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY)
+                    noteNode.zRotation = judgeLineAngle
+                    switch note.noteType {
+                    case .Tap: noteNode.fillColor = SKColor.blue
+                    case .Hold: continue
+                    case .Drag: noteNode.fillColor = SKColor.yellow
+                    case .Flick: noteNode.fillColor = SKColor.red
+                    }
+                    var noteMoveAction: [SKAction] = []
+                    var tmpTick = data!.currentTimeTick
+                    while tmpTick < Double(note.timeTick) {
+                        tmpTick += _refreshTick
+                        let judgeLineAngle = judgeLine.props.calculateValue(.angle, tmpTick) * 2.0 * .pi
+                        let judgeLinePosX = judgeLine.props.calculateValue(.controlX, tmpTick) * size.width
+                        let judgeLinePosY = judgeLine.props.calculateValue(.controlY, tmpTick) * size.width
+                        let noteRelativePosition = judgeLine.props.calculateNoteDistance(tmpTick, Double(note.timeTick)) * _distance
+                        let noteDeltaX = (note.posX - 1 / 2) * size.width * cos(judgeLineAngle)
+                        let noteDeltaY = (note.posX - 1 / 2) * size.width * sin(judgeLineAngle)
+                        let tmpActionX = SKAction.moveTo(x: (note.fallSide ? -1.0 : 1.0) * noteRelativePosition * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, duration: data!.tickToSecond(_refreshTick))
+
+                        let tmpActionY = SKAction.moveTo(y: (note.fallSide ? 1.0 : -1.0) * noteRelativePosition * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY, duration: data!.tickToSecond(_refreshTick))
+
+                        let tmpActionAngle = SKAction.rotate(toAngle: judgeLineAngle, duration: data!.tickToSecond(_refreshTick))
+
+                        noteMoveAction.append(SKAction.group([tmpActionX, tmpActionY, tmpActionAngle]))
+                    }
+                    noteMoveAction.append(SKAction.removeFromParent())
+                    noteMoveFunctions.append(SKAction.sequence(noteMoveAction))
+                }
+                let noteGroupAction = SKAction.group(noteMoveFunctions)
+                noteNode.run(noteGroupAction, withKey: "movingNote")
+                link(nodeA: noteNode, to: noteNodeTemplate!)
+                addChild(noteNode)
+            }
         }
     }
 

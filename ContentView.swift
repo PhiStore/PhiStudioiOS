@@ -1,6 +1,6 @@
 // ContentView.swift
 // Author: TianKai Ma
-// Last Reviewed: 2022-05-17 00:38
+// Last Reviewed: 2022-05-22 20:37
 import SwiftUI
 
 struct ContentView: View {
@@ -11,103 +11,34 @@ struct ContentView: View {
     var size = (UIScreen.main.bounds.width + UIScreen.main.bounds.height) / 100
 
     @StateObject private var data = DataStructure()
-    @State private var updateToggle = false
-
-    var pannelGesture: some Gesture {
-        TapGesture(count: 1)
-            .onEnded { _ in
-                data.isRunning = false
-                switch data.windowStatus {
-                case .pannelProp: data.windowStatus = .prop
-                case .prop: data.windowStatus = .pannelProp
-                case .pannelNote: data.windowStatus = .note
-                case .note: data.windowStatus = .pannelNote
-                case .pannelPreview: data.windowStatus = .preview
-                case .preview: data.windowStatus = .pannelPreview
-                }
-                // FIXME: Logic problem here, editor size not changing properly when the button is handled; the problem here might be the refresh is called before the canvas realize it size is updated, so a fix to call the following function somewhere in definition.swift might help...
-                data.objectWillChange.send()
-                updateToggle.toggle()
-            }
-    }
 
     func shouldShowPannel() -> Bool {
         return (data.windowStatus == WINDOWSTATUS.pannelNote || data.windowStatus == WINDOWSTATUS.pannelProp || data.windowStatus == WINDOWSTATUS.pannelPreview)
     }
 
     func getColor() -> Color {
-        switch data.currentNoteType {
-        case .Tap: return Color.blue
-        case .Hold: return Color.green
-        case .Flick: return Color.red
-        case .Drag: return Color.yellow
+        if data.windowStatus == .pannelNote || data.windowStatus == .note {
+            switch data.currentNoteType {
+            case .Tap: return Color.blue
+            case .Hold: return Color.green
+            case .Flick: return Color.red
+            case .Drag: return Color.yellow
+            }
+        } else if data.windowStatus == .pannelProp || data.windowStatus == .prop {
+            switch data.currentPropType {
+            case .controlX: return Color.blue
+            case .controlY: return Color.green
+            case .angle: return Color.red
+            case .speed: return Color.yellow
+            case .noteAlpha: return Color.orange
+            case .lineAlpha: return Color.purple
+            case .displayRange: return Color.pink
+            }
+        } else if data.windowStatus == .pannelPreview || data.windowStatus == .preview {
+            return Color.red
+        } else {
+            return Color.yellow
         }
-    }
-
-    var switchColor: some Gesture {
-        TapGesture(count: 1)
-            .onEnded { _ in
-                switch data.currentNoteType {
-                case .Tap: data.currentNoteType = .Hold
-                case .Hold: data.currentNoteType = .Flick
-                case .Flick: data.currentNoteType = .Drag
-                case .Drag: data.currentNoteType = .Tap
-                }
-            }
-    }
-
-    var refreshGesture: some Gesture {
-        TapGesture(count: 1)
-            .onEnded { _ in
-                data.rebuildScene()
-                data.objectWillChange.send()
-                updateToggle.toggle()
-            }
-    }
-
-    var changeLockGesture: some Gesture {
-        TapGesture(count: 1)
-            .onEnded {
-                data.locked.toggle()
-            }
-    }
-
-    var changeEditorGesture: some Gesture {
-        TapGesture(count: 1)
-            .onEnded {
-                data.isRunning = false
-                switch data.windowStatus {
-                case .note: data.windowStatus = .prop
-                case .prop: data.windowStatus = .preview
-                case .preview: data.windowStatus = .note
-                case .pannelNote: data.windowStatus = .pannelProp
-                case .pannelProp: data.windowStatus = .pannelPreview
-                case .pannelPreview: data.windowStatus = .pannelNote
-                }
-            }
-    }
-
-    var playOrStop: some Gesture {
-        TapGesture(count: 1)
-            .onEnded { _ in
-                data.isRunning.toggle()
-            }
-    }
-
-    var fowardFive: some Gesture {
-        TapGesture(count: 1)
-            .onEnded { _ in
-                data.isRunning = false
-                data.currentTimeTick += 5.0
-            }
-    }
-
-    var backwardFive: some Gesture {
-        TapGesture(count: 1)
-            .onEnded { _ in
-                data.isRunning = false
-                data.currentTimeTick -= 5.0
-            }
     }
 
     func workSpaceTitle() -> String {
@@ -129,6 +60,17 @@ struct ContentView: View {
         case .pannelProp: return "sun.max.fill"
         case .preview: return "sparkles"
         case .pannelPreview: return "sparkles"
+        }
+    }
+
+    func paintIcon() -> String {
+        switch data.windowStatus {
+        case .note: return "paintbrush.pointed"
+        case .pannelNote: return "paintbrush.pointed"
+        case .prop: return "paintbrush.pointed.fill"
+        case .pannelProp: return "paintbrush.pointed.fill"
+        case .preview: return "gamecontroller"
+        case .pannelPreview: return "gamecontroller"
         }
     }
 
@@ -163,7 +105,6 @@ struct ContentView: View {
                 LazyVStack(alignment: .leading) {
                     // title
                     Text("PhiStudio").font(.title2).fontWeight(.bold)
-                    // FIXME: The tabItem is showing different on iPad, especially when you add four tabs and more (the VStack will then turns into a HStack... for some reason), I'm not sure whether that is a feature or a bug, but please take care (I've searched a lot about these and the following code might be the best way Apple intended, but the problem just won't fix itself)
                     TabView {
                         ChartSettings().environmentObject(data)
                             .tabItem {
@@ -208,44 +149,104 @@ struct ContentView: View {
             Image(systemName: shouldShowPannel() ? "command.circle" : "command.circle.fill").resizable()
                 .frame(width: size * 2, height: size * 2)
                 .offset(x: -screenWidth / 2 + size * 3, y: -screenHeight / 2 + size * 3)
-                .gesture(pannelGesture)
-            Image(systemName: "paintbrush.pointed").resizable()
+                .onTapGesture {
+                    switch data.windowStatus {
+                    case .pannelProp: data.windowStatus = .prop
+                    case .prop: data.windowStatus = .pannelProp
+                    case .pannelNote: data.windowStatus = .note
+                    case .note: data.windowStatus = .pannelNote
+                    case .pannelPreview: data.windowStatus = .preview
+                    case .preview: data.windowStatus = .pannelPreview
+                    }
+                }
+            Image(systemName: paintIcon()).resizable()
                 .renderingMode(.template)
                 .foregroundColor(getColor())
-                .frame(width: size * 2, height: size * 2)
+                .frame(width: size * 2, height: size * 1.8)
                 .offset(x: -screenWidth / 2 + size * 6, y: -screenHeight / 2 + size * 3)
-                .gesture(switchColor)
+                .onTapGesture {
+                    if data.windowStatus == .pannelNote || data.windowStatus == .note {
+                        switch data.currentNoteType {
+                        case .Tap: data.currentNoteType = .Hold
+                        case .Hold: data.currentNoteType = .Flick
+                        case .Flick: data.currentNoteType = .Drag
+                        case .Drag: data.currentNoteType = .Tap
+                        }
+                    } else if data.windowStatus == .pannelProp || data.windowStatus == .prop {
+                        switch data.currentPropType {
+                        case .controlX: data.currentPropType = .controlY
+                        case .controlY: data.currentPropType = .angle
+                        case .angle: data.currentPropType = .speed
+                        case .speed: data.currentPropType = .noteAlpha
+                        case .noteAlpha: data.currentPropType = .lineAlpha
+                        case .lineAlpha: data.currentPropType = .displayRange
+                        case .displayRange: data.currentPropType = .controlX
+                        }
+                    }
+                }
             Image(systemName: "arrow.triangle.2.circlepath").resizable()
                 .renderingMode(.template)
                 .frame(width: size * 2, height: size * 1.8)
                 .offset(x: -screenWidth / 2 + size * 9, y: -screenHeight / 2 + size * 3)
-                .gesture(refreshGesture)
+                .onTapGesture {
+                    data.rebuildScene()
+                    data.objectWillChange.send()
+                }
             Image(systemName: data.locked ? "lock.circle.fill" : "lock.circle").resizable()
                 .renderingMode(.template)
                 .frame(width: size * 2, height: size * 2)
                 .offset(x: -screenWidth / 2 + size * 12, y: -screenHeight / 2 + size * 3)
-                .gesture(changeLockGesture)
+                .onTapGesture {
+                    data.locked.toggle()
+                }
             Image(systemName: workSpaceIcon()).resizable()
                 .renderingMode(.template)
                 .frame(width: size * 2, height: size * 2)
                 .offset(x: -screenWidth / 2 + size * 15, y: -screenHeight / 2 + size * 3)
-                .gesture(changeEditorGesture)
+                .onTapGesture {
+                    switch data.windowStatus {
+                    case .note: data.windowStatus = .prop
+                    case .pannelNote: data.windowStatus = .pannelProp
+                    case .prop: data.windowStatus = .note
+                    case .pannelProp: data.windowStatus = .pannelNote
+                    case .preview: break
+                    case .pannelPreview: break
+                    }
+                }
+                .onLongPressGesture {
+                    switch data.windowStatus {
+                    case .note: data.windowStatus = .preview
+                    case .pannelNote: data.windowStatus = .pannelPreview
+                    case .prop: data.windowStatus = .preview
+                    case .pannelProp: data.windowStatus = .pannelPreview
+                    case .preview: data.windowStatus = .note
+                    case .pannelPreview: data.windowStatus = .pannelNote
+                    }
+                }
             HStack(spacing: size / 2) {
                 Image(systemName: "gobackward.5").resizable()
                     .renderingMode(.template)
                     .foregroundColor(.blue)
                     .frame(width: size * 1, height: size * 1)
-                    .gesture(backwardFive)
+                    .onTapGesture {
+                        data.isRunning = false
+                        data.currentTimeTick -= 5.0
+                    }
                 Image(systemName: !data.isRunning ? "play.circle" : "pause.circle").resizable()
                     .renderingMode(.template)
                     .foregroundColor(.blue)
                     .frame(width: size * 1, height: size * 1)
-                    .gesture(playOrStop)
+                    .onTapGesture {
+                        data.isRunning.toggle()
+                    }
                 Image(systemName: "goforward.5").resizable()
                     .renderingMode(.template)
                     .foregroundColor(.blue)
                     .frame(width: size * 1, height: size * 1)
-                    .gesture(fowardFive)
+                    .onTapGesture {
+                        data.isRunning = false
+                        data.currentTimeTick += 5.0
+                    }
                 Slider(value: $data.currentTimeTick,
                        in: 0 ... Double(data.chartLengthSecond * data.tickPerBeat * data.bpm / 60)).frame(width: screenWidth / 2 - 3 / 2 * size)
             }.frame(width: screenWidth / 2 + size * 4, height: size * 2)

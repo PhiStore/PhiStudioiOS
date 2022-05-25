@@ -1,3 +1,6 @@
+// Definition.swift
+// Author: TianKai Ma
+// Last Reviewed: 2022-05-22 20:50
 import Accelerate
 import AVFoundation
 import SpriteKit
@@ -290,14 +293,14 @@ public class JudgeLineProps: Codable, ObservableObject {
         case controlX, controlY, angle, speed, noteAlpha, lineAlpha, displayRange
     }
 
-    func calculateValue(type: PROPTYPE, timeTick: Double) -> Double {
+    func calculateValue(_ type: PROPTYPE, _ timeTick: Double) -> Double {
         var prop = returnProp(type: type)
         prop = prop.sorted { $0.timeTick < $1.timeTick }
-        if timeTick < Double(prop[0].timeTick) {
+        if timeTick <= Double(prop[0].timeTick) {
             return prop[0].value
         }
         if prop.count >= 2 {
-            for index in 1 ..< (prop.count - 1) {
+            for index in 1 ..< prop.count {
                 if Double(prop[index].timeTick) > timeTick {
                     return prop[index - 1].value + calculateEasing(x: (timeTick - Double(prop[index - 1].timeTick)) / (Double(prop[index].timeTick) - Double(prop[index - 1].timeTick)), type: prop[index - 1].followingEasing) * (prop[index].value - prop[index - 1].value)
                 }
@@ -306,7 +309,7 @@ public class JudgeLineProps: Codable, ObservableObject {
         return prop[prop.count - 1].value // remain the same at the end
     }
 
-    func calculatePositionX(startTimeTick: Double, endTimeTick: Double) -> Double {
+    func calculatePositionX(_ startTimeTick: Double, _ endTimeTick: Double) -> Double {
         if endTimeTick < startTimeTick {
             return 0
         }
@@ -314,12 +317,12 @@ public class JudgeLineProps: Codable, ObservableObject {
                                     absoluteTolerance: 1.0e-8,
                                     relativeTolerance: 1.0e-2)
         let result = quadrature.integrate(over: startTimeTick ... endTimeTick) { x in
-            let speed = calculateValue(type: .speed, timeTick: x)
-            let angle = calculateValue(type: .angle, timeTick: x)
+            let speed = calculateValue(.speed, x)
+            let angle = calculateValue(.angle, x)
             return speed * sin(angle * 2 * Double.pi)
         }
         switch result {
-        case let .success(integralResult, estimatedAbsoluteError):
+        case let .success((integralResult, _)):
             return integralResult * 10
         case let .failure(error):
             print(error)
@@ -327,17 +330,41 @@ public class JudgeLineProps: Codable, ObservableObject {
         }
     }
 
-    func calculatePositionY(startTimeTick: Double, endTimeTick: Double) -> Double {
+    func calculatePositionY(_ startTimeTick: Double, _ endTimeTick: Double) -> Double {
         let quadrature = Quadrature(integrator: .qags(maxIntervals: 10),
                                     absoluteTolerance: 1.0e-8,
                                     relativeTolerance: 1.0e-2)
         let result = quadrature.integrate(over: startTimeTick ... endTimeTick) { x in
-            let speed = calculateValue(type: .speed, timeTick: x)
-            let angle = calculateValue(type: .angle, timeTick: x)
+            let speed = calculateValue(.speed, x)
+            let angle = calculateValue(.angle, x)
             return speed * cos(angle * 2 * Double.pi)
         }
         switch result {
-        case let .success(integralResult, estimatedAbsoluteError):
+        case let .success((integralResult, _)):
+            return integralResult * 10
+        case let .failure(error):
+            print(error)
+            return 0
+        }
+    }
+
+    func calculateNoteDistance(_ startTimeTick: Double, _ endTimeTick: Double) -> Double {
+        // this could be improved, using while loops... rewrite it when I have time to do so
+        if startTimeTick == endTimeTick {
+            return 0
+        }
+        if startTimeTick > endTimeTick {
+            return -calculateNoteDistance(endTimeTick, startTimeTick)
+        }
+        let quadrature = Quadrature(integrator: .qags(maxIntervals: 10),
+                                    absoluteTolerance: 1.0e-8,
+                                    relativeTolerance: 1.0e-2)
+        let result = quadrature.integrate(over: startTimeTick ... endTimeTick) { x in
+            let speed = calculateValue(.speed, x)
+            return speed
+        }
+        switch result {
+        case let .success((integralResult, _)):
             return integralResult * 10
         case let .failure(error):
             print(error)
@@ -388,6 +415,9 @@ public class JudgeLineProps: Codable, ObservableObject {
     }
 
     func removePropAtOffset(type: PROPTYPE, offset: IndexSet) {
+        if offset.contains(0) {
+            return
+        }
         switch type {
         case .controlX:
             controlX.remove(atOffsets: offset)
@@ -403,60 +433,6 @@ public class JudgeLineProps: Codable, ObservableObject {
             lineAlpha.remove(atOffsets: offset)
         case .displayRange:
             displayRange.remove(atOffsets: offset)
-        }
-    }
-
-    func updateProp(type: PROPTYPE, timeTick: Int, value: Double?, followingEasing: EASINGTYPE?) {
-        switch type {
-        case .controlX:
-            if value != nil {
-                controlX.first(where: { $0.timeTick == timeTick })?.value = value!
-            }
-            if followingEasing != nil {
-                controlX.first(where: { $0.timeTick == timeTick })?.followingEasing = followingEasing!
-            }
-        case .controlY:
-            if value != nil {
-                controlY.first(where: { $0.timeTick == timeTick })?.value = value!
-            }
-            if followingEasing != nil {
-                controlY.first(where: { $0.timeTick == timeTick })?.followingEasing = followingEasing!
-            }
-        case .angle:
-            if value != nil {
-                angle.first(where: { $0.timeTick == timeTick })?.value = value!
-            }
-            if followingEasing != nil {
-                angle.first(where: { $0.timeTick == timeTick })?.followingEasing = followingEasing!
-            }
-        case .speed:
-            if value != nil {
-                speed.first(where: { $0.timeTick == timeTick })?.value = value!
-            }
-            if followingEasing != nil {
-                speed.first(where: { $0.timeTick == timeTick })?.followingEasing = followingEasing!
-            }
-        case .noteAlpha:
-            if value != nil {
-                noteAlpha.first(where: { $0.timeTick == timeTick })?.value = value!
-            }
-            if followingEasing != nil {
-                noteAlpha.first(where: { $0.timeTick == timeTick })?.followingEasing = followingEasing!
-            }
-        case .lineAlpha:
-            if value != nil {
-                lineAlpha.first(where: { $0.timeTick == timeTick })?.value = value!
-            }
-            if followingEasing != nil {
-                lineAlpha.first(where: { $0.timeTick == timeTick })?.followingEasing = followingEasing!
-            }
-        case .displayRange:
-            if value != nil {
-                displayRange.first(where: { $0.timeTick == timeTick })?.value = value!
-            }
-            if followingEasing != nil {
-                displayRange.first(where: { $0.timeTick == timeTick })?.followingEasing = followingEasing!
-            }
         }
     }
 
@@ -554,11 +530,7 @@ public class JudgeLine: Identifiable, Equatable, ObservableObject, Codable {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         id = try values.decode(Int.self, forKey: .id)
         noteList = try values.decode([Note].self, forKey: .noteList)
-        do {
-            props = try values.decode(JudgeLineProps.self, forKey: .props)
-        } catch {
-            props = JudgeLineProps()
-        }
+        props = try values.decode(JudgeLineProps.self, forKey: .props)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -648,7 +620,9 @@ public class DataStructure: ObservableObject, Codable {
             if audioFileURL != nil {
                 do {
                     audioPlayer = try AVAudioPlayer(contentsOf: audioFileURL!)
-                } catch {}
+                } catch {
+                    print(error)
+                }
             }
         }
     }
@@ -668,10 +642,9 @@ public class DataStructure: ObservableObject, Codable {
     @Published var chartAuthorName: String
     @Published var windowStatus: WINDOWSTATUS {
         willSet {
+            isRunning = false
             rebuildScene(_windowStatus: newValue)
-            objectWillChange.send()
         }
-        didSet {}
     }
 
     @Published var locked: Bool
@@ -759,36 +732,45 @@ public class DataStructure: ObservableObject, Codable {
         let screenHeight = UIScreen.main.bounds.height
         let size = (screenWidth + screenHeight) / 100
         let canvasSize = CGSize(width: (renderStatus == .pannelNote || renderStatus == .pannelProp || renderStatus == .pannelPreview) ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
-
-        noteEditScene.size = canvasSize
-        noteEditScene.data = self
-        noteEditScene.scaleMode = .aspectFit
-        noteEditScene.updateCanvasSize()
-        noteEditScene.clearAndMakeBackgroundImage()
-        noteEditScene.clearAndMakeLint()
-        noteEditScene.clearAndMakeJudgeLines()
-        noteEditScene.clearAndMakeNotes()
-
-        propEditScene.size = canvasSize
-        propEditScene.data = self
-        propEditScene.scaleMode = .aspectFit
-        propEditScene.clearAndMakeIndexLines()
-        propEditScene.clearAndMakePropControlNodes()
-        propEditScene.clearAndMakeLint()
-
-        chartPreviewScene.size = canvasSize
-        chartPreviewScene.data = self
-        chartPreviewScene.scaleMode = .aspectFit
-        chartPreviewScene.updateCanvasSize()
-        chartPreviewScene.prepareStaticJudgeLines()
+        if renderStatus == .note || renderStatus == .pannelNote {
+            noteEditScene.size = canvasSize
+            noteEditScene.data = self
+            noteEditScene.scaleMode = .aspectFit
+            noteEditScene.updateCanvasSize()
+            noteEditScene.clearAndMakeBackgroundImage()
+            noteEditScene.clearAndMakeLint()
+            noteEditScene.clearAndMakeJudgeLines()
+            noteEditScene.clearAndMakeNotes()
+        }
+        if renderStatus == .prop || renderStatus == .pannelProp {
+            propEditScene.size = canvasSize
+            propEditScene.data = self
+            propEditScene.scaleMode = .aspectFit
+            propEditScene.clearAndMakeIndexLines()
+            propEditScene.clearAndMakePropControlNodes()
+            propEditScene.clearAndMakeLint()
+        }
+        if renderStatus == .preview || renderStatus == .pannelPreview {
+            chartPreviewScene.size = canvasSize
+            chartPreviewScene.data = self
+            chartPreviewScene.scaleMode = .aspectFit
+            chartPreviewScene.updateCanvasSize()
+            chartPreviewScene.prepareStaticJudgeLines()
+        }
     }
 
     func rebuildLineAndNote() {
-        noteEditScene.clearAndMakeJudgeLines()
-        noteEditScene.clearAndMakeNotes()
-        propEditScene.clearAndMakeIndexLines()
-        propEditScene.clearAndMakePropControlNodes()
-        chartPreviewScene.prepareStaticJudgeLines()
+        if windowStatus == .note || windowStatus == .pannelNote {
+            noteEditScene.clearAndMakeJudgeLines()
+            noteEditScene.clearAndMakeNotes()
+        }
+        if windowStatus == .prop || windowStatus == .pannelProp {
+            propEditScene.clearAndMakeIndexLines()
+            propEditScene.clearAndMakePropControlNodes()
+        }
+        if windowStatus == .preview || windowStatus == .pannelPreview {
+            chartPreviewScene.prepareStaticJudgeLines()
+        }
     }
 
     func saveCache() throws -> Bool {

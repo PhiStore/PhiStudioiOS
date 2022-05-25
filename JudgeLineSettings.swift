@@ -1,9 +1,11 @@
+// JudgeLineSettings.swift
+// Author: TianKai Ma
+// Last Reviewed: 2022-05-22 21:01
 import SwiftUI
-
-public var editingProps: JudgeLineProps = .init()
 
 struct JudgeLineSettings: View {
     @EnvironmentObject private var data: DataStructure
+    @State private var showAlert = false
     var body: some View {
         List {
             Section(header: Text("Global Operations")) {
@@ -35,18 +37,23 @@ struct JudgeLineSettings: View {
                     }
 
                     Button(action: {
-                        data.listOfJudgeLines.removeAll(where: { $0.id == _judgeLine.id && $0.id != 0 })
-                        // Refuse to delete id = 0 judgeLine.
-                        for i in 0 ..< data.listOfJudgeLines.count {
-                            data.listOfJudgeLines[i].id = i
+                        if data.listOfJudgeLines.count > 1 {
+                            showAlert = true
                         }
-                        data.editingJudgeLineNumber = 0
                     }) {
                         HStack {
                             Image(systemName: "exclamationmark.circle")
                             Text("Delete this Line")
                         }
                         .foregroundColor(Color.red)
+                    }.alert(isPresented: $showAlert) {
+                        Alert(title: Text("Confirm delete?"), message: Text("This would delete everything, with no recovery"), primaryButton: .default(Text("cancel")), secondaryButton: .destructive(Text("Delete"), action: {
+                            data.listOfJudgeLines.removeAll(where: { $0.id == _judgeLine.id })
+                            for i in 0 ..< data.listOfJudgeLines.count {
+                                data.listOfJudgeLines[i].id = i
+                            }
+                            data.editingJudgeLineNumber = 0
+                        }))
                     }
                 }.textCase(nil)
             }

@@ -1,4 +1,6 @@
-import SpriteKit
+// NoteSettings.swift
+// Author: TianKai Ma
+// Last Reviewed: 2022-05-22 21:04
 import SwiftUI
 
 struct NoteSettingsView: View {
@@ -7,7 +9,7 @@ struct NoteSettingsView: View {
     var body: some View {
         List {
             ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].noteList) { $_note in
-                Section(header: Text(String(describing: _note.noteType) + " @ Tick [\(_note.timeTick)]")) {
+                Section(header: Text("\(String(describing: _note.noteType)) @ Tick [\(_note.timeTick)]")) {
                     Menu {
                         Picker(String(describing: _note.noteType), selection: $_note.noteType) {
                             ForEach(NOTETYPE.allCases, id: \.self) { type in
@@ -23,8 +25,8 @@ struct NoteSettingsView: View {
                     }
                     Button("Delete Note") {
                         data.listOfJudgeLines[data.editingJudgeLineNumber].noteList.removeAll(where: { $0.timeTick == _note.timeTick && $0.posX == _note.posX })
-                        data.rebuildScene()
-                        data.objectWillChange.send()
+                        data.rebuildScene() // refresh spriteKit side
+                        data.objectWillChange.send() // refresh swiftUI side, since we are not using the slash function
                     }.foregroundColor(Color.red)
                     Toggle(isOn: $_note.isFake) {
                         Text("Fake")

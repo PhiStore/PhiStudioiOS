@@ -1,3 +1,6 @@
+// PropSettings.swift
+// Author: TianKai Ma
+// Last Reviewed: NONE
 import SpriteKit
 import SwiftUI
 

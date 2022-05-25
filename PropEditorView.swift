@@ -1,3 +1,6 @@
+// PropEditorView.swift
+// Author: TianKai Ma
+// Last Reviewed: 2022-05-22 21:13
 import SpriteKit
 import SwiftUI
 
@@ -42,19 +45,17 @@ class PropEditorScene: SKScene {
         if size.width == 0 || size.height == 0 || data == nil {
             return
         }
-
         if indexLineNodeTemplate == nil {
             indexLineNodeTemplate = {
                 let indexLineNodeTemplate = SKShapeNode(rectOf: CGSize(width: 2, height: size.height))
                 indexLineNodeTemplate.fillColor = SKColor.white
                 indexLineNodeTemplate.name = "indexLine"
-                indexLineNodeTemplate.alpha = 0.2
+                indexLineNodeTemplate.alpha = 1.0
                 return indexLineNodeTemplate
             }()
         } else {
             removeNodesLinked(to: indexLineNodeTemplate!)
         }
-
         if indexLineLabelNodeTemplate == nil {
             indexLineLabelNodeTemplate = {
                 let lintNodeTemplate = SKLabelNode(fontNamed: "AmericanTypewriter")
@@ -68,11 +69,8 @@ class PropEditorScene: SKScene {
         } else {
             removeNodesLinked(to: indexLineLabelNodeTemplate!)
         }
-
         let RelativePostionX = 50 + _distanceH * (data!.currentTimeTick - Double(Int(data!.currentTimeTick)))
-
         let RelativeTick = Int(data!.currentTimeTick)
-
         for currentLineTick in 0 ..< data!.chartLengthTick() + 1 {
             var indexedInt: Int?
             var indexedColor: Color?
@@ -84,23 +82,17 @@ class PropEditorScene: SKScene {
                     }
                 }
             }
-
             if indexedInt == nil {
                 continue
             }
-
             let indexLineNode = indexLineNodeTemplate!.copy() as! SKShapeNode
             indexLineNode.position = CGPoint(x: RelativePostionX + _distanceH * CGFloat(currentLineTick - RelativeTick), y: size.height / 2)
-
-            if currentLineTick % data!.tickPerBeat == 0 {
-                indexLineNode.alpha = 1.0
-            } else {
+            if !(currentLineTick % data!.tickPerBeat == 0) {
+                indexLineNode.alpha = 0.2
                 indexLineNode.fillColor = SKColor(indexedColor!)
             }
-
             link(nodeA: indexLineNode, to: indexLineNodeTemplate!)
             addChild(indexLineNode)
-
             if currentLineTick % data!.tickPerBeat == 0 {
                 let indexLineLabelNode = indexLineLabelNodeTemplate!.copy() as! SKLabelNode
                 indexLineLabelNode.text = String(currentLineTick) + "/" + String(currentLineTick / data!.tickPerBeat)
@@ -115,7 +107,6 @@ class PropEditorScene: SKScene {
         if size.width == 0 || size.height == 0 || data == nil {
             return
         }
-
         if controlNodeTemplate == nil {
             controlNodeTemplate = {
                 let controlNodeTemplate = SKShapeNode(circleOfRadius: 10)
@@ -129,7 +120,6 @@ class PropEditorScene: SKScene {
         } else {
             removeNodesLinked(to: controlNodeTemplate!)
         }
-
         if controlCurveNodeTemplate == nil {
             controlCurveNodeTemplate = {
                 let controlCurveNodeTemplate = SKShapeNode()
@@ -138,7 +128,6 @@ class PropEditorScene: SKScene {
         } else {
             removeNodesLinked(to: controlCurveNodeTemplate!)
         }
-
         if controlCurveLabelNodeTemplate == nil {
             controlCurveLabelNodeTemplate = {
                 let controlCurveLabelNodeTemplate = SKLabelNode(fontNamed: "AmericanTypewriter")
@@ -152,9 +141,7 @@ class PropEditorScene: SKScene {
         } else {
             removeNodesLinked(to: controlCurveLabelNodeTemplate!)
         }
-
         let RelativePostionX = 50 + _distanceH * (data!.currentTimeTick - Double(Int(data!.currentTimeTick)))
-
         for propType in PROPTYPE.allCases {
             let besselPath = UIBezierPath()
             var controlNode = SKShapeNode()
@@ -172,7 +159,6 @@ class PropEditorScene: SKScene {
                         controlNode.alpha = 1.0
                     }
                     besselPath.addLine(to: CGPoint(x: CGFloat(prop[indexI].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX, y: size.height * prop[indexI].value))
-
                     if indexI != prop.count - 1 {
                         let startX = CGFloat(prop[indexI].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX
                         let endX = CGFloat(prop[indexI + 1].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX
@@ -189,7 +175,6 @@ class PropEditorScene: SKScene {
                     link(nodeA: controlNode, to: controlNodeTemplate!)
                     addChild(controlNode)
                 }
-
                 besselPath.addLine(to: CGPoint(x: (Double(data!.chartLengthTick()) - data!.currentTimeTick) * _distanceH + RelativePostionX, y: size.height * prop[prop.count - 1].value))
                 let controlCurveNode = SKShapeNode()
                 controlCurveNode.path = besselPath.cgPath
@@ -200,7 +185,7 @@ class PropEditorScene: SKScene {
                 link(nodeA: controlCurveNode, to: controlCurveNodeTemplate!)
             }
             let controlCurveLabel = controlCurveLabelNodeTemplate!.copy() as! SKLabelNode
-            controlCurveLabel.position = CGPoint(x: 50, y: size.height * data!.listOfJudgeLines[data!.editingJudgeLineNumber].props.calculateValue(type: propType, timeTick: data!.currentTimeTick))
+            controlCurveLabel.position = CGPoint(x: 50, y: size.height * data!.listOfJudgeLines[data!.editingJudgeLineNumber].props.calculateValue(propType, data!.currentTimeTick))
             controlCurveLabel.text = String(describing: propType)
             link(nodeA: controlCurveLabel, to: controlCurveLabelNodeTemplate!)
             addChild(controlCurveLabel)
@@ -211,7 +196,6 @@ class PropEditorScene: SKScene {
         if data == nil {
             return
         }
-
         if lintNodeTemplate == nil {
             lintNodeTemplate = {
                 let lintNodeTemplate = SKShapeNode(circleOfRadius: 10)
@@ -233,7 +217,6 @@ class PropEditorScene: SKScene {
         if data == nil {
             return
         }
-
         let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
             var res = res
             if pair.0 == controlNodeTemplate || pair.0 == indexLineNodeTemplate || pair.0 == indexLineLabelNodeTemplate || pair.0 == controlCurveNodeTemplate {
@@ -253,7 +236,6 @@ class PropEditorScene: SKScene {
         if data == nil {
             return
         }
-
         let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
             var res = res
             if pair.0 == controlNodeTemplate || pair.0 == indexLineNodeTemplate || pair.0 == indexLineLabelNodeTemplate || pair.0 == controlCurveNodeTemplate {
@@ -269,17 +251,11 @@ class PropEditorScene: SKScene {
         }
     }
 
-    override func didMove(to _: SKView) {}
-
-    override func update(_: TimeInterval) {}
-
     override func touchesBegan(_ touches: Set<UITouch>, with _: UIEvent?) {
         if data!.isRunning {
             return
         }
-
         let RelativePositionX = 50 + _distanceH * (data!.currentTimeTick - Double(Int(data!.currentTimeTick)))
-
         if let touch = touches.first {
             let touchLocation = touch.location(in: self)
             if data!.locked {
@@ -290,7 +266,6 @@ class PropEditorScene: SKScene {
                 moveStartPoint = nil
                 moveStartTimeTick = nil
             }
-
             let tmpTick = (touchLocation.x - RelativePositionX) / _distanceH + data!.currentTimeTick
             var minTick = 0
             var minTickDistance = Double(data!.tickPerBeat)
@@ -305,21 +280,19 @@ class PropEditorScene: SKScene {
                     minTick = (Int(tmpTick / tickDistance) + 1) * Int(tickDistance)
                 }
             }
-
             for node in nodes(at: touchLocation) {
                 if node.name == "controlNode" {
                     node.run(SKAction.fadeOut(withDuration: 0.1))
                     data!.listOfJudgeLines[data!.editingJudgeLineNumber].props.removePropWhere(type: data!.currentPropType, timeTick: minTick, value: touchLocation.y / size.height)
                     clearAndMakePropControlNodes()
+                    data!.objectWillChange.send()
                     return
                 }
             }
-
             if minTick >= 0, minTick <= data!.tickPerBeat * data!.chartLengthSecond * data!.bpm / 60 {
-                // make no conflict in tick problem ... or keep them?
                 data!.listOfJudgeLines[data!.editingJudgeLineNumber].props.appendNewProp(type: data!.currentPropType, timeTick: minTick, value: touchLocation.y / size.height, followingEasing: .linear)
                 clearAndMakePropControlNodes()
-                data?.objectWillChange.send()
+                data!.objectWillChange.send()
                 return
             }
         }
@@ -329,11 +302,9 @@ class PropEditorScene: SKScene {
         if !data!.locked || data!.isRunning {
             return
         }
-
         if moveStartPoint == nil || moveStartTimeTick == nil {
             return
         }
-
         if let _touch = touches.first {
             let touchLocation = _touch.location(in: self)
             let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
@@ -352,7 +323,6 @@ class PropEditorScene: SKScene {
             data!.shouldUpdateFrame = false
             data!.currentTimeTick = moveStartTimeTick! - (touchLocation.x - moveStartPoint!.x) / _distanceH
             data!.shouldUpdateFrame = true
-
             moveStartPoint = touchLocation
             moveStartTimeTick = data!.currentTimeTick
             return

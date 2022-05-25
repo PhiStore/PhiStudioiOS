@@ -1,6 +1,6 @@
 // ChartSettings.swift
 // Author: TianKai Ma
-// Last Reviewed: 2022-05-17 00:55
+// Last Reviewed: 2022-05-22 20:39
 import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
@@ -84,7 +84,9 @@ struct ChartSettings: View {
                         try _ = data.saveCache()
                         try self.zipURL = data.exportZip()
                         showingExporter = true
-                    } catch {}
+                    } catch {
+                        print(error)
+                    }
                 }
                 Button("Import '.zip' file") {
                     showingImporter = true
@@ -92,7 +94,9 @@ struct ChartSettings: View {
                 Button("Save to local storage") {
                     do {
                         try _ = data.saveCache()
-                    } catch {}
+                    } catch {
+                        print(error)
+                    }
                 }
                 Button("Reload from local storage") {
                     showAlert = true
@@ -100,7 +104,9 @@ struct ChartSettings: View {
                     Alert(title: Text("Confirm reload?"), message: Text("This would override all current settings"), primaryButton: .default(Text("cancel")), secondaryButton: .destructive(Text("Reload"), action: {
                         do {
                             try _ = data.loadCache()
-                        } catch {}
+                        } catch {
+                            print(error)
+                        }
                     }))
                 }
                 .foregroundColor(Color.red)
