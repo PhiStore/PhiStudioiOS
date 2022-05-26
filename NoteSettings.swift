@@ -5,6 +5,11 @@ import SwiftUI
 
 struct NoteSettingsView: View {
     @EnvironmentObject private var data: DataStructure
+    @State private var numberFormatter: NumberFormatter = {
+        var nf = NumberFormatter()
+        nf.numberStyle = .decimal
+        return nf
+    }()
 
     var body: some View {
         List {
@@ -19,13 +24,15 @@ struct NoteSettingsView: View {
                     } label: {
                         Text(String(describing: _note.noteType))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    }.onChange(of: _note.noteType, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
                     Button("Quick Jump") {
                         data.currentTimeTick = Double(_note.timeTick)
                     }
                     Button("Delete Note") {
                         data.listOfJudgeLines[data.editingJudgeLineNumber].noteList.removeAll(where: { $0.timeTick == _note.timeTick && $0.posX == _note.posX })
-                        data.rebuildScene() // refresh spriteKit side
+                        data.rebuildLineAndNote() // refresh spriteKit side
                         data.objectWillChange.send() // refresh swiftUI side, since we are not using the slash function
                     }.foregroundColor(Color.red)
                     Toggle(isOn: $_note.isFake) {
@@ -35,16 +42,31 @@ struct NoteSettingsView: View {
                         Text("Fall Side")
                     }
                     Stepper(value: $_note.posX, in: 0 ... 1, step: 0.05) {
-                        Text("X Position: \(NSString(format: "%.3f", _note.posX))")
-                    }
+                        HStack {
+                            Text("Pos:")
+                            TextField("[Double]", value: $_note.posX, formatter: numberFormatter)
+                        }
+                    }.onChange(of: _note.posX, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
                     Stepper(value: $_note.timeTick, in: 0 ... data.chartLengthTick(), step: 1) {
-                        Text("Time Tick: \(_note.timeTick)")
-                    }
+                        HStack {
+                            Text("Tick:")
+                            TextField("[Int]/T", value: $_note.timeTick, formatter: numberFormatter)
+                        }
+                    }.onChange(of: _note.timeTick, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
                     Group {
                         if _note.noteType == .Hold {
                             Stepper(value: $_note.holdTimeTick, in: 0 ... data.chartLengthTick(), step: 1) {
-                                Text("Hold Time Tick: \(_note.holdTimeTick)")
-                            }
+                                HStack {
+                                    Text("Hold Time:")
+                                    TextField("[Int]/T", value: $_note.holdTimeTick, formatter: numberFormatter)
+                                }
+                            }.onChange(of: _note.holdTimeTick, perform: { _ in
+                                data.rebuildLineAndNote()
+                            })
                         }
                     }
                 }

@@ -6,6 +6,12 @@ import SwiftUI
 
 struct PropSettingsView: View {
     @EnvironmentObject private var data: DataStructure
+    @State private var numberFormatter: NumberFormatter = {
+        var nf = NumberFormatter()
+        nf.numberStyle = .decimal
+        return nf
+    }()
+    
 
     func currentPropList() -> some View {
         switch data.currentPropType {
@@ -15,8 +21,13 @@ struct PropSettingsView: View {
                     HStack {
                         Text("@\(String(prop.timeTick))T:")
                         Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
-                            Text(String(NSString(format: "%.3f", prop.value)))
-                        }
+                            HStack {
+                                Text("Value:")
+                                TextField("[Double]", value: $prop.value, formatter: numberFormatter)
+                            }
+                        }.onChange(of: prop.value, perform: { _ in
+                            data.rebuildLineAndNote()
+                        })
                     }
                     Menu {
                         Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
@@ -27,7 +38,9 @@ struct PropSettingsView: View {
                     } label: {
                         Text(String(describing: prop.followingEasing))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    }.onChange(of: prop.followingEasing, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
                 }
             }.onDelete(perform: { offset in
                 data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
@@ -40,8 +53,13 @@ struct PropSettingsView: View {
                     HStack {
                         Text("@\(String(prop.timeTick))T:")
                         Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
-                            Text(String(NSString(format: "%.3f", prop.value)))
-                        }
+                            HStack {
+                                Text("Value:")
+                                TextField("[Double]", value: $prop.value, formatter: numberFormatter)
+                            }
+                        }.onChange(of: prop.value, perform: { _ in
+                            data.rebuildLineAndNote()
+                        })
                     }
                     Menu {
                         Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
@@ -52,7 +70,9 @@ struct PropSettingsView: View {
                     } label: {
                         Text(String(describing: prop.followingEasing))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    }.onChange(of: prop.followingEasing, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
                 }
             }.onDelete(perform: { offset in
                 data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
@@ -65,8 +85,13 @@ struct PropSettingsView: View {
                     HStack {
                         Text("@\(String(prop.timeTick))T:")
                         Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
-                            Text(String(NSString(format: "%.3f", prop.value)))
-                        }
+                            HStack {
+                                Text("Value:")
+                                TextField("[Double]", value: $prop.value, formatter: numberFormatter)
+                            }
+                        }.onChange(of: prop.value, perform: { _ in
+                            data.rebuildLineAndNote()
+                        })
                     }
                     Menu {
                         Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
@@ -77,7 +102,9 @@ struct PropSettingsView: View {
                     } label: {
                         Text(String(describing: prop.followingEasing))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    }.onChange(of: prop.followingEasing, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
                 }
             }.onDelete(perform: { offset in
                 data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
@@ -90,8 +117,13 @@ struct PropSettingsView: View {
                     HStack {
                         Text("@\(String(prop.timeTick))T:")
                         Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
-                            Text(String(NSString(format: "%.3f", prop.value)))
-                        }
+                            HStack {
+                                Text("Value:")
+                                TextField("[Double]", value: $prop.value, formatter: numberFormatter)
+                            }
+                        }.onChange(of: prop.value, perform: { _ in
+                            data.rebuildLineAndNote()
+                        })
                     }
                     Menu {
                         Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
@@ -102,7 +134,9 @@ struct PropSettingsView: View {
                     } label: {
                         Text(String(describing: prop.followingEasing))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    }.onChange(of: prop.followingEasing, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
                 }
             }.onDelete(perform: { offset in
                 data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
@@ -115,8 +149,13 @@ struct PropSettingsView: View {
                     HStack {
                         Text("@\(String(prop.timeTick))T:")
                         Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
-                            Text(String(NSString(format: "%.3f", prop.value)))
-                        }
+                            HStack {
+                                Text("Value:")
+                                TextField("[Double]", value: $prop.value, formatter: numberFormatter)
+                            }
+                        }.onChange(of: prop.value, perform: { _ in
+                            data.rebuildLineAndNote()
+                        })
                     }
                     Menu {
                         Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
@@ -127,7 +166,9 @@ struct PropSettingsView: View {
                     } label: {
                         Text(String(describing: prop.followingEasing))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    }.onChange(of: prop.followingEasing, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
                 }
             }.onDelete(perform: { offset in
                 data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
@@ -140,8 +181,13 @@ struct PropSettingsView: View {
                     HStack {
                         Text("@\(String(prop.timeTick))T:")
                         Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
-                            Text(String(NSString(format: "%.3f", prop.value)))
-                        }
+                            HStack {
+                                Text("Value:")
+                                TextField("[Double]", value: $prop.value, formatter: numberFormatter)
+                            }
+                        }.onChange(of: prop.value, perform: { _ in
+                            data.rebuildLineAndNote()
+                        })
                     }
                     Menu {
                         Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
@@ -152,7 +198,9 @@ struct PropSettingsView: View {
                     } label: {
                         Text(String(describing: prop.followingEasing))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    }.onChange(of: prop.followingEasing, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
                 }
             }.onDelete(perform: { offset in
                 data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
@@ -165,8 +213,13 @@ struct PropSettingsView: View {
                     HStack {
                         Text("@\(String(prop.timeTick))T:")
                         Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
-                            Text(String(NSString(format: "%.3f", prop.value)))
-                        }
+                            HStack {
+                                Text("Value:")
+                                TextField("[Double]", value: $prop.value, formatter: numberFormatter)
+                            }
+                        }.onChange(of: prop.value, perform: { _ in
+                            data.rebuildLineAndNote()
+                        })
                     }
                     Menu {
                         Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
@@ -177,7 +230,9 @@ struct PropSettingsView: View {
                     } label: {
                         Text(String(describing: prop.followingEasing))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    }.onChange(of: prop.followingEasing, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
                 }
             }.onDelete(perform: { offset in
                 data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)

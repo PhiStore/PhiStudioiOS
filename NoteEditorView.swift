@@ -5,7 +5,6 @@ import SpriteKit
 import SwiftUI
 
 let _distance = 5.0
-let _maxAcceptableNotes = 10.0
 let _noteWidth = 120
 let _noteHeight = 15
 let _noteCornerRadius = 4.0
@@ -21,6 +20,7 @@ class NoteEditorScene: SKScene {
 
     var moveStartPoint: CGPoint?
     var moveStartTimeTick: Double?
+    var lastHitTimeTick: Int?
 
     var nodeLinks: [(SKNode, SKNode)] = []
     func link(nodeA: SKNode, to nodeB: SKNode) {
@@ -259,6 +259,11 @@ class NoteEditorScene: SKScene {
         let RelativePostionY = 50 + _distance * (data!.currentTimeTick - Double(Int(data!.currentTimeTick)))
         if let _touch = touches.first {
             let touchLocation = _touch.location(in: self)
+            let touchHint = SKShapeNode(circleOfRadius: 10)
+            touchHint.fillColor = .green
+            touchHint.position = touchLocation
+            touchHint.run(SKAction.sequence([SKAction.fadeOut(withDuration: 1),SKAction.removeFromParent()]))
+            addChild(touchHint)
             if data!.locked {
                 moveStartPoint = touchLocation
                 moveStartTimeTick = data?.currentTimeTick
@@ -284,28 +289,55 @@ class NoteEditorScene: SKScene {
             for node in nodes(at: touchLocation) {
                 if node.name == "note" {
                     node.run(SKAction.fadeOut(withDuration: 0.1))
-                    data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.removeAll(where: { $0.timeTick == minTick && (fabs($0.posX * size.width - node.position.x) < 75) })
+                    data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.removeAll(where: {
+                        ($0.noteType == .Hold ? (($0.timeTick <= minTick) && (minTick <= $0.timeTick + $0.holdTimeTick)) : ($0.timeTick == minTick)) && (fabs($0.posX * size.width - node.position.x) < 75)
+                    })
                     clearAndMakeNotes()
                     data!.objectWillChange.send()
                     return
                 }
             }
             if minTick >= 0, minTick <= data!.tickPerBeat * data!.chartLengthSecond * data!.bpm / 60 {
-                let tmpID = data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.count
-                data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.append(Note(id: tmpID, noteType: data!.currentNoteType, posX: (Double(Int(touchLocation.x / size.width * _maxAcceptableNotes)) - 0.5) / _maxAcceptableNotes + 1.0 / _maxAcceptableNotes, timeTick: minTick))
-                data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.sort(by: { noteA, noteB -> Bool in
-                    if noteA.timeTick != noteB.timeTick {
-                        return noteA.timeTick < noteB.timeTick
-                    } else {
-                        return noteA.posX < noteB.posX
+                if data!.currentNoteType == .Hold, data!.fastHold {
+                    if lastHitTimeTick == nil {
+                        lastHitTimeTick = minTick
+                        return
+                    } else if minTick > lastHitTimeTick! {
+                        let tmpID = data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.count
+                        data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.append(Note(id: tmpID, noteType: .Hold, posX: (Double(Int(touchLocation.x / size.width * data!.maxAcceptableNotes)) - 0.5) / data!.maxAcceptableNotes + 1.0 / data!.maxAcceptableNotes, timeTick: lastHitTimeTick!, holdTimeTick: minTick - lastHitTimeTick!))
+                        data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.sort(by: { noteA, noteB -> Bool in
+                            if noteA.timeTick != noteB.timeTick {
+                                return noteA.timeTick < noteB.timeTick
+                            } else {
+                                return noteA.posX < noteB.posX
+                            }
+                        })
+                        for i in 0 ..< data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.count {
+                            data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList[i].id = i
+                        }
+                        lastHitTimeTick = nil
+                        clearAndMakeNotes()
+                        data!.objectWillChange.send() // refresh swiftUI side
+                        return
                     }
-                })
-                for i in 0 ..< data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.count {
-                    data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList[i].id = i
+                    return
+                } else {
+                    let tmpID = data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.count
+                    data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.append(Note(id: tmpID, noteType: data!.currentNoteType, posX: (Double(Int(touchLocation.x / size.width * data!.maxAcceptableNotes)) - 0.5) / data!.maxAcceptableNotes + 1.0 / data!.maxAcceptableNotes, timeTick: minTick, holdTimeTick: data!.defaultHoldTimeTick))
+                    data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.sort(by: { noteA, noteB -> Bool in
+                        if noteA.timeTick != noteB.timeTick {
+                            return noteA.timeTick < noteB.timeTick
+                        } else {
+                            return noteA.posX < noteB.posX
+                        }
+                    })
+                    for i in 0 ..< data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.count {
+                        data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList[i].id = i
+                    }
+                    clearAndMakeNotes()
+                    data!.objectWillChange.send() // refresh swiftUI side
+                    return
                 }
-                clearAndMakeNotes()
-                data!.objectWillChange.send() // refresh swiftUI side
-                return
             }
         }
     }

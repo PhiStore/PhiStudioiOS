@@ -164,7 +164,7 @@ public class Note: Equatable, Identifiable, ObservableObject, Codable {
     @Published var fallSide: Bool
     @Published var timeTick: Int // measured in tick
     @Published var holdTimeTick: Int // measured in tick, only used for Hold variable
-    init(id: Int, noteType: NOTETYPE, posX: Double, timeTick: Int) {
+    init(id: Int, noteType: NOTETYPE, posX: Double, timeTick: Int, holdTimeTick: Int) {
         self.id = id
         self.noteType = noteType
         self.posX = posX
@@ -173,7 +173,7 @@ public class Note: Equatable, Identifiable, ObservableObject, Codable {
         fallSpeed = 1
         fallSide = true
         self.timeTick = timeTick
-        holdTimeTick = _defaultTickPerBeat
+        self.holdTimeTick = holdTimeTick
     }
 
     public static func == (l: Note, r: Note) -> Bool {
@@ -213,7 +213,17 @@ public class Note: Equatable, Identifiable, ObservableObject, Codable {
 
 class PropStatus: Codable, ObservableObject {
     @Published var timeTick: Int
-    @Published var value: Double
+    @Published var value: Double {
+        didSet {
+            if value > 1 {
+                value = 1
+            }
+            if value < 0 {
+                value = 0
+            }
+        }
+    }
+
     @Published var followingEasing: EASINGTYPE
 
     init(timeTick: Int, value: Double, followingEasing: EASINGTYPE) {
@@ -302,7 +312,7 @@ public class JudgeLineProps: Codable, ObservableObject {
         if prop.count > 1 {
             for index in 1 ..< prop.count {
                 if Double(prop[index].timeTick) > timeTick {
-                    return prop[index - 1].value + calculateEasing(x: ((timeTick - Double(prop[index - 1].timeTick)) / Double(prop[index].timeTick - prop[index - 1].timeTick)), type: prop[index - 1].followingEasing) * (prop[index].value - prop[index - 1].value)
+                    return prop[index - 1].value + calculateEasing(x: (timeTick - Double(prop[index - 1].timeTick)) / Double(prop[index].timeTick - prop[index - 1].timeTick), type: prop[index - 1].followingEasing) * (prop[index].value - prop[index - 1].value)
                 }
             }
         }
@@ -594,6 +604,7 @@ public class DataStructure: ObservableObject, Codable {
     @Published var bpmChangeAccrodingToTime: Bool // if bpm is changing according to time
     @Published var tickPerBeat: Int { // 1 beat = x ticks
         didSet {
+            defaultHoldTimeTick = tickPerBeat
             rebuildScene()
         }
     }
@@ -604,6 +615,8 @@ public class DataStructure: ObservableObject, Codable {
         }
     }
 
+    @Published var maxAcceptableNotes: Double = 31.0
+    @Published var defaultHoldTimeTick: Int
     @Published var chartLengthSecond: Int { // in ticks
         didSet {
             if chartLengthSecond < 0 {
@@ -654,6 +667,8 @@ public class DataStructure: ObservableObject, Codable {
             rebuildScene()
         }
     }
+
+    @Published var fastHold: Bool
 
     @Published var listOfJudgeLines: [JudgeLine]
     @Published var editingJudgeLineNumber: Int
@@ -844,6 +859,8 @@ public class DataStructure: ObservableObject, Codable {
                 bpmChangeAccrodingToTime = resolvedObject.bpmChangeAccrodingToTime
                 tickPerBeat = resolvedObject.tickPerBeat
                 highlightedTicks = resolvedObject.highlightedTicks
+                maxAcceptableNotes = resolvedObject.maxAcceptableNotes
+                defaultHoldTimeTick = resolvedObject.defaultHoldTimeTick
                 chartLengthSecond = resolvedObject.chartLengthSecond
                 musicName = resolvedObject.musicName
                 authorName = resolvedObject.authorName
@@ -853,6 +870,7 @@ public class DataStructure: ObservableObject, Codable {
                 locked = resolvedObject.locked
                 currentNoteType = resolvedObject.currentNoteType
                 currentPropType = resolvedObject.currentPropType
+                fastHold = resolvedObject.fastHold
                 listOfJudgeLines = resolvedObject.listOfJudgeLines
                 editingJudgeLineNumber = resolvedObject.editingJudgeLineNumber
                 currentTimeTick = resolvedObject.currentTimeTick
@@ -881,6 +899,8 @@ public class DataStructure: ObservableObject, Codable {
         bpmChangeAccrodingToTime = false
         tickPerBeat = _defaultTickPerBeat
         highlightedTicks = [ColoredInt(value: 2, color: Color.blue), ColoredInt(value: 4, color: Color.red)]
+        maxAcceptableNotes = 31.0
+        defaultHoldTimeTick = _defaultTickPerBeat
         chartLengthSecond = 180
         musicName = ""
         authorName = ""
@@ -894,6 +914,7 @@ public class DataStructure: ObservableObject, Codable {
         locked = false
         currentNoteType = NOTETYPE.Tap
         currentPropType = PROPTYPE.controlX
+        fastHold = true
         isRunning = false
         noteEditScene = NoteEditorScene()
         propEditScene = PropEditorScene()
@@ -910,6 +931,8 @@ public class DataStructure: ObservableObject, Codable {
         case bpmChangeAccrodingToTime
         case tickPerBeat
         case highlightedTicks
+        case maxAcceptableNotes
+        case defaultHoldTimeTick
         case chartLengthSecond
         case musicName
         case authorName
@@ -923,6 +946,7 @@ public class DataStructure: ObservableObject, Codable {
         case locked
         case currentNoteType
         case currentPropType
+        case fastHold
     }
 
     public required init(from decoder: Decoder) throws {
@@ -932,6 +956,8 @@ public class DataStructure: ObservableObject, Codable {
         bpmChangeAccrodingToTime = try container.decode(Bool.self, forKey: .bpmChangeAccrodingToTime)
         tickPerBeat = try container.decode(Int.self, forKey: .tickPerBeat)
         highlightedTicks = try container.decode([ColoredInt].self, forKey: .highlightedTicks)
+        maxAcceptableNotes = try container.decode(Double.self, forKey: .maxAcceptableNotes)
+        defaultHoldTimeTick = try container.decode(Int.self, forKey: .defaultHoldTimeTick)
         chartLengthSecond = try container.decode(Int.self, forKey: .chartLengthSecond)
         musicName = try container.decode(String.self, forKey: .musicName)
         authorName = try container.decode(String.self, forKey: .authorName)
@@ -945,6 +971,7 @@ public class DataStructure: ObservableObject, Codable {
         locked = try container.decode(Bool.self, forKey: .locked)
         currentNoteType = try container.decode(NOTETYPE.self, forKey: .currentNoteType)
         currentPropType = try container.decode(PROPTYPE.self, forKey: .currentPropType)
+        fastHold = try container.decode(Bool.self, forKey: .fastHold)
         noteEditScene = NoteEditorScene()
         propEditScene = PropEditorScene()
         chartPreviewScene = ChartPreviewScene()
@@ -958,6 +985,8 @@ public class DataStructure: ObservableObject, Codable {
         try container.encode(bpmChangeAccrodingToTime, forKey: .bpmChangeAccrodingToTime)
         try container.encode(tickPerBeat, forKey: .tickPerBeat)
         try container.encode(highlightedTicks, forKey: .highlightedTicks)
+        try container.encode(maxAcceptableNotes, forKey: .maxAcceptableNotes)
+        try container.encode(defaultHoldTimeTick, forKey: .defaultHoldTimeTick)
         try container.encode(chartLengthSecond, forKey: .chartLengthSecond)
         try container.encode(musicName, forKey: .musicName)
         try container.encode(authorName, forKey: .authorName)
@@ -971,5 +1000,6 @@ public class DataStructure: ObservableObject, Codable {
         try container.encode(locked, forKey: .locked)
         try container.encode(currentNoteType, forKey: .currentNoteType)
         try container.encode(currentPropType, forKey: .currentPropType)
+        try container.encode(fastHold, forKey: .fastHold)
     }
 }

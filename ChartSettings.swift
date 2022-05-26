@@ -69,6 +69,12 @@ struct ChartSettings: View {
     @State private var showingImagePicker = false
     @State private var showingExporter = false
     @State private var showingImporter = false
+    @State private var numberFormatter: NumberFormatter = {
+        var nf = NumberFormatter()
+        nf.numberStyle = .decimal
+        return nf
+    }()
+
     var body: some View {
         List {
             Section(header: Text("File Operation:")) {
@@ -142,7 +148,12 @@ struct ChartSettings: View {
             }.textCase(nil)
             Section(header: Text("Settings:")) {
                 Stepper(value: $data.offsetSecond, in: offsetRange, step: 0.005) {
-                    Text("Offset: \(NSString(format: "%.3f", data.offsetSecond)) s")
+                    HStack {
+                        Text("Offset:")
+                        TextField("[Double]/s", value: $data.offsetSecond, formatter: numberFormatter)
+                            .keyboardType(.numberPad)
+                            .submitLabel(.done)
+                    }
                 }
 
                 Toggle(isOn: $data.bpmChangeAccrodingToTime) {
@@ -151,14 +162,24 @@ struct ChartSettings: View {
                 }
                 if !data.bpmChangeAccrodingToTime {
                     Stepper(value: $data.bpm) {
-                        Text("BPM: \(data.bpm)")
+                        HStack {
+                            Text("BPM:")
+                            TextField("[Double]", value: $data.bpm, formatter: numberFormatter)
+                                .keyboardType(.numberPad)
+                                .submitLabel(.done)
+                        }
                     }
                 } else {
                     // TODO: Add support for changing BPM, gonna be a pain in the ass
                     Button("Edit BPM Props") {}
                 }
                 Stepper(value: $data.chartLengthSecond, in: chartLengthRange) {
-                    Text("Length: \(data.chartLengthSecond) s")
+                    HStack {
+                        Text("Chart Length:")
+                        TextField("[Int]/s", value: $data.chartLengthSecond, formatter: numberFormatter)
+                            .keyboardType(.numberPad)
+                            .submitLabel(.done)
+                    }
                 }
             }.textCase(nil)
 
@@ -187,12 +208,31 @@ struct ChartSettings: View {
             }.onChange(of: data.highlightedTicks) { _ in }
                 .textCase(nil)
 
-            Section(header: Text("Do not change these:")) {
-                Stepper(value: $data.tickPerBeat,
-                        onEditingChanged: { _ in }) {
+            Section(header: Text("Advanced Settings:")) {
+                Stepper(value: $data.tickPerBeat, onEditingChanged: { _ in }) {
                     Text("Tick: \(data.tickPerBeat)")
                 }.foregroundColor(.red)
-            }
+                Toggle(isOn: $data.fastHold) {
+                    Text("Fast Hold")
+                        .foregroundColor(.red)
+                }
+                Stepper(value: $data.maxAcceptableNotes, onEditingChanged: { _ in }) {
+                    HStack {
+                        Text("Note Division:")
+                        TextField("[Int]", value: $data.maxAcceptableNotes, formatter: numberFormatter)
+                            .keyboardType(.numberPad)
+                            .submitLabel(.done)
+                    }
+                }
+                Stepper(value: $data.defaultHoldTimeTick, onEditingChanged: { _ in }) {
+                    HStack {
+                        Text("Default Hold Time:")
+                        TextField("[Int]/T", value: $data.defaultHoldTimeTick, formatter: numberFormatter)
+                            .keyboardType(.numberPad)
+                            .submitLabel(.done)
+                    }
+                }
+            }.textCase(nil)
         }.sheet(isPresented: $showingImagePicker) {
             let configuration = PHPickerConfiguration(photoLibrary: PHPhotoLibrary.shared())
             ImagePicker(Image: $data.imageFile, isPresented: $showingImagePicker, configuration: configuration)

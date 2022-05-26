@@ -150,6 +150,7 @@ struct ContentView: View {
                 .frame(width: size * 2, height: size * 2)
                 .offset(x: -screenWidth / 2 + size * 3, y: -screenHeight / 2 + size * 3)
                 .onTapGesture {
+                    // change if pannel is shown
                     switch data.windowStatus {
                     case .pannelProp: data.windowStatus = .prop
                     case .prop: data.windowStatus = .pannelProp
@@ -207,16 +208,6 @@ struct ContentView: View {
                     switch data.windowStatus {
                     case .note: data.windowStatus = .prop
                     case .pannelNote: data.windowStatus = .pannelProp
-                    case .prop: data.windowStatus = .note
-                    case .pannelProp: data.windowStatus = .pannelNote
-                    case .preview: break
-                    case .pannelPreview: break
-                    }
-                }
-                .onLongPressGesture {
-                    switch data.windowStatus {
-                    case .note: data.windowStatus = .preview
-                    case .pannelNote: data.windowStatus = .pannelPreview
                     case .prop: data.windowStatus = .preview
                     case .pannelProp: data.windowStatus = .pannelPreview
                     case .preview: data.windowStatus = .note
@@ -230,7 +221,7 @@ struct ContentView: View {
                     .frame(width: size * 1, height: size * 1)
                     .onTapGesture {
                         data.isRunning = false
-                        data.currentTimeTick -= 5.0
+                        data.currentTimeTick -= Double(data.tickPerBeat / 2)
                     }
                 Image(systemName: !data.isRunning ? "play.circle" : "pause.circle").resizable()
                     .renderingMode(.template)
@@ -245,7 +236,7 @@ struct ContentView: View {
                     .frame(width: size * 1, height: size * 1)
                     .onTapGesture {
                         data.isRunning = false
-                        data.currentTimeTick += 5.0
+                        data.currentTimeTick += Double(data.tickPerBeat / 2)
                     }
                 Slider(value: $data.currentTimeTick,
                        in: 0 ... Double(data.chartLengthSecond * data.tickPerBeat * data.bpm / 60)).frame(width: screenWidth / 2 - 3 / 2 * size)

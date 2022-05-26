@@ -258,6 +258,11 @@ class PropEditorScene: SKScene {
         let RelativePositionX = 50 + _distanceH * (data!.currentTimeTick - Double(Int(data!.currentTimeTick)))
         if let touch = touches.first {
             let touchLocation = touch.location(in: self)
+            let touchHint = SKShapeNode(circleOfRadius: 10)
+            touchHint.fillColor = .green
+            touchHint.position = touchLocation
+            touchHint.run(SKAction.sequence([SKAction.fadeOut(withDuration: 1),SKAction.removeFromParent()]))
+            addChild(touchHint)
             if data!.locked {
                 moveStartPoint = touchLocation
                 moveStartTimeTick = data?.currentTimeTick
