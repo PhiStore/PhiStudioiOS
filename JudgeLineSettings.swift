@@ -23,8 +23,13 @@ struct JudgeLineSettings: View {
                     }
                 }
             }.textCase(nil)
-            ForEach(data.listOfJudgeLines, id: \.id) { _judgeLine in
+            ForEach($data.listOfJudgeLines, id: \.id) { $_judgeLine in
                 Section(header: Text("JudgeLine \(String(_judgeLine.id))")) {
+                    HStack{
+                        Text("Description:")
+                            .foregroundColor(.cyan)
+                        TextField("[String]", text: $_judgeLine.description)
+                    }
                     Button("Edit Notes") {
                         data.editingJudgeLineNumber = _judgeLine.id
                         data.windowStatus = .pannelNote

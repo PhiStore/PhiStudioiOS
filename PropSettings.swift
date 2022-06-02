@@ -11,24 +11,33 @@ struct PropSettingsView: View {
         nf.numberStyle = .decimal
         return nf
     }()
-    
 
+    @ViewBuilder
     func currentPropList() -> some View {
         switch data.currentPropType {
         case .controlX:
-            return ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.controlX, id: \.timeTick) { $prop in
-                VStack {
-                    HStack {
-                        Text("@\(String(prop.timeTick))T:")
-                        Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
-                            HStack {
-                                Text("Value:")
-                                TextField("[Double]", value: $prop.value, formatter: numberFormatter)
-                            }
-                        }.onChange(of: prop.value, perform: { _ in
-                            data.rebuildLineAndNote()
-                        })
+            ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.controlX, id: \.timeTick) { $prop in
+                Section("@[\(String(prop.timeTick))]") {
+                    Stepper(value: $prop.timeTick, in: 0 ... data.chartLengthTick(), step: 1) {
+                        HStack {
+                            Text("Tick:")
+                            TextField("[Int]/T", value: $prop.timeTick, formatter: numberFormatter)
+                        }
                     }
+                    .foregroundColor(.cyan)
+                    .onChange(of: prop.timeTick, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
+                    Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
+                        HStack {
+                            Text("Value:")
+                            TextField("[Double]", value: $prop.value, formatter: numberFormatter)
+                        }
+                    }
+                    .foregroundColor(.cyan)
+                    .onChange(of: prop.value, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
                     Menu {
                         Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
                             ForEach(EASINGTYPE.allCases, id: \.self) { type in
@@ -41,26 +50,41 @@ struct PropSettingsView: View {
                     }.onChange(of: prop.followingEasing, perform: { _ in
                         data.rebuildLineAndNote()
                     })
+                    Button("Quick Jump") {
+                        data.currentTimeTick = Double(prop.timeTick)
+                    }
+                    Button("Delete Prop") {
+                        if prop.timeTick != 0 {
+                            data.listOfJudgeLines[data.editingJudgeLineNumber].props.controlX.removeAll(where: { $0.timeTick == prop.timeTick })
+                            data.objectWillChange.send()
+                            data.rebuildLineAndNote()
+                        }
+                    }.foregroundColor(Color.red)
                 }
-            }.onDelete(perform: { offset in
-                data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
-                data.rebuildScene()
-                data.objectWillChange.send()
-            })
+            }
         case .controlY:
-            return ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.controlY, id: \.timeTick) { $prop in
-                VStack {
-                    HStack {
-                        Text("@\(String(prop.timeTick))T:")
-                        Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
-                            HStack {
-                                Text("Value:")
-                                TextField("[Double]", value: $prop.value, formatter: numberFormatter)
-                            }
-                        }.onChange(of: prop.value, perform: { _ in
-                            data.rebuildLineAndNote()
-                        })
+            ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.controlY, id: \.timeTick) { $prop in
+                Section("@[\(String(prop.timeTick))]") {
+                    Stepper(value: $prop.timeTick, in: 0 ... data.chartLengthTick(), step: 1) {
+                        HStack {
+                            Text("Tick:")
+                            TextField("[Int]/T", value: $prop.timeTick, formatter: numberFormatter)
+                        }
                     }
+                    .foregroundColor(.cyan)
+                    .onChange(of: prop.timeTick, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
+                    Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
+                        HStack {
+                            Text("Value:")
+                            TextField("[Double]", value: $prop.value, formatter: numberFormatter)
+                        }
+                    }
+                    .foregroundColor(.cyan)
+                    .onChange(of: prop.value, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
                     Menu {
                         Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
                             ForEach(EASINGTYPE.allCases, id: \.self) { type in
@@ -73,26 +97,41 @@ struct PropSettingsView: View {
                     }.onChange(of: prop.followingEasing, perform: { _ in
                         data.rebuildLineAndNote()
                     })
+                    Button("Quick Jump") {
+                        data.currentTimeTick = Double(prop.timeTick)
+                    }
+                    Button("Delete Prop") {
+                        if prop.timeTick != 0 {
+                            data.listOfJudgeLines[data.editingJudgeLineNumber].props.controlY.removeAll(where: { $0.timeTick == prop.timeTick })
+                            data.objectWillChange.send()
+                            data.rebuildLineAndNote()
+                        }
+                    }.foregroundColor(Color.red)
                 }
-            }.onDelete(perform: { offset in
-                data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
-                data.rebuildScene()
-                data.objectWillChange.send()
-            })
+            }
         case .angle:
-            return ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.angle, id: \.timeTick) { $prop in
-                VStack {
-                    HStack {
-                        Text("@\(String(prop.timeTick))T:")
-                        Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
-                            HStack {
-                                Text("Value:")
-                                TextField("[Double]", value: $prop.value, formatter: numberFormatter)
-                            }
-                        }.onChange(of: prop.value, perform: { _ in
-                            data.rebuildLineAndNote()
-                        })
+            ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.angle, id: \.timeTick) { $prop in
+                Section("@[\(String(prop.timeTick))]") {
+                    Stepper(value: $prop.timeTick, in: 0 ... data.chartLengthTick(), step: 1) {
+                        HStack {
+                            Text("Tick:")
+                            TextField("[Int]/T", value: $prop.timeTick, formatter: numberFormatter)
+                        }
                     }
+                    .foregroundColor(.cyan)
+                    .onChange(of: prop.timeTick, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
+                    Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
+                        HStack {
+                            Text("Value:")
+                            TextField("[Double]", value: $prop.value, formatter: numberFormatter)
+                        }
+                    }
+                    .foregroundColor(.cyan)
+                    .onChange(of: prop.value, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
                     Menu {
                         Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
                             ForEach(EASINGTYPE.allCases, id: \.self) { type in
@@ -105,26 +144,41 @@ struct PropSettingsView: View {
                     }.onChange(of: prop.followingEasing, perform: { _ in
                         data.rebuildLineAndNote()
                     })
+                    Button("Quick Jump") {
+                        data.currentTimeTick = Double(prop.timeTick)
+                    }
+                    Button("Delete Prop") {
+                        if prop.timeTick != 0 {
+                            data.listOfJudgeLines[data.editingJudgeLineNumber].props.angle.removeAll(where: { $0.timeTick == prop.timeTick })
+                            data.objectWillChange.send()
+                            data.rebuildLineAndNote()
+                        }
+                    }.foregroundColor(Color.red)
                 }
-            }.onDelete(perform: { offset in
-                data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
-                data.rebuildScene()
-                data.objectWillChange.send()
-            })
+            }
         case .speed:
-            return ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.speed, id: \.timeTick) { $prop in
-                VStack {
-                    HStack {
-                        Text("@\(String(prop.timeTick))T:")
-                        Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
-                            HStack {
-                                Text("Value:")
-                                TextField("[Double]", value: $prop.value, formatter: numberFormatter)
-                            }
-                        }.onChange(of: prop.value, perform: { _ in
-                            data.rebuildLineAndNote()
-                        })
+            ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.speed, id: \.timeTick) { $prop in
+                Section("@[\(String(prop.timeTick))]") {
+                    Stepper(value: $prop.timeTick, in: 0 ... data.chartLengthTick(), step: 1) {
+                        HStack {
+                            Text("Tick:")
+                            TextField("[Int]/T", value: $prop.timeTick, formatter: numberFormatter)
+                        }
                     }
+                    .foregroundColor(.cyan)
+                    .onChange(of: prop.timeTick, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
+                    Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
+                        HStack {
+                            Text("Value:")
+                            TextField("[Double]", value: $prop.value, formatter: numberFormatter)
+                        }
+                    }
+                    .foregroundColor(.cyan)
+                    .onChange(of: prop.value, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
                     Menu {
                         Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
                             ForEach(EASINGTYPE.allCases, id: \.self) { type in
@@ -137,26 +191,41 @@ struct PropSettingsView: View {
                     }.onChange(of: prop.followingEasing, perform: { _ in
                         data.rebuildLineAndNote()
                     })
+                    Button("Quick Jump") {
+                        data.currentTimeTick = Double(prop.timeTick)
+                    }
+                    Button("Delete Prop") {
+                        if prop.timeTick != 0 {
+                            data.listOfJudgeLines[data.editingJudgeLineNumber].props.speed.removeAll(where: { $0.timeTick == prop.timeTick })
+                            data.objectWillChange.send()
+                            data.rebuildLineAndNote()
+                        }
+                    }.foregroundColor(Color.red)
                 }
-            }.onDelete(perform: { offset in
-                data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
-                data.rebuildScene()
-                data.objectWillChange.send()
-            })
+            }
         case .noteAlpha:
-            return ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.noteAlpha, id: \.timeTick) { $prop in
-                VStack {
-                    HStack {
-                        Text("@\(String(prop.timeTick))T:")
-                        Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
-                            HStack {
-                                Text("Value:")
-                                TextField("[Double]", value: $prop.value, formatter: numberFormatter)
-                            }
-                        }.onChange(of: prop.value, perform: { _ in
-                            data.rebuildLineAndNote()
-                        })
+            ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.noteAlpha, id: \.timeTick) { $prop in
+                Section("@[\(String(prop.timeTick))]") {
+                    Stepper(value: $prop.timeTick, in: 0 ... data.chartLengthTick(), step: 1) {
+                        HStack {
+                            Text("Tick:")
+                            TextField("[Int]/T", value: $prop.timeTick, formatter: numberFormatter)
+                        }
                     }
+                    .foregroundColor(.cyan)
+                    .onChange(of: prop.timeTick, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
+                    Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
+                        HStack {
+                            Text("Value:")
+                            TextField("[Double]", value: $prop.value, formatter: numberFormatter)
+                        }
+                    }
+                    .foregroundColor(.cyan)
+                    .onChange(of: prop.value, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
                     Menu {
                         Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
                             ForEach(EASINGTYPE.allCases, id: \.self) { type in
@@ -169,26 +238,41 @@ struct PropSettingsView: View {
                     }.onChange(of: prop.followingEasing, perform: { _ in
                         data.rebuildLineAndNote()
                     })
+                    Button("Quick Jump") {
+                        data.currentTimeTick = Double(prop.timeTick)
+                    }
+                    Button("Delete Prop") {
+                        if prop.timeTick != 0 {
+                            data.listOfJudgeLines[data.editingJudgeLineNumber].props.noteAlpha.removeAll(where: { $0.timeTick == prop.timeTick })
+                            data.objectWillChange.send()
+                            data.rebuildLineAndNote()
+                        }
+                    }.foregroundColor(Color.red)
                 }
-            }.onDelete(perform: { offset in
-                data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
-                data.rebuildScene()
-                data.objectWillChange.send()
-            })
+            }
         case .lineAlpha:
-            return ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.lineAlpha, id: \.timeTick) { $prop in
-                VStack {
-                    HStack {
-                        Text("@\(String(prop.timeTick))T:")
-                        Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
-                            HStack {
-                                Text("Value:")
-                                TextField("[Double]", value: $prop.value, formatter: numberFormatter)
-                            }
-                        }.onChange(of: prop.value, perform: { _ in
-                            data.rebuildLineAndNote()
-                        })
+            ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.lineAlpha, id: \.timeTick) { $prop in
+                Section("@[\(String(prop.timeTick))]") {
+                    Stepper(value: $prop.timeTick, in: 0 ... data.chartLengthTick(), step: 1) {
+                        HStack {
+                            Text("Tick:")
+                            TextField("[Int]/T", value: $prop.timeTick, formatter: numberFormatter)
+                        }
                     }
+                    .foregroundColor(.cyan)
+                    .onChange(of: prop.timeTick, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
+                    Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
+                        HStack {
+                            Text("Value:")
+                            TextField("[Double]", value: $prop.value, formatter: numberFormatter)
+                        }
+                    }
+                    .foregroundColor(.cyan)
+                    .onChange(of: prop.value, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
                     Menu {
                         Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
                             ForEach(EASINGTYPE.allCases, id: \.self) { type in
@@ -201,26 +285,41 @@ struct PropSettingsView: View {
                     }.onChange(of: prop.followingEasing, perform: { _ in
                         data.rebuildLineAndNote()
                     })
+                    Button("Quick Jump") {
+                        data.currentTimeTick = Double(prop.timeTick)
+                    }
+                    Button("Delete Prop") {
+                        if prop.timeTick != 0 {
+                            data.listOfJudgeLines[data.editingJudgeLineNumber].props.lineAlpha.removeAll(where: { $0.timeTick == prop.timeTick })
+                            data.objectWillChange.send()
+                            data.rebuildLineAndNote()
+                        }
+                    }.foregroundColor(Color.red)
                 }
-            }.onDelete(perform: { offset in
-                data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
-                data.rebuildScene()
-                data.objectWillChange.send()
-            })
+            }
         case .displayRange:
-            return ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.displayRange, id: \.timeTick) { $prop in
-                VStack {
-                    HStack {
-                        Text("@\(String(prop.timeTick))T:")
-                        Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
-                            HStack {
-                                Text("Value:")
-                                TextField("[Double]", value: $prop.value, formatter: numberFormatter)
-                            }
-                        }.onChange(of: prop.value, perform: { _ in
-                            data.rebuildLineAndNote()
-                        })
+            ForEach($data.listOfJudgeLines[data.editingJudgeLineNumber].props.displayRange, id: \.timeTick) { $prop in
+                Section("@[\(String(prop.timeTick))]") {
+                    Stepper(value: $prop.timeTick, in: 0 ... data.chartLengthTick(), step: 1) {
+                        HStack {
+                            Text("Tick:")
+                            TextField("[Int]/T", value: $prop.timeTick, formatter: numberFormatter)
+                        }
                     }
+                    .foregroundColor(.cyan)
+                    .onChange(of: prop.timeTick, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
+                    Stepper(value: $prop.value, in: 0 ... 1, step: 0.01) {
+                        HStack {
+                            Text("Value:")
+                            TextField("[Double]", value: $prop.value, formatter: numberFormatter)
+                        }
+                    }
+                    .foregroundColor(.cyan)
+                    .onChange(of: prop.value, perform: { _ in
+                        data.rebuildLineAndNote()
+                    })
                     Menu {
                         Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
                             ForEach(EASINGTYPE.allCases, id: \.self) { type in
@@ -233,12 +332,18 @@ struct PropSettingsView: View {
                     }.onChange(of: prop.followingEasing, perform: { _ in
                         data.rebuildLineAndNote()
                     })
+                    Button("Quick Jump") {
+                        data.currentTimeTick = Double(prop.timeTick)
+                    }
+                    Button("Delete Prop") {
+                        if prop.timeTick != 0 {
+                            data.listOfJudgeLines[data.editingJudgeLineNumber].props.displayRange.removeAll(where: { $0.timeTick == prop.timeTick })
+                            data.objectWillChange.send()
+                            data.rebuildLineAndNote()
+                        }
+                    }.foregroundColor(Color.red)
                 }
-            }.onDelete(perform: { offset in
-                data.listOfJudgeLines[data.editingJudgeLineNumber].props.removePropAtOffset(type: data.currentPropType, offset: offset)
-                data.rebuildScene()
-                data.objectWillChange.send()
-            })
+            }
         }
     }
 
@@ -256,11 +361,8 @@ struct PropSettingsView: View {
                 }
                 .pickerStyle(.menu)
                 Text(descriptionForPropType(type: data.currentPropType))
-
-                Section(header: Text(String(describing: data.currentPropType))) {
-                    currentPropList()
-                }
-                .textCase(nil)
+                currentPropList()
+                    .textCase(nil)
             }
         }
     }

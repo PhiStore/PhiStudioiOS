@@ -68,7 +68,7 @@ class ChartPreviewScene: SKScene {
                 let noteNodeTemplate = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight), cornerRadius: _noteCornerRadius)
                 noteNodeTemplate.name = "note"
                 noteNodeTemplate.alpha = 1.0
-                noteNodeTemplate.lineWidth = 8
+                noteNodeTemplate.lineWidth = 5
                 return noteNodeTemplate
             }()
         } else {
@@ -85,10 +85,10 @@ class ChartPreviewScene: SKScene {
             addChild(judgeLineNode)
             for note in judgeLine.noteList {
                 if note.noteType == .Hold {
-                    if Double(note.timeTick + note.holdTimeTick) <= data!.currentTimeTick {
+                    if Double(note.timeTick + note.holdTimeTick) < data!.currentTimeTick {
                         continue
                     }
-                } else if Double(note.timeTick) <= data!.currentTimeTick {
+                } else if Double(note.timeTick) < data!.currentTimeTick {
                     continue
                 }
                 var noteNode = noteNodeTemplate!.copy() as! SKShapeNode
@@ -100,22 +100,22 @@ class ChartPreviewScene: SKScene {
                     let bottomColor = CIColor(red: 0.0, green: 0.0, blue: 1.0, alpha: 0.0)
                     let texture = SKTexture(size: CGSize(width: 200, height: 200), color1: topColor, color2: bottomColor, direction: GradientDirection.up)
                     texture.filteringMode = .nearest
-                    noteNode = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight + Int(_distance) * note.holdTimeTick), cornerRadius: _noteCornerRadius)
+                    noteNode = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight + _distance * Double(note.holdTimeTick)), cornerRadius: _noteCornerRadius)
                     noteNode.fillTexture = texture
                     noteNode.fillColor = .white
                     noteNode.position = CGPoint(x: (note.fallSide ? -1.0 : 1.0) * (noteRelativePosition + Double(note.holdTimeTick) / 2) * _distance * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, y: (note.fallSide ? 1.0 : -1.0) * (noteRelativePosition + Double(note.holdTimeTick) / 2 * _distance) * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY)
                     noteNode.zRotation = judgeLineAngle
                     noteNode.name = "note"
                     noteNode.alpha = 1.0
-                    noteNode.lineWidth = 8
+                    noteNode.lineWidth = 5
                 } else {
                     noteNode.position = CGPoint(x: (note.fallSide ? -1.0 : 1.0) * noteRelativePosition * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, y: (note.fallSide ? 1.0 : -1.0) * noteRelativePosition * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY)
                     noteNode.zRotation = judgeLineAngle
                     switch note.noteType {
-                    case .Tap: noteNode.fillColor = SKColor.blue
+                    case .Tap: noteNode.fillColor = SKColor(cgColor: CGColor(srgbRed: 22.0 / 255.0, green: 176.0 / 255.0, blue: 248.0 / 255.0, alpha: 1))
                     case .Hold: continue
-                    case .Drag: noteNode.fillColor = SKColor.yellow
-                    case .Flick: noteNode.fillColor = SKColor.red
+                    case .Drag: noteNode.fillColor = SKColor(cgColor: CGColor(srgbRed: 239.0 / 255.0, green: 237.0 / 255.0, blue: 125.0 / 255.0, alpha: 1))
+                    case .Flick: noteNode.fillColor = SKColor(cgColor: CGColor(srgbRed: 234.0 / 255.0, green: 84.0 / 255.0, blue: 104.0 / 255.0, alpha: 1))
                     }
                 }
                 link(nodeA: noteNode, to: noteNodeTemplate!)
@@ -199,7 +199,7 @@ class ChartPreviewScene: SKScene {
                     let bottomColor = CIColor(red: 0.0, green: 0.0, blue: 1.0, alpha: 0.0)
                     let texture = SKTexture(size: CGSize(width: 200, height: 200), color1: topColor, color2: bottomColor, direction: GradientDirection.up)
                     texture.filteringMode = .nearest
-                    noteNode = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight + Int(_distance) * note.holdTimeTick), cornerRadius: _noteCornerRadius)
+                    noteNode = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight + _distance * Double(note.holdTimeTick)), cornerRadius: _noteCornerRadius)
                     noteNode.fillTexture = texture
                     noteNode.fillColor = .white
                     noteNode.position = CGPoint(x: (note.fallSide ? -1.0 : 1.0) * (noteRelativePosition + Double(note.holdTimeTick) / 2) * _distance * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, y: (note.fallSide ? 1.0 : -1.0) * (noteRelativePosition + Double(note.holdTimeTick) / 2 * _distance) * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY)
@@ -209,7 +209,7 @@ class ChartPreviewScene: SKScene {
                     noteNode.lineWidth = 8
                     var noteMoveAction: [SKAction] = []
                     var tmpTick = data!.currentTimeTick
-                    while tmpTick < Double(note.timeTick + note.holdTimeTick) {
+                    while tmpTick <= Double(note.timeTick + note.holdTimeTick) {
                         let judgeLineAngle = judgeLine.props.calculateValue(.angle, tmpTick) * 2.0 * .pi
                         let judgeLinePosX = judgeLine.props.calculateValue(.controlX, tmpTick) * size.width
                         let judgeLinePosY = judgeLine.props.calculateValue(.controlY, tmpTick) * size.width
@@ -242,7 +242,7 @@ class ChartPreviewScene: SKScene {
                     }
                     var noteMoveAction: [SKAction] = []
                     var tmpTick = data!.currentTimeTick
-                    while tmpTick < Double(note.timeTick) {
+                    while tmpTick <= Double(note.timeTick) {
                         let judgeLineAngle = judgeLine.props.calculateValue(.angle, tmpTick) * 2.0 * .pi
                         let judgeLinePosX = judgeLine.props.calculateValue(.controlX, tmpTick) * size.width
                         let judgeLinePosY = judgeLine.props.calculateValue(.controlY, tmpTick) * size.width

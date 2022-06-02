@@ -5,8 +5,8 @@ import SpriteKit
 import SwiftUI
 
 let _distance = 5.0
-let _noteWidth = 120
-let _noteHeight = 15
+let _noteWidth = 150.0
+let _noteHeight = 20.0
 let _noteCornerRadius = 4.0
 
 class NoteEditorScene: SKScene {
@@ -140,7 +140,7 @@ class NoteEditorScene: SKScene {
                 let bottomColor = CIColor(red: 0.0, green: 0.0, blue: 1.0, alpha: 0.0)
                 let texture = SKTexture(size: CGSize(width: 200, height: 200), color1: topColor, color2: bottomColor, direction: GradientDirection.up)
                 texture.filteringMode = .nearest
-                noteNode = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight + Int(_distance) * note.holdTimeTick), cornerRadius: _noteCornerRadius)
+                noteNode = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight + _distance * Double(note.holdTimeTick)), cornerRadius: _noteCornerRadius)
                 noteNode.fillTexture = texture
                 noteNode.fillColor = .white
                 noteNode.position = CGPoint(x: note.posX * size.width, y: RelativePostionY + (CGFloat(note.timeTick) - data!.currentTimeTick + CGFloat(note.holdTimeTick) / 2) * _distance)
@@ -262,7 +262,7 @@ class NoteEditorScene: SKScene {
             let touchHint = SKShapeNode(circleOfRadius: 10)
             touchHint.fillColor = .green
             touchHint.position = touchLocation
-            touchHint.run(SKAction.sequence([SKAction.fadeOut(withDuration: 1),SKAction.removeFromParent()]))
+            touchHint.run(SKAction.sequence([SKAction.fadeOut(withDuration: 1), SKAction.removeFromParent()]))
             addChild(touchHint)
             if data!.locked {
                 moveStartPoint = touchLocation

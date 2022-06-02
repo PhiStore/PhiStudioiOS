@@ -1,7 +1,6 @@
 // Definition.swift
 // Author: TianKai Ma
 // Last Reviewed: 2022-05-22 20:50
-import Accelerate
 import AVFoundation
 import SpriteKit
 import SwiftUI
@@ -53,40 +52,13 @@ public extension UIColor {
     }
 }
 
-// All supported note type
+// All currently supported note type
 public enum NOTETYPE: String, Equatable, CaseIterable, Codable {
-    case Tap
-    case Hold
-    case Flick
-    case Drag
+    case Tap, Hold, Flick, Drag
 }
 
 public enum EASINGTYPE: String, Equatable, CaseIterable, Codable {
-    case linear
-    case easeInSine
-    case easeOutSine
-    case easeInOutSine
-    case easeInQuad
-    case easeOutQuad
-    case easeInOutQuad
-    case easeInCubic
-    case easeOutCubic
-    case easeInOutCubic
-    case easeInQuart
-    case easeOutQuart
-    case easeInOutQuart
-    case easeInQuint
-    case easeOutQuint
-    case easeInOutQuint
-    case easeInExpo
-    case easeOutExpo
-    case easeInOutExpo
-    case easeInCirc
-    case easeOutCirc
-    case easeInOutCirc
-    case easeInBack
-    case easeOutBack
-    case easeInOutBack
+    case linear, easeInSine, easeOutSine, easeInOutSine, easeInQuad, easeOutQuad, easeInOutQuad, easeInCubic, easeOutCubic, easeInOutCubic, easeInQuart, easeOutQuart, easeInOutQuart, easeInQuint, easeOutQuint, easeInOutQuint, easeInExpo, easeOutExpo, easeInOutExpo, easeInCirc, easeOutCirc, easeInOutCirc, easeInBack, easeOutBack, easeInOutBack
 }
 
 // The following function gives a func from [0,1] -> [0,1] (usually, sometimes exceed, but f(0)=0, f(1)= 1 always holds)
@@ -105,25 +77,25 @@ func calculateEasing(x: Double, type: EASINGTYPE) -> Double {
     case .easeOutQuad:
         return 1 - (1 - x) * (1 - x)
     case .easeInOutQuad:
-        return (x < 0.5) ? 2 * x * x : 1 - pow(-2 * x + 2, 2) / 2
+        return (x < 0.5) ? 2 * pow(x, 2) : 1 - pow(-2 * x + 2, 2) / 2
     case .easeInCubic:
         return x * x * x
     case .easeOutCubic:
         return 1 - pow(1 - x, 3)
     case .easeInOutCubic:
-        return (x < 0.5) ? 4 * x * x * x : 1 - pow(-2 * x + 2, 3) / 2
+        return (x < 0.5) ? 4 * pow(x, 3) : 1 - pow(-2 * x + 2, 3) / 2
     case .easeInQuart:
         return x * x * x * x
     case .easeOutQuart:
         return 1 - pow(1 - x, 4)
     case .easeInOutQuart:
-        return (x < 0.5) ? 8 * x * x * x * x : 1 - pow(-2 * x + 2, 4) / 2
+        return (x < 0.5) ? 8 * pow(x, 4) : 1 - pow(-2 * x + 2, 4) / 2
     case .easeInQuint:
         return x * x * x * x * x
     case .easeOutQuint:
         return 1 - pow(1 - x, 5)
     case .easeInOutQuint:
-        return (x < 0.5) ? 16 * x * x * x * x * x : 1 - pow(-2 * x + 2, 5) / 2
+        return (x < 0.5) ? 16 * pow(x, 5) : 1 - pow(-2 * x + 2, 5) / 2
     case .easeInExpo:
         return (x == 0) ? 0 : pow(2, 10 * x - 10)
     case .easeOutExpo:
@@ -137,7 +109,7 @@ func calculateEasing(x: Double, type: EASINGTYPE) -> Double {
     case .easeInOutCirc:
         return (x < 0.5) ? (1 - sqrt(1 - pow(2 * x, 2))) / 2 : (sqrt(1 - pow(-2 * x + 2, 2)) + 1) / 2
     case .easeInBack:
-        return 2.70158 * x * x * x - 1.70158 * x * x
+        return 2.70158 * pow(x, 3) - 1.70158 * pow(x, 2)
     case .easeOutBack:
         return 1 + 2.70158 * pow(x - 1, 3) + 1.70158 * pow(x - 1, 2)
     case .easeInOutBack:
@@ -145,13 +117,118 @@ func calculateEasing(x: Double, type: EASINGTYPE) -> Double {
     }
 }
 
+func integrateEasing(type: EASINGTYPE) -> Double {
+    switch type {
+    case .linear:
+        return 0.5
+    case .easeInSine:
+        return 1 - 2 / Double.pi
+    case .easeOutSine:
+        return 2 / Double.pi
+    case .easeInOutSine:
+        return 0.5
+    case .easeInQuad:
+        return 1 / 3
+    case .easeOutQuad:
+        return 2 / 3
+    case .easeInOutQuad:
+        return 0.5
+    case .easeInCubic:
+        return 0.25
+    case .easeOutCubic:
+        return 0.75
+    case .easeInOutCubic:
+        return 0.5
+    case .easeInQuart:
+        return 0.2
+    case .easeOutQuart:
+        return 0.8
+    case .easeInOutQuart:
+        return 0.5
+    case .easeInQuint:
+        return 1 / 6
+    case .easeOutQuint:
+        return 5 / 6
+    case .easeInOutQuint:
+        return 0.5
+    case .easeInExpo:
+        return 0.144128615901
+    case .easeOutExpo:
+        return 0.855871384099
+    case .easeInOutExpo:
+        return 0.5
+    case .easeInCirc:
+        return 1 - Double.pi / 4
+    case .easeOutCirc:
+        return Double.pi / 4
+    case .easeInOutCirc:
+        return 0.5
+    case .easeInBack:
+        return 0.108201666667
+    case .easeOutBack:
+        return 0.891798333333
+    case .easeInOutBack:
+        return 0.5
+    }
+}
+
+func integrateOverEasing(x: Double, type: EASINGTYPE) -> Double {
+    switch type {
+    case .linear:
+        return pow(x, 2) / 2
+    case .easeInSine:
+        return x - 2 * sin(Double.pi * x / 2) / Double.pi
+    case .easeOutSine:
+        return 2 / Double.pi * (1 - cos(Double.pi * x / 2))
+    case .easeInOutSine:
+        return x / 2 - sin(Double.pi * x) / (2 * Double.pi)
+    case .easeInQuad:
+        return pow(x, 3) / 3
+    case .easeOutQuad:
+        return pow(x, 2) * (3 - x) / 3
+    case .easeInOutQuad:
+        return (x < 0.5) ? 2 / 3 * pow(x, 3) : (-4 * pow(x, 3) + 12 * pow(x, 2) - 6 * x + 1) / 6
+    case .easeInCubic:
+        return pow(x, 4) / 4
+    case .easeOutCubic:
+        return (pow(x, 4) - 4 * pow(x, 3) + 6 * pow(x, 2)) / 4
+    case .easeInOutCubic:
+        return (x < 0.5) ? pow(x, 4) : pow(x, 4) - 4 * pow(x, 3) + 6 * pow(x, 2) - 3 * x + 0.5
+    case .easeInQuart:
+        return pow(x, 5) / 5
+    case .easeOutQuart:
+        return (-pow(x, 5) / 5 + pow(x, 4) - 2 * pow(x, 3) + 2 * pow(x, 2))
+    case .easeInOutQuart:
+        return (x < 0.5) ? 8 / 5 * pow(x, 5) : (-1.6 * pow(x, 5) + 8 * pow(x, 4) - 16 * pow(x, 3) + 16 * pow(x, 2) - 7 * x + 1.1)
+    case .easeInQuint:
+        return pow(x, 6) / 6
+    case .easeOutQuint:
+        return (pow(x, 6) - 6 * pow(x, 5) + 15 * pow(x, 4) - 20 * pow(x, 3) + 15 * pow(x, 2)) / 6
+    case .easeInOutQuint:
+        return (x < 0.5) ? 8 / 3 * pow(x, 6) : (16 * pow(x, 6) - 96 * pow(x, 5) + 240 * pow(x, 4) - 320 * pow(x, 3) + 240 * pow(x, 2) - 90 * x + 13) / 6
+    case .easeInExpo:
+        return (pow(2, 10 * x) - 1) / (10240 * log(2))
+    case .easeOutExpo:
+        return x + (pow(2, -10 * x) - 1) / (10 * log(2))
+    case .easeInOutExpo:
+        return (x < 0.5) ? pow(2, 20 * x - 10) / (40 * log(2)) - 1 / (40960 * log(2)) : (x - 1 / 2 - 1 / (40960 * log(2)) + pow(2, -20 * x + 10) / (40 * log(2)))
+    case .easeInCirc:
+        return x - 1 / 2 * (x * sqrt(1 - x * x) + asin(x))
+    case .easeOutCirc:
+        return ((x - 1) * sqrt(-x * x + 2 * x) + asin(x - 1)) / 2 + Double.pi / 4
+    case .easeInOutCirc:
+        return (x < 0.5) ? (-2 * x * sqrt(1 - 4 * x * x) - asin(2 * x) + 4 * x) / 8 : sqrt(-4 * x * x + 8 * x - 3) * (x - 1) / 4 + 0.5 * x + asin(2 * x - 2) / 8
+    case .easeInBack:
+        return 2.70158 * x * x * x * x / 4 - 1.70158 * x * x * x / 3
+    case .easeOutBack:
+        return x + 2.70158 * pow(x - 1, 4) / 4 + 1.70158 * pow(x - 1, 3) / 3
+    case .easeInOutBack:
+        return (x < 0.5) ? (7.189819 * pow(x, 4) / 2 - 2.5949095 * pow(x, 3) * 2 / 3) : (1.4379638 * pow(x, 5) - 3.5949095 * pow(x, 4) + 8.91975866667 * pow(x, 3) - 19.569457 * pow(x, 2) + 20.569457 * x - 6.31914922291)
+    }
+}
+
 enum WINDOWSTATUS: String, Equatable, CaseIterable, Codable {
-    case pannelNote
-    case pannelProp
-    case pannelPreview
-    case note
-    case prop
-    case preview
+    case pannelNote, pannelProp, pannelPreview, note, prop, preview
 }
 
 public class Note: Equatable, Identifiable, ObservableObject, Codable {
@@ -186,15 +263,15 @@ public class Note: Equatable, Identifiable, ObservableObject, Codable {
 
     public required init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        id = try values.decode(Int.self, forKey: .id)
-        noteType = try values.decode(NOTETYPE.self, forKey: .noteType)
-        posX = try values.decode(Double.self, forKey: .posX)
-        width = try values.decode(Double.self, forKey: .width)
-        isFake = try values.decode(Bool.self, forKey: .isFake)
-        fallSpeed = try values.decode(Double.self, forKey: .fallSpeed)
-        fallSide = try values.decode(Bool.self, forKey: .fallSide)
-        timeTick = try values.decode(Int.self, forKey: .timeTick)
-        holdTimeTick = try values.decode(Int.self, forKey: .holdTimeTick)
+        id = try values.decodeIfPresent(Int.self, forKey: .id) ?? 0
+        noteType = try values.decodeIfPresent(NOTETYPE.self, forKey: .noteType) ?? .Tap
+        posX = try values.decodeIfPresent(Double.self, forKey: .posX) ?? 0.5
+        width = try values.decodeIfPresent(Double.self, forKey: .width) ?? 1.0
+        isFake = try values.decodeIfPresent(Bool.self, forKey: .isFake) ?? false
+        fallSpeed = try values.decodeIfPresent(Double.self, forKey: .fallSpeed) ?? 1
+        fallSide = try values.decodeIfPresent(Bool.self, forKey: .fallSide) ?? true
+        timeTick = try values.decodeIfPresent(Int.self, forKey: .timeTick) ?? 0
+        holdTimeTick = try values.decodeIfPresent(Int.self, forKey: .holdTimeTick) ?? 0
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -215,6 +292,7 @@ class PropStatus: Codable, ObservableObject {
     @Published var timeTick: Int
     @Published var value: Double {
         didSet {
+            // limit size to [0,1]
             if value > 1 {
                 value = 1
             }
@@ -252,13 +330,7 @@ class PropStatus: Codable, ObservableObject {
 }
 
 enum PROPTYPE: String, Equatable, CaseIterable, Codable {
-    case controlX
-    case controlY
-    case angle
-    case speed
-    case noteAlpha
-    case lineAlpha
-    case displayRange
+    case controlX, controlY, angle, speed, noteAlpha, lineAlpha, displayRange
 }
 
 func descriptionForPropType(type: PROPTYPE) -> String {
@@ -319,45 +391,6 @@ public class JudgeLineProps: Codable, ObservableObject {
         return prop[prop.count - 1].value // remain the same at the end
     }
 
-    func calculatePositionX(_ startTimeTick: Double, _ endTimeTick: Double) -> Double {
-        if endTimeTick < startTimeTick {
-            return 0
-        }
-        let quadrature = Quadrature(integrator: .qags(maxIntervals: 10),
-                                    absoluteTolerance: 1.0e-8,
-                                    relativeTolerance: 1.0e-2)
-        let result = quadrature.integrate(over: startTimeTick ... endTimeTick) { x in
-            let speed = calculateValue(.speed, x)
-            let angle = calculateValue(.angle, x)
-            return speed * sin(angle * 2 * Double.pi)
-        }
-        switch result {
-        case let .success((integralResult, _)):
-            return integralResult * 10
-        case let .failure(error):
-            print(error)
-            return 0
-        }
-    }
-
-    func calculatePositionY(_ startTimeTick: Double, _ endTimeTick: Double) -> Double {
-        let quadrature = Quadrature(integrator: .qags(maxIntervals: 10),
-                                    absoluteTolerance: 1.0e-8,
-                                    relativeTolerance: 1.0e-2)
-        let result = quadrature.integrate(over: startTimeTick ... endTimeTick) { x in
-            let speed = calculateValue(.speed, x)
-            let angle = calculateValue(.angle, x)
-            return speed * cos(angle * 2 * Double.pi)
-        }
-        switch result {
-        case let .success((integralResult, _)):
-            return integralResult * 10
-        case let .failure(error):
-            print(error)
-            return 0
-        }
-    }
-
     func calculateNoteDistance(_ startTimeTick: Double, _ endTimeTick: Double) -> Double {
         // this could be improved, using while loops... rewrite it when I have time to do so
         if startTimeTick == endTimeTick {
@@ -366,20 +399,41 @@ public class JudgeLineProps: Codable, ObservableObject {
         if startTimeTick > endTimeTick {
             return -calculateNoteDistance(endTimeTick, startTimeTick)
         }
-        let quadrature = Quadrature(integrator: .qags(maxIntervals: 10),
-                                    absoluteTolerance: 1.0e-8,
-                                    relativeTolerance: 1.0e-2)
-        let result = quadrature.integrate(over: startTimeTick ... endTimeTick) { x in
-            let speed = calculateValue(.speed, x)
-            return speed
+        var result = 0.0
+        var indexI = 0
+        var indexJ = 0
+        speed = speed.sorted { $0.timeTick < $1.timeTick }
+        if startTimeTick < Double(speed[0].timeTick) {
+            result += speed[0].value * (Double(speed[0].timeTick) - startTimeTick)
+        } else {
+            for index in 0 ..< speed.count - 1 {
+                indexI += 1
+                if Double(speed[index].timeTick) < startTimeTick, Double(speed[index + 1].timeTick) > startTimeTick {
+                    result += speed[index].value * (Double(speed[index + 1].timeTick) - startTimeTick) + (integrateEasing(type: speed[index].followingEasing) - integrateOverEasing(x: (startTimeTick - Double(speed[index].value)) / Double(speed[index + 1].timeTick - speed[index].timeTick), type: speed[index].followingEasing)) * Double(speed[index + 1].timeTick - speed[index].timeTick) * (speed[index + 1].value - speed[index].value)
+                    if Double(speed[index].timeTick) < endTimeTick, Double(speed[index + 1].timeTick) > endTimeTick {
+                        return speed[index].value * (endTimeTick - startTimeTick) + (integrateOverEasing(x: (endTimeTick - Double(speed[index].value)) / Double(speed[index + 1].timeTick - speed[index].timeTick), type: speed[index].followingEasing) - integrateOverEasing(x: (startTimeTick - Double(speed[index].value)) / Double(speed[index + 1].timeTick - speed[index].timeTick), type: speed[index].followingEasing)) * Double(speed[index + 1].timeTick - speed[index].timeTick) * (speed[index + 1].value - speed[index].value) * 10
+                    }
+                    break
+                }
+            }
+            if indexI == speed.count - 1 {
+                return speed[speed.count - 1].value * (endTimeTick - startTimeTick) * 10
+            }
         }
-        switch result {
-        case let .success((integralResult, _)):
-            return integralResult * 10
-        case let .failure(error):
-            print(error)
-            return 0
+        indexJ = indexI
+        for index in indexI ..< (speed.count - 1) {
+            indexJ += 1
+            if Double(speed[index + 1].timeTick) < endTimeTick {
+                result += speed[index].value * Double(speed[index + 1].timeTick - speed[index].timeTick) + integrateEasing(type: speed[index].followingEasing) * Double(speed[index + 1].timeTick - speed[index].timeTick) * (speed[index + 1].value - speed[index].value)
+            } else {
+                result += speed[index].value * (endTimeTick - Double(speed[index].timeTick)) + integrateOverEasing(x: (endTimeTick - Double(speed[index].value)) / Double(speed[index + 1].timeTick - speed[index].timeTick), type: speed[index].followingEasing) * (endTimeTick - Double(speed[index].timeTick)) * (speed[index + 1].value - speed[index].value)
+                break
+            }
         }
+        if indexJ == speed.count - 1 {
+            result += speed[speed.count - 1].value * (endTimeTick - Double(speed[speed.count - 1].timeTick))
+        }
+        return result * 10
     }
 
     // I started these ... as a tmp fix, now that I think about it ... it doesn't really matter (although a bit ugly)
@@ -496,13 +550,13 @@ public class JudgeLineProps: Codable, ObservableObject {
 
     public required init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        controlX = try values.decode([PropStatus].self, forKey: .controlX)
-        controlY = try values.decode([PropStatus].self, forKey: .controlY)
-        angle = try values.decode([PropStatus].self, forKey: .angle)
-        speed = try values.decode([PropStatus].self, forKey: .speed)
-        noteAlpha = try values.decode([PropStatus].self, forKey: .noteAlpha)
-        lineAlpha = try values.decode([PropStatus].self, forKey: .lineAlpha)
-        displayRange = try values.decode([PropStatus].self, forKey: .displayRange)
+        controlX = try values.decodeIfPresent([PropStatus].self, forKey: .controlX) ?? []
+        controlY = try values.decodeIfPresent([PropStatus].self, forKey: .controlY) ?? []
+        angle = try values.decodeIfPresent([PropStatus].self, forKey: .angle) ?? []
+        speed = try values.decodeIfPresent([PropStatus].self, forKey: .speed) ?? []
+        noteAlpha = try values.decodeIfPresent([PropStatus].self, forKey: .noteAlpha) ?? []
+        lineAlpha = try values.decodeIfPresent([PropStatus].self, forKey: .lineAlpha) ?? []
+        displayRange = try values.decodeIfPresent([PropStatus].self, forKey: .displayRange) ?? []
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -519,11 +573,13 @@ public class JudgeLineProps: Codable, ObservableObject {
 
 public class JudgeLine: Identifiable, Equatable, ObservableObject, Codable {
     @Published public var id: Int
+    @Published public var description: String
     @Published var noteList: [Note]
     @Published public var props: JudgeLineProps
 
     init(id: Int) {
         self.id = id
+        description = ""
         noteList = []
         props = JudgeLineProps()
     }
@@ -533,19 +589,21 @@ public class JudgeLine: Identifiable, Equatable, ObservableObject, Codable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, noteList, props
+        case id, noteList, props, description
     }
 
     public required init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        id = try values.decode(Int.self, forKey: .id)
-        noteList = try values.decode([Note].self, forKey: .noteList)
-        props = try values.decode(JudgeLineProps.self, forKey: .props)
+        id = try values.decodeIfPresent(Int.self, forKey: .id) ?? 0
+        description = try values.decodeIfPresent(String.self, forKey: .description) ?? ""
+        noteList = try values.decodeIfPresent([Note].self, forKey: .noteList) ?? []
+        props = try values.decodeIfPresent(JudgeLineProps.self, forKey: .props) ?? JudgeLineProps()
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
+        try container.encode(description, forKey: .description)
         try container.encode(noteList, forKey: .noteList)
         try container.encode(props, forKey: .props)
     }
@@ -569,8 +627,9 @@ public class ColoredInt: Equatable, Codable {
 
     public required init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        value = try values.decode(Int.self, forKey: .value)
-        color = Color(try values.decode(CodableColor.self, forKey: .color).color)
+        value = try values.decodeIfPresent(Int.self, forKey: .value) ?? 0
+        let kColor = try values.decodeIfPresent(CodableColor.self, forKey: .color) ?? CodableColor(color: UIColor.blue)
+        color = Color(kColor.color)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -800,7 +859,6 @@ public class DataStructure: ObservableObject, Codable {
             }
             let jsonFileURL = tmpDirURL.appendingPathComponent("tmp.json")
             try dataEncodedString?.write(to: jsonFileURL, atomically: true, encoding: .utf8)
-
             let imagePngURL = tmpDirURL.appendingPathComponent("tmp.png")
             if let imgData = imageFile?.pngData() {
                 try? imgData.write(to: imagePngURL)
@@ -834,8 +892,8 @@ public class DataStructure: ObservableObject, Codable {
         let url = urls.first!
         let archiveURL = url.appendingPathComponent("import.zip")
         let tmpDirURL = url.appendingPathComponent("tmp")
-        try fm.createDirectory(at: tmpDirURL, withIntermediateDirectories: true, attributes: nil)
-        try fileManager.unzipItem(at: archiveURL, to: tmpDirURL)
+        try fm.removeItem(at: tmpDirURL)
+        try fileManager.unzipItem(at: archiveURL, to: url)
         try _ = loadCache()
         return true
     }
@@ -907,13 +965,17 @@ public class DataStructure: ObservableObject, Codable {
         chartLevel = ""
         chartAuthorName = ""
         copyright = .full
-        windowStatus = WINDOWSTATUS.pannelNote
-        listOfJudgeLines = [JudgeLine(id: 0)]
+        windowStatus = .pannelNote
+        listOfJudgeLines = {
+            let tmp = JudgeLine(id: 0)
+            tmp.description = "Main JudgeLine"
+            return [tmp]
+        }()
         editingJudgeLineNumber = 0
         currentTimeTick = 0.0
         locked = false
-        currentNoteType = NOTETYPE.Tap
-        currentPropType = PROPTYPE.controlX
+        currentNoteType = .Tap
+        currentPropType = .controlX
         fastHold = true
         isRunning = false
         noteEditScene = NoteEditorScene()
@@ -951,27 +1013,31 @@ public class DataStructure: ObservableObject, Codable {
 
     public required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        offsetSecond = try container.decode(Double.self, forKey: .offsetSecond)
-        bpm = try container.decode(Int.self, forKey: .bpm)
-        bpmChangeAccrodingToTime = try container.decode(Bool.self, forKey: .bpmChangeAccrodingToTime)
-        tickPerBeat = try container.decode(Int.self, forKey: .tickPerBeat)
-        highlightedTicks = try container.decode([ColoredInt].self, forKey: .highlightedTicks)
-        maxAcceptableNotes = try container.decode(Double.self, forKey: .maxAcceptableNotes)
-        defaultHoldTimeTick = try container.decode(Int.self, forKey: .defaultHoldTimeTick)
-        chartLengthSecond = try container.decode(Int.self, forKey: .chartLengthSecond)
-        musicName = try container.decode(String.self, forKey: .musicName)
-        authorName = try container.decode(String.self, forKey: .authorName)
-        chartLevel = try container.decode(String.self, forKey: .chartLevel)
-        chartAuthorName = try container.decode(String.self, forKey: .chartAuthorName)
-        copyright = try container.decode(COPYRIGHTTYPE.self, forKey: .copyright)
-        windowStatus = try container.decode(WINDOWSTATUS.self, forKey: .windowStatus)
-        listOfJudgeLines = try container.decode([JudgeLine].self, forKey: .listOfJudgeLines)
-        editingJudgeLineNumber = try container.decode(Int.self, forKey: .editingJudgeLineNumber)
-        currentTimeTick = try container.decode(Double.self, forKey: .currentTimeTick)
-        locked = try container.decode(Bool.self, forKey: .locked)
-        currentNoteType = try container.decode(NOTETYPE.self, forKey: .currentNoteType)
-        currentPropType = try container.decode(PROPTYPE.self, forKey: .currentPropType)
-        fastHold = try container.decode(Bool.self, forKey: .fastHold)
+        offsetSecond = try container.decodeIfPresent(Double.self, forKey: .offsetSecond) ?? 0.0
+        bpm = try container.decodeIfPresent(Int.self, forKey: .bpm) ?? 160
+        bpmChangeAccrodingToTime = try container.decodeIfPresent(Bool.self, forKey: .bpmChangeAccrodingToTime) ?? false
+        tickPerBeat = try container.decodeIfPresent(Int.self, forKey: .tickPerBeat) ?? _defaultTickPerBeat
+        highlightedTicks = try container.decodeIfPresent([ColoredInt].self, forKey: .highlightedTicks) ?? [ColoredInt(value: 2, color: Color.blue), ColoredInt(value: 4, color: Color.red)]
+        maxAcceptableNotes = try container.decodeIfPresent(Double.self, forKey: .maxAcceptableNotes) ?? 31.0
+        defaultHoldTimeTick = try container.decodeIfPresent(Int.self, forKey: .defaultHoldTimeTick) ?? _defaultTickPerBeat
+        chartLengthSecond = try container.decodeIfPresent(Int.self, forKey: .chartLengthSecond) ?? 180
+        musicName = try container.decodeIfPresent(String.self, forKey: .musicName) ?? ""
+        authorName = try container.decodeIfPresent(String.self, forKey: .authorName) ?? ""
+        chartLevel = try container.decodeIfPresent(String.self, forKey: .chartLevel) ?? ""
+        chartAuthorName = try container.decodeIfPresent(String.self, forKey: .chartAuthorName) ?? ""
+        copyright = try container.decodeIfPresent(COPYRIGHTTYPE.self, forKey: .copyright) ?? .full
+        windowStatus = try container.decodeIfPresent(WINDOWSTATUS.self, forKey: .windowStatus) ?? .pannelNote
+        listOfJudgeLines = try container.decodeIfPresent([JudgeLine].self, forKey: .listOfJudgeLines) ?? {
+            let tmp = JudgeLine(id: 0)
+            tmp.description = "Main JudgeLine"
+            return [tmp]
+        }()
+        editingJudgeLineNumber = try container.decodeIfPresent(Int.self, forKey: .editingJudgeLineNumber) ?? 0
+        currentTimeTick = try container.decodeIfPresent(Double.self, forKey: .currentTimeTick) ?? 0.0
+        locked = try container.decodeIfPresent(Bool.self, forKey: .locked) ?? false
+        currentNoteType = try container.decodeIfPresent(NOTETYPE.self, forKey: .currentNoteType) ?? .Tap
+        currentPropType = try container.decodeIfPresent(PROPTYPE.self, forKey: .currentPropType) ?? .controlX
+        fastHold = try container.decodeIfPresent(Bool.self, forKey: .fastHold) ?? true
         noteEditScene = NoteEditorScene()
         propEditScene = PropEditorScene()
         chartPreviewScene = ChartPreviewScene()

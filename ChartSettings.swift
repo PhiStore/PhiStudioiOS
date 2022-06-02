@@ -120,18 +120,22 @@ struct ChartSettings: View {
             Section(header: Text("Information:")) {
                 HStack {
                     Text("Music Name:")
+                        .foregroundColor(.cyan)
                     TextField("Music", text: $data.musicName).foregroundColor(Color.blue)
                 }
                 HStack {
                     Text("Music Author:")
+                        .foregroundColor(.cyan)
                     TextField("Author", text: $data.authorName).foregroundColor(Color.blue)
                 }
                 HStack {
                     Text("Chart Level:")
+                        .foregroundColor(.cyan)
                     TextField("Level", text: $data.chartLevel).foregroundColor(Color.orange)
                 }
                 HStack {
                     Text("Chart Author:")
+                        .foregroundColor(.cyan)
                     TextField("Chart Author", text: $data.chartAuthorName).foregroundColor(Color.orange)
                 }
                 Menu("Copyright: \(String(describing: data.copyright).capitalizingFirstLetter())") {
@@ -155,6 +159,7 @@ struct ChartSettings: View {
                             .submitLabel(.done)
                     }
                 }
+                .foregroundColor(.cyan)
 
                 Toggle(isOn: $data.bpmChangeAccrodingToTime) {
                     Text("Allow BPM changes")
@@ -169,6 +174,7 @@ struct ChartSettings: View {
                                 .submitLabel(.done)
                         }
                     }
+                    .foregroundColor(.cyan)
                 } else {
                     // TODO: Add support for changing BPM, gonna be a pain in the ass
                     Button("Edit BPM Props") {}
@@ -181,6 +187,7 @@ struct ChartSettings: View {
                             .submitLabel(.done)
                     }
                 }
+                .foregroundColor(.cyan)
             }.textCase(nil)
 
             Section(header: Text("HighLight Tick:")) {
@@ -224,6 +231,7 @@ struct ChartSettings: View {
                             .submitLabel(.done)
                     }
                 }
+                .foregroundColor(.cyan)
                 Stepper(value: $data.defaultHoldTimeTick, onEditingChanged: { _ in }) {
                     HStack {
                         Text("Default Hold Time:")
@@ -232,6 +240,7 @@ struct ChartSettings: View {
                             .submitLabel(.done)
                     }
                 }
+                .foregroundColor(.cyan)
             }.textCase(nil)
         }.sheet(isPresented: $showingImagePicker) {
             let configuration = PHPickerConfiguration(photoLibrary: PHPhotoLibrary.shared())

@@ -33,7 +33,7 @@ struct NoteSettingsView: View {
                     Button("Delete Note") {
                         data.listOfJudgeLines[data.editingJudgeLineNumber].noteList.removeAll(where: { $0.timeTick == _note.timeTick && $0.posX == _note.posX })
                         data.rebuildLineAndNote() // refresh spriteKit side
-                        data.objectWillChange.send() // refresh swiftUI side, since we are not using the slash function
+                        data.objectWillChange.send() // refresh swiftUI side
                     }.foregroundColor(Color.red)
                     Toggle(isOn: $_note.isFake) {
                         Text("Fake")
@@ -46,7 +46,9 @@ struct NoteSettingsView: View {
                             Text("Pos:")
                             TextField("[Double]", value: $_note.posX, formatter: numberFormatter)
                         }
-                    }.onChange(of: _note.posX, perform: { _ in
+                    }
+                    .foregroundColor(.cyan)
+                    .onChange(of: _note.posX, perform: { _ in
                         data.rebuildLineAndNote()
                     })
                     Stepper(value: $_note.timeTick, in: 0 ... data.chartLengthTick(), step: 1) {
@@ -54,7 +56,9 @@ struct NoteSettingsView: View {
                             Text("Tick:")
                             TextField("[Int]/T", value: $_note.timeTick, formatter: numberFormatter)
                         }
-                    }.onChange(of: _note.timeTick, perform: { _ in
+                    }
+                    .foregroundColor(.cyan)
+                    .onChange(of: _note.timeTick, perform: { _ in
                         data.rebuildLineAndNote()
                     })
                     Group {
@@ -64,7 +68,9 @@ struct NoteSettingsView: View {
                                     Text("Hold Time:")
                                     TextField("[Int]/T", value: $_note.holdTimeTick, formatter: numberFormatter)
                                 }
-                            }.onChange(of: _note.holdTimeTick, perform: { _ in
+                            }
+                            .foregroundColor(.cyan)
+                            .onChange(of: _note.holdTimeTick, perform: { _ in
                                 data.rebuildLineAndNote()
                             })
                         }

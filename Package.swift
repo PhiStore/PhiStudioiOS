@@ -10,7 +10,7 @@ import AppleProductTypes
 let package = Package(
     name: "PhiStudio",
     platforms: [
-        .iOS("15.0")
+        .iOS("15.2")
     ],
     products: [
         .iOSApplication(
@@ -18,8 +18,8 @@ let package = Package(
             targets: ["AppModule"],
             bundleIdentifier: "com.phix.phistudio",
             teamIdentifier: "VUW8FV5HN5",
-            displayVersion: "1.0.1",
-            bundleVersion: "10",
+            displayVersion: "1.0.2",
+            bundleVersion: "11",
             appIcon: .asset("AppIcon"),
             accentColor: .asset("AccentColor"),
             supportedDeviceFamilies: [
