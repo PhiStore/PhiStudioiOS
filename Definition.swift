@@ -1,6 +1,8 @@
-// Definition.swift
-// Author: TianKai Ma
-// Last Reviewed: 2022-05-22 20:50
+/**
+ * Created on Fri Jun 03 2022
+ *
+ * Copyright (c) 2022 TianKaiMa
+ */
 import AVFoundation
 import SpriteKit
 import SwiftUI
@@ -57,6 +59,15 @@ public enum NOTETYPE: String, Equatable, CaseIterable, Codable {
     case Tap, Hold, Flick, Drag
 }
 
+func noteColor(type: NOTETYPE) -> SKColor {
+    switch type {
+    case .Tap: return SKColor(cgColor: CGColor(srgbRed: 22.0 / 255.0, green: 176.0 / 255.0, blue: 248.0 / 255.0, alpha: 1))
+    case .Hold: return SKColor(cgColor: CGColor(srgbRed: 22.0 / 255.0, green: 176.0 / 255.0, blue: 248.0 / 255.0, alpha: 1))
+    case .Flick: return SKColor(cgColor: CGColor(srgbRed: 234.0 / 255.0, green: 84.0 / 255.0, blue: 104.0 / 255.0, alpha: 1))
+    case .Drag: return SKColor(cgColor: CGColor(srgbRed: 239.0 / 255.0, green: 237.0 / 255.0, blue: 125.0 / 255.0, alpha: 1))
+    }
+}
+
 public enum EASINGTYPE: String, Equatable, CaseIterable, Codable {
     case linear, easeInSine, easeOutSine, easeInOutSine, easeInQuad, easeOutQuad, easeInOutQuad, easeInCubic, easeOutCubic, easeInOutCubic, easeInQuart, easeOutQuart, easeInOutQuart, easeInQuint, easeOutQuint, easeInOutQuint, easeInExpo, easeOutExpo, easeInOutExpo, easeInCirc, easeOutCirc, easeInOutCirc, easeInBack, easeOutBack, easeInOutBack
 }
@@ -64,166 +75,91 @@ public enum EASINGTYPE: String, Equatable, CaseIterable, Codable {
 // The following function gives a func from [0,1] -> [0,1] (usually, sometimes exceed, but f(0)=0, f(1)= 1 always holds)
 func calculateEasing(x: Double, type: EASINGTYPE) -> Double {
     switch type {
-    case .linear:
-        return x
-    case .easeInSine:
-        return 1 - cos(x * Double.pi / 2)
-    case .easeOutSine:
-        return sin(x * Double.pi / 2)
-    case .easeInOutSine:
-        return -(cos(Double.pi * x) - 1) / 2
-    case .easeInQuad:
-        return x * x
-    case .easeOutQuad:
-        return 1 - (1 - x) * (1 - x)
-    case .easeInOutQuad:
-        return (x < 0.5) ? 2 * pow(x, 2) : 1 - pow(-2 * x + 2, 2) / 2
-    case .easeInCubic:
-        return x * x * x
-    case .easeOutCubic:
-        return 1 - pow(1 - x, 3)
-    case .easeInOutCubic:
-        return (x < 0.5) ? 4 * pow(x, 3) : 1 - pow(-2 * x + 2, 3) / 2
-    case .easeInQuart:
-        return x * x * x * x
-    case .easeOutQuart:
-        return 1 - pow(1 - x, 4)
-    case .easeInOutQuart:
-        return (x < 0.5) ? 8 * pow(x, 4) : 1 - pow(-2 * x + 2, 4) / 2
-    case .easeInQuint:
-        return x * x * x * x * x
-    case .easeOutQuint:
-        return 1 - pow(1 - x, 5)
-    case .easeInOutQuint:
-        return (x < 0.5) ? 16 * pow(x, 5) : 1 - pow(-2 * x + 2, 5) / 2
-    case .easeInExpo:
-        return (x == 0) ? 0 : pow(2, 10 * x - 10)
-    case .easeOutExpo:
-        return (x == 1) ? 1 : 1 - pow(2, -10 * x)
-    case .easeInOutExpo:
-        return (x == 0) ? 0 : ((x == 1) ? 1 : ((x < 0.5) ? pow(2, 20 * x - 10) / 2 : (2 - pow(2, -20 * x + 10)) / 2))
-    case .easeInCirc:
-        return 1 - sqrt(1 - pow(x, 2))
-    case .easeOutCirc:
-        return sqrt(1 - pow(x - 1, 2))
-    case .easeInOutCirc:
-        return (x < 0.5) ? (1 - sqrt(1 - pow(2 * x, 2))) / 2 : (sqrt(1 - pow(-2 * x + 2, 2)) + 1) / 2
-    case .easeInBack:
-        return 2.70158 * pow(x, 3) - 1.70158 * pow(x, 2)
-    case .easeOutBack:
-        return 1 + 2.70158 * pow(x - 1, 3) + 1.70158 * pow(x - 1, 2)
-    case .easeInOutBack:
-        return (x < 0.5) ? (pow(2 * x, 2) * (7.189819 * x - 2.5949095)) / 2 : (pow(2 * x - 2, 2) * (3.5949095 * (x * 2 - 2) + 2.5949095) + 2) / 2
+    case .linear: return x
+    case .easeInSine: return 1 - cos(x * Double.pi / 2)
+    case .easeOutSine: return sin(x * Double.pi / 2)
+    case .easeInOutSine: return -(cos(Double.pi * x) - 1) / 2
+    case .easeInQuad: return x * x
+    case .easeOutQuad: return 1 - (1 - x) * (1 - x)
+    case .easeInOutQuad: return (x < 0.5) ? 2 * pow(x, 2) : 1 - pow(-2 * x + 2, 2) / 2
+    case .easeInCubic: return x * x * x
+    case .easeOutCubic: return 1 - pow(1 - x, 3)
+    case .easeInOutCubic: return (x < 0.5) ? 4 * pow(x, 3) : 1 - pow(-2 * x + 2, 3) / 2
+    case .easeInQuart: return x * x * x * x
+    case .easeOutQuart: return 1 - pow(1 - x, 4)
+    case .easeInOutQuart: return (x < 0.5) ? 8 * pow(x, 4) : 1 - pow(-2 * x + 2, 4) / 2
+    case .easeInQuint: return x * x * x * x * x
+    case .easeOutQuint: return 1 - pow(1 - x, 5)
+    case .easeInOutQuint: return (x < 0.5) ? 16 * pow(x, 5) : 1 - pow(-2 * x + 2, 5) / 2
+    case .easeInExpo: return (x == 0) ? 0 : pow(2, 10 * x - 10)
+    case .easeOutExpo: return (x == 1) ? 1 : 1 - pow(2, -10 * x)
+    case .easeInOutExpo: return (x == 0) ? 0 : ((x == 1) ? 1 : ((x < 0.5) ? pow(2, 20 * x - 10) / 2 : (2 - pow(2, -20 * x + 10)) / 2))
+    case .easeInCirc: return 1 - sqrt(1 - pow(x, 2))
+    case .easeOutCirc: return sqrt(1 - pow(x - 1, 2))
+    case .easeInOutCirc: return (x < 0.5) ? (1 - sqrt(1 - pow(2 * x, 2))) / 2 : (sqrt(1 - pow(-2 * x + 2, 2)) + 1) / 2
+    case .easeInBack: return 2.70158 * pow(x, 3) - 1.70158 * pow(x, 2)
+    case .easeOutBack: return 1 + 2.70158 * pow(x - 1, 3) + 1.70158 * pow(x - 1, 2)
+    case .easeInOutBack: return (x < 0.5) ? (pow(2 * x, 2) * (7.189819 * x - 2.5949095)) / 2 : (pow(2 * x - 2, 2) * (3.5949095 * (x * 2 - 2) + 2.5949095) + 2) / 2
     }
 }
 
 func integrateEasing(type: EASINGTYPE) -> Double {
     switch type {
-    case .linear:
-        return 0.5
-    case .easeInSine:
-        return 1 - 2 / Double.pi
-    case .easeOutSine:
-        return 2 / Double.pi
-    case .easeInOutSine:
-        return 0.5
-    case .easeInQuad:
-        return 1 / 3
-    case .easeOutQuad:
-        return 2 / 3
-    case .easeInOutQuad:
-        return 0.5
-    case .easeInCubic:
-        return 0.25
-    case .easeOutCubic:
-        return 0.75
-    case .easeInOutCubic:
-        return 0.5
-    case .easeInQuart:
-        return 0.2
-    case .easeOutQuart:
-        return 0.8
-    case .easeInOutQuart:
-        return 0.5
-    case .easeInQuint:
-        return 1 / 6
-    case .easeOutQuint:
-        return 5 / 6
-    case .easeInOutQuint:
-        return 0.5
-    case .easeInExpo:
-        return 0.144128615901
-    case .easeOutExpo:
-        return 0.855871384099
-    case .easeInOutExpo:
-        return 0.5
-    case .easeInCirc:
-        return 1 - Double.pi / 4
-    case .easeOutCirc:
-        return Double.pi / 4
-    case .easeInOutCirc:
-        return 0.5
-    case .easeInBack:
-        return 0.108201666667
-    case .easeOutBack:
-        return 0.891798333333
-    case .easeInOutBack:
-        return 0.5
+    case .linear: return 0.5
+    case .easeInSine: return 1 - 2 / Double.pi
+    case .easeOutSine: return 2 / Double.pi
+    case .easeInOutSine: return 0.5
+    case .easeInQuad: return 1 / 3
+    case .easeOutQuad: return 2 / 3
+    case .easeInOutQuad: return 0.5
+    case .easeInCubic: return 0.25
+    case .easeOutCubic: return 0.75
+    case .easeInOutCubic: return 0.5
+    case .easeInQuart: return 0.2
+    case .easeOutQuart: return 0.8
+    case .easeInOutQuart: return 0.5
+    case .easeInQuint: return 1 / 6
+    case .easeOutQuint: return 5 / 6
+    case .easeInOutQuint: return 0.5
+    case .easeInExpo: return 0.144128615901
+    case .easeOutExpo: return 0.855871384099
+    case .easeInOutExpo: return 0.5
+    case .easeInCirc: return 1 - Double.pi / 4
+    case .easeOutCirc: return Double.pi / 4
+    case .easeInOutCirc: return 0.5
+    case .easeInBack: return 0.108201666667
+    case .easeOutBack: return 0.891798333333
+    case .easeInOutBack: return 0.5
     }
 }
 
 func integrateOverEasing(x: Double, type: EASINGTYPE) -> Double {
     switch type {
-    case .linear:
-        return pow(x, 2) / 2
-    case .easeInSine:
-        return x - 2 * sin(Double.pi * x / 2) / Double.pi
-    case .easeOutSine:
-        return 2 / Double.pi * (1 - cos(Double.pi * x / 2))
-    case .easeInOutSine:
-        return x / 2 - sin(Double.pi * x) / (2 * Double.pi)
-    case .easeInQuad:
-        return pow(x, 3) / 3
-    case .easeOutQuad:
-        return pow(x, 2) * (3 - x) / 3
-    case .easeInOutQuad:
-        return (x < 0.5) ? 2 / 3 * pow(x, 3) : (-4 * pow(x, 3) + 12 * pow(x, 2) - 6 * x + 1) / 6
-    case .easeInCubic:
-        return pow(x, 4) / 4
-    case .easeOutCubic:
-        return (pow(x, 4) - 4 * pow(x, 3) + 6 * pow(x, 2)) / 4
-    case .easeInOutCubic:
-        return (x < 0.5) ? pow(x, 4) : pow(x, 4) - 4 * pow(x, 3) + 6 * pow(x, 2) - 3 * x + 0.5
-    case .easeInQuart:
-        return pow(x, 5) / 5
-    case .easeOutQuart:
-        return (-pow(x, 5) / 5 + pow(x, 4) - 2 * pow(x, 3) + 2 * pow(x, 2))
-    case .easeInOutQuart:
-        return (x < 0.5) ? 8 / 5 * pow(x, 5) : (-1.6 * pow(x, 5) + 8 * pow(x, 4) - 16 * pow(x, 3) + 16 * pow(x, 2) - 7 * x + 1.1)
-    case .easeInQuint:
-        return pow(x, 6) / 6
-    case .easeOutQuint:
-        return (pow(x, 6) - 6 * pow(x, 5) + 15 * pow(x, 4) - 20 * pow(x, 3) + 15 * pow(x, 2)) / 6
-    case .easeInOutQuint:
-        return (x < 0.5) ? 8 / 3 * pow(x, 6) : (16 * pow(x, 6) - 96 * pow(x, 5) + 240 * pow(x, 4) - 320 * pow(x, 3) + 240 * pow(x, 2) - 90 * x + 13) / 6
-    case .easeInExpo:
-        return (pow(2, 10 * x) - 1) / (10240 * log(2))
-    case .easeOutExpo:
-        return x + (pow(2, -10 * x) - 1) / (10 * log(2))
-    case .easeInOutExpo:
-        return (x < 0.5) ? pow(2, 20 * x - 10) / (40 * log(2)) - 1 / (40960 * log(2)) : (x - 1 / 2 - 1 / (40960 * log(2)) + pow(2, -20 * x + 10) / (40 * log(2)))
-    case .easeInCirc:
-        return x - 1 / 2 * (x * sqrt(1 - x * x) + asin(x))
-    case .easeOutCirc:
-        return ((x - 1) * sqrt(-x * x + 2 * x) + asin(x - 1)) / 2 + Double.pi / 4
-    case .easeInOutCirc:
-        return (x < 0.5) ? (-2 * x * sqrt(1 - 4 * x * x) - asin(2 * x) + 4 * x) / 8 : sqrt(-4 * x * x + 8 * x - 3) * (x - 1) / 4 + 0.5 * x + asin(2 * x - 2) / 8
-    case .easeInBack:
-        return 2.70158 * x * x * x * x / 4 - 1.70158 * x * x * x / 3
-    case .easeOutBack:
-        return x + 2.70158 * pow(x - 1, 4) / 4 + 1.70158 * pow(x - 1, 3) / 3
-    case .easeInOutBack:
-        return (x < 0.5) ? (7.189819 * pow(x, 4) / 2 - 2.5949095 * pow(x, 3) * 2 / 3) : (1.4379638 * pow(x, 5) - 3.5949095 * pow(x, 4) + 8.91975866667 * pow(x, 3) - 19.569457 * pow(x, 2) + 20.569457 * x - 6.31914922291)
+    case .linear: return pow(x, 2) / 2
+    case .easeInSine: return x - 2 * sin(Double.pi * x / 2) / Double.pi
+    case .easeOutSine: return 2 / Double.pi * (1 - cos(Double.pi * x / 2))
+    case .easeInOutSine: return x / 2 - sin(Double.pi * x) / (2 * Double.pi)
+    case .easeInQuad: return pow(x, 3) / 3
+    case .easeOutQuad: return pow(x, 2) * (3 - x) / 3
+    case .easeInOutQuad: return (x < 0.5) ? 2 / 3 * pow(x, 3) : (-4 * pow(x, 3) + 12 * pow(x, 2) - 6 * x + 1) / 6
+    case .easeInCubic: return pow(x, 4) / 4
+    case .easeOutCubic: return (pow(x, 4) - 4 * pow(x, 3) + 6 * pow(x, 2)) / 4
+    case .easeInOutCubic: return (x < 0.5) ? pow(x, 4) : pow(x, 4) - 4 * pow(x, 3) + 6 * pow(x, 2) - 3 * x + 0.5
+    case .easeInQuart: return pow(x, 5) / 5
+    case .easeOutQuart: return (-pow(x, 5) / 5 + pow(x, 4) - 2 * pow(x, 3) + 2 * pow(x, 2))
+    case .easeInOutQuart: return (x < 0.5) ? 8 / 5 * pow(x, 5) : (-1.6 * pow(x, 5) + 8 * pow(x, 4) - 16 * pow(x, 3) + 16 * pow(x, 2) - 7 * x + 1.1)
+    case .easeInQuint: return pow(x, 6) / 6
+    case .easeOutQuint: return (pow(x, 6) - 6 * pow(x, 5) + 15 * pow(x, 4) - 20 * pow(x, 3) + 15 * pow(x, 2)) / 6
+    case .easeInOutQuint: return (x < 0.5) ? 8 / 3 * pow(x, 6) : (16 * pow(x, 6) - 96 * pow(x, 5) + 240 * pow(x, 4) - 320 * pow(x, 3) + 240 * pow(x, 2) - 90 * x + 13) / 6
+    case .easeInExpo: return (pow(2, 10 * x) - 1) / (10240 * log(2))
+    case .easeOutExpo: return x + (pow(2, -10 * x) - 1) / (10 * log(2))
+    case .easeInOutExpo: return (x < 0.5) ? pow(2, 20 * x - 10) / (40 * log(2)) - 1 / (40960 * log(2)) : (x - 1 / 2 - 1 / (40960 * log(2)) + pow(2, -20 * x + 10) / (40 * log(2)))
+    case .easeInCirc: return x - 1 / 2 * (x * sqrt(1 - x * x) + asin(x))
+    case .easeOutCirc: return ((x - 1) * sqrt(-x * x + 2 * x) + asin(x - 1)) / 2 + Double.pi / 4
+    case .easeInOutCirc: return (x < 0.5) ? (-2 * x * sqrt(1 - 4 * x * x) - asin(2 * x) + 4 * x) / 8 : sqrt(-4 * x * x + 8 * x - 3) * (x - 1) / 4 + 0.5 * x + asin(2 * x - 2) / 8
+    case .easeInBack: return 2.70158 * x * x * x * x / 4 - 1.70158 * x * x * x / 3
+    case .easeOutBack: return x + 2.70158 * pow(x - 1, 4) / 4 + 1.70158 * pow(x - 1, 3) / 3
+    case .easeInOutBack: return (x < 0.5) ? (7.189819 * pow(x, 4) / 2 - 2.5949095 * pow(x, 3) * 2 / 3) : (1.4379638 * pow(x, 5) - 3.5949095 * pow(x, 4) + 8.91975866667 * pow(x, 3) - 19.569457 * pow(x, 2) + 20.569457 * x - 6.31914922291)
     }
 }
 
@@ -439,20 +375,13 @@ public class JudgeLineProps: Codable, ObservableObject {
     // I started these ... as a tmp fix, now that I think about it ... it doesn't really matter (although a bit ugly)
     func returnProp(type: PROPTYPE) -> [PropStatus] {
         switch type {
-        case .controlX:
-            return controlX
-        case .controlY:
-            return controlY
-        case .angle:
-            return angle
-        case .speed:
-            return speed
-        case .noteAlpha:
-            return noteAlpha
-        case .lineAlpha:
-            return lineAlpha
-        case .displayRange:
-            return displayRange
+        case .controlX: return controlX
+        case .controlY: return controlY
+        case .angle: return angle
+        case .speed: return speed
+        case .noteAlpha: return noteAlpha
+        case .lineAlpha: return lineAlpha
+        case .displayRange: return displayRange
         }
     }
 
@@ -461,20 +390,13 @@ public class JudgeLineProps: Codable, ObservableObject {
             return
         }
         switch type {
-        case .controlX:
-            controlX.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
-        case .controlY:
-            controlY.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
-        case .angle:
-            angle.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
-        case .speed:
-            speed.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
-        case .noteAlpha:
-            noteAlpha.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
-        case .lineAlpha:
-            lineAlpha.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
-        case .displayRange:
-            displayRange.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        case .controlX: controlX.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        case .controlY: controlY.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        case .angle: angle.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        case .speed: speed.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        case .noteAlpha: noteAlpha.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        case .lineAlpha: lineAlpha.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
+        case .displayRange: displayRange.removeAll(where: { $0.timeTick == timeTick && fabs($0.value - value) < 0.1 })
         }
     }
 
@@ -483,20 +405,13 @@ public class JudgeLineProps: Codable, ObservableObject {
             return
         }
         switch type {
-        case .controlX:
-            controlX.remove(atOffsets: offset)
-        case .controlY:
-            controlY.remove(atOffsets: offset)
-        case .angle:
-            angle.remove(atOffsets: offset)
-        case .speed:
-            speed.remove(atOffsets: offset)
-        case .noteAlpha:
-            noteAlpha.remove(atOffsets: offset)
-        case .lineAlpha:
-            lineAlpha.remove(atOffsets: offset)
-        case .displayRange:
-            displayRange.remove(atOffsets: offset)
+        case .controlX: controlX.remove(atOffsets: offset)
+        case .controlY: controlY.remove(atOffsets: offset)
+        case .angle: angle.remove(atOffsets: offset)
+        case .speed: speed.remove(atOffsets: offset)
+        case .noteAlpha: noteAlpha.remove(atOffsets: offset)
+        case .lineAlpha: lineAlpha.remove(atOffsets: offset)
+        case .displayRange: displayRange.remove(atOffsets: offset)
         }
     }
 
@@ -752,9 +667,15 @@ public class DataStructure: ObservableObject, Codable {
     @Published var isRunning: Bool {
         didSet {
             if isRunning {
-                noteEditScene.startRunning()
-                propEditScene.startRunning()
-                chartPreviewScene.startRunning()
+                if windowStatus == .note || windowStatus == .pannelNote {
+                    noteEditScene.startRunning()
+                }
+                if windowStatus == .prop || windowStatus == .pannelProp {
+                    propEditScene.startRunning()
+                }
+                if windowStatus == .preview || windowStatus == .pannelPreview {
+                    chartPreviewScene.startRunning()
+                }
                 lastStartTick = currentTimeTick
                 timeWhenStartSecond = Date().timeIntervalSince1970
                 scheduleTimer = Timer.scheduledTimer(timeInterval: updateTimeIntervalSecond, target: self, selector: #selector(updateCurrentTime), userInfo: nil, repeats: true)
@@ -763,9 +684,15 @@ public class DataStructure: ObservableObject, Codable {
                 audioPlayer?.play()
             } else {
                 if timeWhenStartSecond != nil {
-                    noteEditScene.pauseRunning()
-                    propEditScene.pauseRunning()
-                    chartPreviewScene.pauseRunning()
+                    if windowStatus == .note || windowStatus == .pannelNote {
+                        noteEditScene.pauseRunning()
+                    }
+                    if windowStatus == .prop || windowStatus == .pannelProp {
+                        propEditScene.pauseRunning()
+                    }
+                    if windowStatus == .preview || windowStatus == .pannelPreview {
+                        chartPreviewScene.pauseRunning()
+                    }
                     timeWhenStartSecond = nil
                 }
                 audioPlayer?.stop()

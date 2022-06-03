@@ -1,6 +1,8 @@
-// NoteSettings.swift
-// Author: TianKai Ma
-// Last Reviewed: 2022-05-22 21:04
+/**
+ * Created on Fri Jun 03 2022
+ *
+ * Copyright (c) 2022 TianKaiMa
+ */
 import SwiftUI
 
 struct NoteSettingsView: View {

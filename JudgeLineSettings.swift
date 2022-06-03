@@ -1,6 +1,8 @@
-// JudgeLineSettings.swift
-// Author: TianKai Ma
-// Last Reviewed: 2022-05-22 21:01
+/**
+ * Created on Fri Jun 03 2022
+ *
+ * Copyright (c) 2022 TianKaiMa
+ */
 import SwiftUI
 
 struct JudgeLineSettings: View {
@@ -25,7 +27,7 @@ struct JudgeLineSettings: View {
             }.textCase(nil)
             ForEach($data.listOfJudgeLines, id: \.id) { $_judgeLine in
                 Section(header: Text("JudgeLine \(String(_judgeLine.id))")) {
-                    HStack{
+                    HStack {
                         Text("Description:")
                             .foregroundColor(.cyan)
                         TextField("[String]", text: $_judgeLine.description)

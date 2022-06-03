@@ -1,6 +1,8 @@
-// PropEditorView.swift
-// Author: TianKai Ma
-// Last Reviewed: 2022-05-22 21:13
+/**
+ * Created on Fri Jun 03 2022
+ *
+ * Copyright (c) 2022 TianKaiMa
+ */
 import SpriteKit
 import SwiftUI
 
@@ -261,7 +263,7 @@ class PropEditorScene: SKScene {
             let touchHint = SKShapeNode(circleOfRadius: 10)
             touchHint.fillColor = .green
             touchHint.position = touchLocation
-            touchHint.run(SKAction.sequence([SKAction.fadeOut(withDuration: 1),SKAction.removeFromParent()]))
+            touchHint.run(SKAction.sequence([SKAction.fadeOut(withDuration: 1), SKAction.removeFromParent()]))
             addChild(touchHint)
             if data!.locked {
                 moveStartPoint = touchLocation

@@ -1,6 +1,8 @@
-// PropSettings.swift
-// Author: TianKai Ma
-// Last Reviewed: NONE
+/**
+ * Created on Fri Jun 03 2022
+ *
+ * Copyright (c) 2022 TianKaiMa
+ */
 import SpriteKit
 import SwiftUI
 

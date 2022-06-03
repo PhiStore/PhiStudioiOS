@@ -1,6 +1,8 @@
-// ChartSettings.swift
-// Author: TianKai Ma
-// Last Reviewed: 2022-05-22 20:39
+/**
+ * Created on Fri Jun 03 2022
+ *
+ * Copyright (c) 2022 TianKaiMa
+ */
 import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers

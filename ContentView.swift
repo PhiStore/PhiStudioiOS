@@ -1,8 +1,9 @@
-// ContentView.swift
-// Author: TianKai Ma
-// Last Reviewed: 2022-05-22 20:37
+/**
+ * Created on Fri Jun 03 2022
+ *
+ * Copyright (c) 2022 TianKaiMa
+ */
 import SwiftUI
-
 struct ContentView: View {
     // These variables are used for location and alignment
     // Guide: reserve size*2 for boundaries, keep everything fit in place
@@ -43,10 +44,10 @@ struct ContentView: View {
 
     func workSpaceTitle() -> String {
         switch data.windowStatus {
-        case .note: return "Note Editor (on Line \(data.editingJudgeLineNumber))"
-        case .pannelNote: return "Note Editor (on Line \(data.editingJudgeLineNumber))"
-        case .prop: return "Prop Editor (on Line \(data.editingJudgeLineNumber))"
-        case .pannelProp: return "Prop Editor (on Line \(data.editingJudgeLineNumber))"
+        case .note: return "Note Editor (on Line \(data.editingJudgeLineNumber) | \(data.listOfJudgeLines[data.editingJudgeLineNumber].description)"
+        case .pannelNote: return "Note Editor (on Line \(data.editingJudgeLineNumber)) | \(data.listOfJudgeLines[data.editingJudgeLineNumber].description)"
+        case .prop: return "Prop Editor (on Line \(data.editingJudgeLineNumber)) | \(data.listOfJudgeLines[data.editingJudgeLineNumber].description)"
+        case .pannelProp: return "Prop Editor (on Line \(data.editingJudgeLineNumber)) | \(data.listOfJudgeLines[data.editingJudgeLineNumber].description)"
         case .preview: return "Preview"
         case .pannelPreview: return "Preview"
         }
@@ -104,7 +105,7 @@ struct ContentView: View {
             if shouldShowPannel() {
                 LazyVStack(alignment: .leading) {
                     // title
-                    Text("PhiStudio").font(.title2).fontWeight(.bold)
+                    Text("PhiStudio / \(String(describing: data.windowStatus).capitalizingFirstLetter())").font(.title2).fontWeight(.bold)
                     TabView {
                         ChartSettings().environmentObject(data)
                             .tabItem {

@@ -1,6 +1,8 @@
-// NoteEditorView.swift
-// Author: TianKai Ma
-// Last Reviewed: 2022-05-22 21:11
+/**
+ * Created on Fri Jun 03 2022
+ *
+ * Copyright (c) 2022 TianKaiMa
+ */
 import SpriteKit
 import SwiftUI
 
@@ -136,8 +138,8 @@ class NoteEditorScene: SKScene {
         for note in data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList {
             var noteNode: SKShapeNode
             if note.noteType == .Hold {
-                let topColor = CIColor(red: 0.0, green: 0.0, blue: 1.0, alpha: 1.0)
-                let bottomColor = CIColor(red: 0.0, green: 0.0, blue: 1.0, alpha: 0.0)
+                let topColor = CIColor(red: 22.0 / 255.0, green: 176.0 / 255.0, blue: 248.0 / 255.0, alpha: 1.0)
+                let bottomColor = CIColor(red: 22.0 / 255.0, green: 176.0 / 255.0, blue: 248.0 / 255.0, alpha: 0.0)
                 let texture = SKTexture(size: CGSize(width: 200, height: 200), color1: topColor, color2: bottomColor, direction: GradientDirection.up)
                 texture.filteringMode = .nearest
                 noteNode = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight + _distance * Double(note.holdTimeTick)), cornerRadius: _noteCornerRadius)
@@ -150,12 +152,7 @@ class NoteEditorScene: SKScene {
             } else {
                 noteNode = noteNodeTemplate!.copy() as! SKShapeNode
                 noteNode.position = CGPoint(x: note.posX * size.width, y: RelativePostionY + CGFloat(note.timeTick - Int(data!.currentTimeTick)) * _distance)
-                switch note.noteType {
-                case .Tap: noteNode.fillColor = SKColor.blue
-                case .Flick: noteNode.fillColor = SKColor.red
-                case .Drag: noteNode.fillColor = SKColor.yellow
-                case .Hold: continue
-                }
+                noteNode.fillColor = noteColor(type: note.noteType)
             }
             if !note.fallSide {
                 noteNode.alpha /= 2

@@ -1,10 +1,12 @@
-// Preview.swift
-// Author: TianKai Ma
-// Last Reviewed: NONE
+/**
+ * Created on Fri Jun 03 2022
+ *
+ * Copyright (c) 2022 TianKaiMa
+ */
 import SpriteKit
 import SwiftUI
 
-let _refreshTick = 2.0
+let _refreshTick = 5.0
 
 class ChartPreviewScene: SKScene {
     var data: DataStructure?
@@ -34,11 +36,7 @@ class ChartPreviewScene: SKScene {
         nodeLinks = nodeLinks.filter { $0.0 != node && $0.1 != node }
     }
 
-    func updateCanvasSize() {
-        if judgeLineNodeTemplate != nil {
-            removeNodesLinked(to: judgeLineNodeTemplate!)
-        }
-
+    func initJudgeLineNodeTemplate() {
         judgeLineNodeTemplate = {
             let judgeLineNodeTemplate = SKShapeNode(rectOf: CGSize(width: size.width * 3, height: 2))
             judgeLineNodeTemplate.fillColor = SKColor.white
@@ -48,29 +46,32 @@ class ChartPreviewScene: SKScene {
         }()
     }
 
-    func prepareStaticJudgeLines() {
-        if size.width == 0 || size.height == 0 || data == nil {
-            return
+    func initNoteNodeTemplate() {
+        noteNodeTemplate = {
+            let noteNodeTemplate = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight), cornerRadius: _noteCornerRadius)
+            noteNodeTemplate.name = "note"
+            noteNodeTemplate.alpha = 1.0
+            noteNodeTemplate.lineWidth = 5
+            return noteNodeTemplate
+        }()
+    }
+
+    func updateCanvasSize() {
+        if judgeLineNodeTemplate != nil {
+            removeNodesLinked(to: judgeLineNodeTemplate!)
         }
+
+        initJudgeLineNodeTemplate()
+    }
+
+    func prepareStaticJudgeLines() {
         if judgeLineNodeTemplate == nil {
-            judgeLineNodeTemplate = {
-                let judgeLineNodeTemplate = SKShapeNode(rectOf: CGSize(width: size.width * 3, height: 2))
-                judgeLineNodeTemplate.fillColor = SKColor.white
-                judgeLineNodeTemplate.name = "judgeLine"
-                judgeLineNodeTemplate.alpha = 1.0
-                return judgeLineNodeTemplate
-            }()
+            initJudgeLineNodeTemplate()
         } else {
             removeNodesLinked(to: judgeLineNodeTemplate!)
         }
         if noteNodeTemplate == nil {
-            noteNodeTemplate = {
-                let noteNodeTemplate = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight), cornerRadius: _noteCornerRadius)
-                noteNodeTemplate.name = "note"
-                noteNodeTemplate.alpha = 1.0
-                noteNodeTemplate.lineWidth = 5
-                return noteNodeTemplate
-            }()
+            initNoteNodeTemplate()
         } else {
             removeNodesLinked(to: noteNodeTemplate!)
         }
@@ -79,10 +80,12 @@ class ChartPreviewScene: SKScene {
             let judgeLinePosX = judgeLine.props.calculateValue(.controlX, data!.currentTimeTick) * size.width
             let judgeLinePosY = judgeLine.props.calculateValue(.controlY, data!.currentTimeTick) * size.width
             let judgeLineAngle = judgeLine.props.calculateValue(.angle, data!.currentTimeTick) * 2.0 * .pi
+
             judgeLineNode.position = CGPoint(x: judgeLinePosX, y: judgeLinePosY)
             judgeLineNode.zRotation = judgeLineAngle
             link(nodeA: judgeLineNode, to: judgeLineNodeTemplate!)
             addChild(judgeLineNode)
+
             for note in judgeLine.noteList {
                 if note.noteType == .Hold {
                     if Double(note.timeTick + note.holdTimeTick) < data!.currentTimeTick {
@@ -91,16 +94,20 @@ class ChartPreviewScene: SKScene {
                 } else if Double(note.timeTick) < data!.currentTimeTick {
                     continue
                 }
+
                 var noteNode = noteNodeTemplate!.copy() as! SKShapeNode
+
                 let noteRelativePosition = judgeLine.props.calculateNoteDistance(data!.currentTimeTick, Double(note.timeTick)) * _distance
                 let noteDeltaX = (note.posX - 1 / 2) * size.width * cos(judgeLineAngle)
                 let noteDeltaY = (note.posX - 1 / 2) * size.width * sin(judgeLineAngle)
+
                 if note.noteType == .Hold {
-                    let topColor = CIColor(red: 0.0, green: 0.0, blue: 1.0, alpha: 1.0)
-                    let bottomColor = CIColor(red: 0.0, green: 0.0, blue: 1.0, alpha: 0.0)
+                    let topColor = CIColor(red: 22.0 / 255.0, green: 176.0 / 255.0, blue: 248.0 / 255.0, alpha: 1.0)
+                    let bottomColor = CIColor(red: 22.0 / 255.0, green: 176.0 / 255.0, blue: 248.0 / 255.0, alpha: 0.0)
                     let texture = SKTexture(size: CGSize(width: 200, height: 200), color1: topColor, color2: bottomColor, direction: GradientDirection.up)
                     texture.filteringMode = .nearest
                     noteNode = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight + _distance * Double(note.holdTimeTick)), cornerRadius: _noteCornerRadius)
+
                     noteNode.fillTexture = texture
                     noteNode.fillColor = .white
                     noteNode.position = CGPoint(x: (note.fallSide ? -1.0 : 1.0) * (noteRelativePosition + Double(note.holdTimeTick) / 2) * _distance * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, y: (note.fallSide ? 1.0 : -1.0) * (noteRelativePosition + Double(note.holdTimeTick) / 2 * _distance) * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY)
@@ -111,12 +118,7 @@ class ChartPreviewScene: SKScene {
                 } else {
                     noteNode.position = CGPoint(x: (note.fallSide ? -1.0 : 1.0) * noteRelativePosition * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, y: (note.fallSide ? 1.0 : -1.0) * noteRelativePosition * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY)
                     noteNode.zRotation = judgeLineAngle
-                    switch note.noteType {
-                    case .Tap: noteNode.fillColor = SKColor(cgColor: CGColor(srgbRed: 22.0 / 255.0, green: 176.0 / 255.0, blue: 248.0 / 255.0, alpha: 1))
-                    case .Hold: continue
-                    case .Drag: noteNode.fillColor = SKColor(cgColor: CGColor(srgbRed: 239.0 / 255.0, green: 237.0 / 255.0, blue: 125.0 / 255.0, alpha: 1))
-                    case .Flick: noteNode.fillColor = SKColor(cgColor: CGColor(srgbRed: 234.0 / 255.0, green: 84.0 / 255.0, blue: 104.0 / 255.0, alpha: 1))
-                    }
+                    noteNode.fillColor = noteColor(type: note.noteType)
                 }
                 link(nodeA: noteNode, to: noteNodeTemplate!)
                 addChild(noteNode)
@@ -125,31 +127,13 @@ class ChartPreviewScene: SKScene {
     }
 
     func startRunning() {
-        if data == nil {
-            return
-        }
-        if size.width == 0 || size.height == 0 || data == nil {
-            return
-        }
         if judgeLineNodeTemplate == nil {
-            judgeLineNodeTemplate = {
-                let judgeLineNodeTemplate = SKShapeNode(rectOf: CGSize(width: size.width * 3, height: 2))
-                judgeLineNodeTemplate.fillColor = SKColor.white
-                judgeLineNodeTemplate.name = "judgeLine"
-                judgeLineNodeTemplate.alpha = 1.0
-                return judgeLineNodeTemplate
-            }()
+            initJudgeLineNodeTemplate()
         } else {
             removeNodesLinked(to: judgeLineNodeTemplate!)
         }
         if noteNodeTemplate == nil {
-            noteNodeTemplate = {
-                let noteNodeTemplate = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight), cornerRadius: _noteCornerRadius)
-                noteNodeTemplate.name = "note"
-                noteNodeTemplate.alpha = 1.0
-                noteNodeTemplate.lineWidth = 8
-                return noteNodeTemplate
-            }()
+            initNoteNodeTemplate()
         } else {
             removeNodesLinked(to: noteNodeTemplate!)
         }
@@ -158,6 +142,7 @@ class ChartPreviewScene: SKScene {
             let judgeLinePosX = judgeLine.props.calculateValue(.controlX, data!.currentTimeTick) * size.width
             let judgeLinePosY = judgeLine.props.calculateValue(.controlY, data!.currentTimeTick) * size.width
             let judgeLineAngle = judgeLine.props.calculateValue(.angle, data!.currentTimeTick) * 2.0 * .pi
+
             judgeLineNode.position = CGPoint(x: judgeLinePosX, y: judgeLinePosY)
             judgeLineNode.zRotation = judgeLineAngle
 
@@ -195,8 +180,8 @@ class ChartPreviewScene: SKScene {
                 let noteDeltaX = (note.posX - 1 / 2) * size.width * cos(judgeLineAngle)
                 let noteDeltaY = (note.posX - 1 / 2) * size.width * sin(judgeLineAngle)
                 if note.noteType == .Hold {
-                    let topColor = CIColor(red: 0.0, green: 0.0, blue: 1.0, alpha: 1.0)
-                    let bottomColor = CIColor(red: 0.0, green: 0.0, blue: 1.0, alpha: 0.0)
+                    let topColor = CIColor(red: 22.0 / 255.0, green: 176.0 / 255.0, blue: 248.0 / 255.0, alpha: 1.0)
+                    let bottomColor = CIColor(red: 22.0 / 255.0, green: 176.0 / 255.0, blue: 248.0 / 255.0, alpha: 0.0)
                     let texture = SKTexture(size: CGSize(width: 200, height: 200), color1: topColor, color2: bottomColor, direction: GradientDirection.up)
                     texture.filteringMode = .nearest
                     noteNode = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight + _distance * Double(note.holdTimeTick)), cornerRadius: _noteCornerRadius)
@@ -234,12 +219,7 @@ class ChartPreviewScene: SKScene {
                 } else {
                     noteNode.position = CGPoint(x: (note.fallSide ? -1.0 : 1.0) * noteRelativePosition * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, y: (note.fallSide ? 1.0 : -1.0) * noteRelativePosition * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY)
                     noteNode.zRotation = judgeLineAngle
-                    switch note.noteType {
-                    case .Tap: noteNode.fillColor = SKColor.blue
-                    case .Hold: continue
-                    case .Drag: noteNode.fillColor = SKColor.yellow
-                    case .Flick: noteNode.fillColor = SKColor.red
-                    }
+                    noteNode.fillColor = noteColor(type: note.noteType)
                     var noteMoveAction: [SKAction] = []
                     var tmpTick = data!.currentTimeTick
                     while tmpTick <= Double(note.timeTick) {
@@ -274,9 +254,6 @@ class ChartPreviewScene: SKScene {
     }
 
     func pauseRunning() {
-        if data == nil {
-            return
-        }
         let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
             var res = res
             if pair.0 == judgeLineNodeTemplate {
