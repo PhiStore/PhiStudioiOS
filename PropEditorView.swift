@@ -43,10 +43,20 @@ class PropEditorScene: SKScene {
         nodeLinks = nodeLinks.filter { $0.0 != node && $0.1 != node }
     }
 
-    func clearAndMakeIndexLines() {
-        if size.width == 0 || size.height == 0 || data == nil {
-            return
+    func updateCanvasSize() {
+        if indexLineNodeTemplate != nil {
+            removeNodesLinked(to: indexLineNodeTemplate!)
         }
+        indexLineNodeTemplate = {
+            let indexLineNodeTemplate = SKShapeNode(rectOf: CGSize(width: 2, height: size.height))
+            indexLineNodeTemplate.fillColor = SKColor.white
+            indexLineNodeTemplate.name = "indexLine"
+            indexLineNodeTemplate.alpha = 1.0
+            return indexLineNodeTemplate
+        }()
+    }
+
+    func clearAndMakeIndexLines() {
         if indexLineNodeTemplate == nil {
             indexLineNodeTemplate = {
                 let indexLineNodeTemplate = SKShapeNode(rectOf: CGSize(width: 2, height: size.height))
@@ -60,7 +70,7 @@ class PropEditorScene: SKScene {
         }
         if indexLineLabelNodeTemplate == nil {
             indexLineLabelNodeTemplate = {
-                let lintNodeTemplate = SKLabelNode(fontNamed: "AmericanTypewriter")
+                let lintNodeTemplate = SKLabelNode(fontNamed: "ChalkboardSE-Light")
                 lintNodeTemplate.fontSize = 15
                 lintNodeTemplate.fontColor = SKColor.white
                 lintNodeTemplate.name = "indexLineLabel"
@@ -106,9 +116,6 @@ class PropEditorScene: SKScene {
     }
 
     func clearAndMakePropControlNodes() {
-        if size.width == 0 || size.height == 0 || data == nil {
-            return
-        }
         if controlNodeTemplate == nil {
             controlNodeTemplate = {
                 let controlNodeTemplate = SKShapeNode(circleOfRadius: 10)
@@ -132,7 +139,7 @@ class PropEditorScene: SKScene {
         }
         if controlCurveLabelNodeTemplate == nil {
             controlCurveLabelNodeTemplate = {
-                let controlCurveLabelNodeTemplate = SKLabelNode(fontNamed: "AmericanTypewriter")
+                let controlCurveLabelNodeTemplate = SKLabelNode(fontNamed: "ChalkboardSE-Light")
                 controlCurveLabelNodeTemplate.fontSize = 15
                 controlCurveLabelNodeTemplate.fontColor = SKColor.green
                 controlCurveLabelNodeTemplate.name = "controlCurveLabel"
@@ -195,9 +202,6 @@ class PropEditorScene: SKScene {
     }
 
     func clearAndMakeLint() {
-        if data == nil {
-            return
-        }
         if lintNodeTemplate == nil {
             lintNodeTemplate = {
                 let lintNodeTemplate = SKShapeNode(circleOfRadius: 10)
@@ -216,9 +220,6 @@ class PropEditorScene: SKScene {
     }
 
     func startRunning() {
-        if data == nil {
-            return
-        }
         let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
             var res = res
             if pair.0 == controlNodeTemplate || pair.0 == indexLineNodeTemplate || pair.0 == indexLineLabelNodeTemplate || pair.0 == controlCurveNodeTemplate {
@@ -235,9 +236,6 @@ class PropEditorScene: SKScene {
     }
 
     func pauseRunning() {
-        if data == nil {
-            return
-        }
         let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
             var res = res
             if pair.0 == controlNodeTemplate || pair.0 == indexLineNodeTemplate || pair.0 == indexLineLabelNodeTemplate || pair.0 == controlCurveNodeTemplate {
@@ -254,9 +252,6 @@ class PropEditorScene: SKScene {
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with _: UIEvent?) {
-        if data!.isRunning {
-            return
-        }
         let RelativePositionX = 50 + _distanceH * (data!.currentTimeTick - Double(Int(data!.currentTimeTick)))
         if let touch = touches.first {
             let touchLocation = touch.location(in: self)

@@ -59,9 +59,6 @@ class NoteEditorScene: SKScene {
     }
 
     func clearAndMakeJudgeLines() {
-        if size.width == 0 || size.height == 0 || data == nil {
-            return
-        }
         if judgeLineNodeTemplate == nil {
             judgeLineNodeTemplate = {
                 let judgeLineNodeTemplate = SKShapeNode(rectOf: CGSize(width: size.width, height: 2))
@@ -75,7 +72,7 @@ class NoteEditorScene: SKScene {
         }
         if judgeLineLabelNodeTemplate == nil {
             judgeLineLabelNodeTemplate = {
-                let judgeLineLabelNodeTemplate = SKLabelNode(fontNamed: "AmericanTypewriter")
+                let judgeLineLabelNodeTemplate = SKLabelNode(fontNamed: "ChalkboardSE-Light")
                 judgeLineLabelNodeTemplate.fontSize = 15
                 judgeLineLabelNodeTemplate.fontColor = SKColor.white
                 judgeLineLabelNodeTemplate.name = "judgeLineLabel"
@@ -166,9 +163,6 @@ class NoteEditorScene: SKScene {
     }
 
     func clearAndMakeBackgroundImage() {
-        if data == nil {
-            return
-        }
         if data!.imageFile == nil {
             return
         }
@@ -191,9 +185,6 @@ class NoteEditorScene: SKScene {
     }
 
     func clearAndMakeLint() {
-        if data == nil {
-            return
-        }
         if lintNodeTemplate == nil {
             lintNodeTemplate = {
                 let lintNodeTemplate = SKShapeNode(circleOfRadius: 10)
@@ -212,9 +203,6 @@ class NoteEditorScene: SKScene {
     }
 
     func startRunning() {
-        if data == nil {
-            return
-        }
         let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
             var res = res
             if pair.0 == judgeLineNodeTemplate || pair.0 == judgeLineLabelNodeTemplate || pair.0 == noteNodeTemplate {
@@ -231,9 +219,6 @@ class NoteEditorScene: SKScene {
     }
 
     func pauseRunning() {
-        if data == nil {
-            return
-        }
         let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
             var res = res
             if pair.0 == judgeLineNodeTemplate || pair.0 == judgeLineLabelNodeTemplate || pair.0 == noteNodeTemplate {

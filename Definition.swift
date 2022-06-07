@@ -619,6 +619,7 @@ public class DataStructure: ObservableObject, Codable {
         didSet {
             if imageFile != nil {
                 noteEditScene.clearAndMakeBackgroundImage()
+                chartPreviewScene.clearAndMakeBackgroundImage()
             }
         }
     }
@@ -661,6 +662,7 @@ public class DataStructure: ObservableObject, Codable {
                     currentTimeTick = Double(chartLengthTick())
                 }
             }
+            chartPreviewScene.updateTimeLabelOnly()
         }
     }
 
@@ -735,7 +737,6 @@ public class DataStructure: ObservableObject, Codable {
         let canvasSize = CGSize(width: (renderStatus == .pannelNote || renderStatus == .pannelProp || renderStatus == .pannelPreview) ? screenWidth * 3 / 4 - size * 6 : screenWidth - size * 4, height: screenHeight - size * 8)
         if renderStatus == .note || renderStatus == .pannelNote {
             noteEditScene.size = canvasSize
-            noteEditScene.data = self
             noteEditScene.scaleMode = .aspectFit
             noteEditScene.updateCanvasSize()
             noteEditScene.clearAndMakeBackgroundImage()
@@ -745,7 +746,6 @@ public class DataStructure: ObservableObject, Codable {
         }
         if renderStatus == .prop || renderStatus == .pannelProp {
             propEditScene.size = canvasSize
-            propEditScene.data = self
             propEditScene.scaleMode = .aspectFit
             propEditScene.clearAndMakeIndexLines()
             propEditScene.clearAndMakePropControlNodes()
@@ -753,9 +753,10 @@ public class DataStructure: ObservableObject, Codable {
         }
         if renderStatus == .preview || renderStatus == .pannelPreview {
             chartPreviewScene.size = canvasSize
-            chartPreviewScene.data = self
             chartPreviewScene.scaleMode = .aspectFit
             chartPreviewScene.updateCanvasSize()
+            chartPreviewScene.clearAndMakeBackgroundImage()
+            chartPreviewScene.createLintNodes()
             chartPreviewScene.prepareStaticJudgeLines()
         }
     }
@@ -771,6 +772,8 @@ public class DataStructure: ObservableObject, Codable {
         }
         if windowStatus == .preview || windowStatus == .pannelPreview {
             chartPreviewScene.prepareStaticJudgeLines()
+            chartPreviewScene.updateTimeDemoOnly()
+            chartPreviewScene.updateTimeLabelOnly()
         }
     }
 
@@ -908,6 +911,9 @@ public class DataStructure: ObservableObject, Codable {
         noteEditScene = NoteEditorScene()
         propEditScene = PropEditorScene()
         chartPreviewScene = ChartPreviewScene()
+        noteEditScene.data = self
+        propEditScene.data = self
+        chartPreviewScene.data = self
         do {
             try _ = loadCache()
         } catch {}
@@ -969,6 +975,9 @@ public class DataStructure: ObservableObject, Codable {
         propEditScene = PropEditorScene()
         chartPreviewScene = ChartPreviewScene()
         isRunning = false
+        noteEditScene.data = self
+        propEditScene.data = self
+        chartPreviewScene.data = self
     }
 
     public func encode(to encoder: Encoder) throws {

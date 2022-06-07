@@ -124,21 +124,37 @@ struct ChartSettings: View {
                     Text("Music Name:")
                         .foregroundColor(.cyan)
                     TextField("Music", text: $data.musicName).foregroundColor(Color.blue)
+                }.onChange(of: data.musicName) { _ in
+                    if data.windowStatus == .preview || data.windowStatus == .pannelPreview {
+                        data.chartPreviewScene.createLintNodes()
+                    }
                 }
                 HStack {
                     Text("Music Author:")
                         .foregroundColor(.cyan)
                     TextField("Author", text: $data.authorName).foregroundColor(Color.blue)
+                }.onChange(of: data.authorName) { _ in
+                    if data.windowStatus == .preview || data.windowStatus == .pannelPreview {
+                        data.chartPreviewScene.createLintNodes()
+                    }
                 }
                 HStack {
                     Text("Chart Level:")
                         .foregroundColor(.cyan)
                     TextField("Level", text: $data.chartLevel).foregroundColor(Color.orange)
+                }.onChange(of: data.chartLevel) { _ in
+                    if data.windowStatus == .preview || data.windowStatus == .pannelPreview {
+                        data.chartPreviewScene.createLintNodes()
+                    }
                 }
                 HStack {
                     Text("Chart Author:")
                         .foregroundColor(.cyan)
                     TextField("Chart Author", text: $data.chartAuthorName).foregroundColor(Color.orange)
+                }.onChange(of: data.chartAuthorName) { _ in
+                    if data.windowStatus == .preview || data.windowStatus == .pannelPreview {
+                        data.chartPreviewScene.createLintNodes()
+                    }
                 }
                 Menu("Copyright: \(String(describing: data.copyright).capitalizingFirstLetter())") {
                     Button("[Full copyright]", action: {
@@ -150,6 +166,10 @@ struct ChartSettings: View {
                     Button("[No copyright]", action: {
                         data.copyright = .none
                     })
+                }.onChange(of: data.copyright) { _ in
+                    if data.windowStatus == .preview || data.windowStatus == .pannelPreview {
+                        data.chartPreviewScene.createLintNodes()
+                    }
                 }
             }.textCase(nil)
             Section(header: Text("Settings:")) {
