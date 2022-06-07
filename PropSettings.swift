@@ -352,13 +352,10 @@ struct PropSettingsView: View {
     var body: some View {
         VStack {
             List {
-                HStack {
-                    Text("Current Prop Type")
-                    Picker("currentPropType", selection: $data.currentPropType) {
-                        ForEach(PROPTYPE.allCases, id: \.self) { type in
-                            Text(String(describing: type))
-                                .tag(type)
-                        }
+                Picker("currentPropType", selection: $data.currentPropType) {
+                    ForEach(PROPTYPE.allCases, id: \.self) { type in
+                        Text(String(describing: type))
+                            .tag(type)
                     }
                 }
                 .pickerStyle(.menu)

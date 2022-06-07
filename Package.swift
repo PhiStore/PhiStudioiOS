@@ -18,8 +18,8 @@ let package = Package(
             targets: ["AppModule"],
             bundleIdentifier: "com.phix.phistudio",
             teamIdentifier: "VUW8FV5HN5",
-            displayVersion: "1.0.3",
-            bundleVersion: "11",
+            displayVersion: "1.0.5",
+            bundleVersion: "15",
             appIcon: .asset("AppIcon"),
             accentColor: .asset("AccentColor"),
             supportedDeviceFamilies: [

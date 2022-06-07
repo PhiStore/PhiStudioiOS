@@ -21,6 +21,19 @@ extension String {
     }
 }
 
+extension Array {
+    func filterDuplicates<E: Equatable>(_ filter: (Element) -> E) -> [Element] {
+        var result = [Element]()
+        for value in self {
+            let key = filter(value)
+            if !result.map({ filter($0) }).contains(key) {
+                result.append(value)
+            }
+        }
+        return result
+    }
+}
+
 // Used for encoding color, a better solution is wanted.
 public struct CodableColor {
     let color: UIColor
@@ -827,6 +840,51 @@ public class DataStructure: ObservableObject, Codable {
         try _ = loadCache()
         return true
     }
+
+    func easingToPecNumber(type: EASINGTYPE) -> Int {
+        switch type {
+        case .linear: return 1
+        case .easeInSine: return 3
+        case .easeOutSine: return 2
+        case .easeInOutSine: return 6
+        case .easeInQuad: return 5
+        case .easeOutQuad: return 4
+        case .easeInOutQuad: return 7
+        case .easeInCubic: return 9
+        case .easeOutCubic: return 8
+        case .easeInOutCubic: return 12
+        case .easeInQuart: return 11
+        case .easeOutQuart: return 10
+        case .easeInOutQuart: return 13
+        case .easeInQuint: return 15
+        case .easeOutQuint: return 14
+        case .easeInOutQuint: return 1
+        case .easeInExpo: return 17
+        case .easeOutExpo: return 16
+        case .easeInOutExpo: return 1
+        case .easeInCirc: return 19
+        case .easeOutCirc: return 18
+        case .easeInOutCirc: return 22
+        case .easeInBack: return 21
+        case .easeOutBack: return 20
+        case .easeInOutBack: return 23
+        }
+    }
+
+//    func chartToPec() -> String {
+//        var pecString = """
+//        \(Int(offsetSecond * 1000))
+//        0.000 \(bpm).000
+//        """
+//        for judgeLine in listOfJudgeLines {
+//            for controlX in judgeLine.props.controlX {
+//                pecString += """
+//                cm
+//                """
+//            }
+//        }
+//        return pecString
+//    }
 
     func loadCache() throws -> Bool {
         let fm = FileManager.default

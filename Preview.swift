@@ -7,6 +7,7 @@ import SpriteKit
 import SwiftUI
 
 let _refreshTick = 5.0
+let updateFreq = 10
 
 class ChartPreviewScene: SKScene {
     var data: DataStructure?
@@ -197,7 +198,7 @@ class ChartPreviewScene: SKScene {
 
                 if note.noteType == .Hold {
                     let topColor = CIColor(red: 22.0 / 255.0, green: 176.0 / 255.0, blue: 248.0 / 255.0, alpha: 1.0)
-                    let bottomColor = CIColor(red: 22.0 / 255.0, green: 176.0 / 255.0, blue: 248.0 / 255.0, alpha: 0.0)
+                    let bottomColor = CIColor(red: 22.0 / 255.0, green: 176.0 / 255.0, blue: 248.0 / 255.0, alpha: 0.4)
                     let texture = SKTexture(size: CGSize(width: 200, height: 200), color1: topColor, color2: bottomColor, direction: GradientDirection.up)
                     texture.filteringMode = .nearest
                     noteNode = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight + _distance * Double(note.holdTimeTick)), cornerRadius: _noteCornerRadius)
@@ -272,26 +273,115 @@ class ChartPreviewScene: SKScene {
             let judgeLinePosX = judgeLine.props.calculateValue(.controlX, data!.currentTimeTick) * size.width
             let judgeLinePosY = (judgeLine.props.calculateValue(.controlY, data!.currentTimeTick) - 0.5) * size.width + 0.5 * size.height
             let judgeLineAngle = judgeLine.props.calculateValue(.angle, data!.currentTimeTick) * 2.0 * .pi
+            let judgeLineAlpha = judgeLine.props.calculateValue(.lineAlpha, data!.currentTimeTick)
 
             judgeLineNode.position = CGPoint(x: judgeLinePosX, y: judgeLinePosY)
             judgeLineNode.zRotation = judgeLineAngle
+            judgeLineNode.alpha = judgeLineAlpha
 
             var movingActions: [SKAction] = []
-            var tmpTick = data!.currentTimeTick
-            while tmpTick < Double(data!.chartLengthTick()) {
-                let judgeLinePosX = judgeLine.props.calculateValue(.controlX, tmpTick) * size.width
-                let judgeLinePosY = (judgeLine.props.calculateValue(.controlY, tmpTick) - 0.5) * size.width + 0.5 * size.height
-                let judgeLineAngle = judgeLine.props.calculateValue(.angle, tmpTick) * 2.0 * .pi
-                let judgeLineAlpha = judgeLine.props.calculateValue(.lineAlpha, tmpTick)
 
-                let tmpActionX = SKAction.moveTo(x: judgeLinePosX, duration: data!.tickToSecond(_refreshTick))
-                let tmpActionY = SKAction.moveTo(y: judgeLinePosY, duration: data!.tickToSecond(_refreshTick))
-                let tmpActionRotation = SKAction.rotate(toAngle: judgeLineAngle, duration: data!.tickToSecond(_refreshTick))
-                let tmpActionAlpha = SKAction.fadeAlpha(to: judgeLineAlpha, duration: data!.tickToSecond(_refreshTick))
-                movingActions.append(SKAction.group([tmpActionX, tmpActionY, tmpActionRotation, tmpActionAlpha]))
-                tmpTick += _refreshTick
+            var shouldControlXUpdateTimeTick: [Double] = []
+            var controlXUpdateAction: [SKAction] = []
+            judgeLine.props.controlX = judgeLine.props.controlX.sorted { $0.timeTick < $1.timeTick }
+            for index in 0 ..< (judgeLine.props.controlX.count - 1) {
+                if judgeLine.props.controlX[index].followingEasing == .linear {
+                    shouldControlXUpdateTimeTick.append(Double(judgeLine.props.controlX[index + 1].timeTick))
+                    continue
+                }
+                for i in 0 ... updateFreq {
+                    shouldControlXUpdateTimeTick.append(Double(judgeLine.props.controlX[index].timeTick) + Double(i / updateFreq) * Double(judgeLine.props.controlX[index + 1].timeTick - judgeLine.props.controlX[index].timeTick))
+                }
             }
-            let groupAction = SKAction.sequence(movingActions)
+            shouldControlXUpdateTimeTick.append(data!.currentTimeTick)
+            shouldControlXUpdateTimeTick = shouldControlXUpdateTimeTick.filterDuplicates { $0 }
+            shouldControlXUpdateTimeTick.sort()
+            shouldControlXUpdateTimeTick.removeAll(where: { $0 < data!.currentTimeTick })
+            for index in 0 ..< (shouldControlXUpdateTimeTick.count - 1) {
+                let judgeLinePosX = judgeLine.props.calculateValue(.controlX, shouldControlXUpdateTimeTick[index + 1]) * size.width
+                let tmpAction = SKAction.moveTo(x: judgeLinePosX, duration: data!.tickToSecond(shouldControlXUpdateTimeTick[index + 1] - shouldControlXUpdateTimeTick[index]))
+                controlXUpdateAction.append(tmpAction)
+            }
+            if controlXUpdateAction.count > 0 {
+                movingActions.append(SKAction.sequence(controlXUpdateAction))
+            }
+
+            var shouldControlYUpdateTimeTick: [Double] = []
+            var controlYUpdateAction: [SKAction] = []
+            judgeLine.props.controlY = judgeLine.props.controlY.sorted { $0.timeTick < $1.timeTick }
+            for index in 0 ..< (judgeLine.props.controlY.count - 1) {
+                if judgeLine.props.controlY[index].followingEasing == .linear {
+                    shouldControlYUpdateTimeTick.append(Double(judgeLine.props.controlY[index + 1].timeTick))
+                    continue
+                }
+                for i in 0 ... updateFreq {
+                    shouldControlYUpdateTimeTick.append(Double(judgeLine.props.controlY[index].timeTick) + Double(i / updateFreq) * Double(judgeLine.props.controlY[index + 1].timeTick - judgeLine.props.controlY[index].timeTick))
+                }
+            }
+            shouldControlYUpdateTimeTick.append(data!.currentTimeTick)
+            shouldControlYUpdateTimeTick = shouldControlYUpdateTimeTick.filterDuplicates { $0 }
+            shouldControlYUpdateTimeTick.sort()
+            shouldControlYUpdateTimeTick.removeAll(where: { $0 < data!.currentTimeTick })
+            for index in 0 ..< (shouldControlYUpdateTimeTick.count - 1) {
+                let judgeLinePosY = (judgeLine.props.calculateValue(.controlY, shouldControlYUpdateTimeTick[index + 1]) - 0.5) * size.width + 0.5 * size.height
+                let tmpAction = SKAction.moveTo(y: judgeLinePosY, duration: data!.tickToSecond(shouldControlYUpdateTimeTick[index + 1] - shouldControlYUpdateTimeTick[index]))
+                controlYUpdateAction.append(tmpAction)
+            }
+            if controlYUpdateAction.count > 0 {
+                movingActions.append(SKAction.sequence(controlYUpdateAction))
+            }
+
+            var shouldAngleUpdateTimeTick: [Double] = []
+            var angleUpdateAction: [SKAction] = []
+            judgeLine.props.angle = judgeLine.props.angle.sorted { $0.timeTick < $1.timeTick }
+            for index in 0 ..< (judgeLine.props.angle.count - 1) {
+                if judgeLine.props.angle[index].followingEasing == .linear {
+                    shouldAngleUpdateTimeTick.append(Double(judgeLine.props.angle[index + 1].timeTick))
+                    continue
+                }
+                for i in 0 ... updateFreq {
+                    shouldAngleUpdateTimeTick.append(Double(judgeLine.props.angle[index].timeTick) + Double(i / updateFreq) * Double(judgeLine.props.angle[index + 1].timeTick - judgeLine.props.angle[index].timeTick))
+                }
+            }
+            shouldAngleUpdateTimeTick.append(data!.currentTimeTick)
+            shouldAngleUpdateTimeTick = shouldAngleUpdateTimeTick.filterDuplicates { $0 }
+            shouldAngleUpdateTimeTick.sort()
+            shouldAngleUpdateTimeTick.removeAll(where: { $0 < data!.currentTimeTick })
+            for index in 0 ..< (shouldAngleUpdateTimeTick.count - 1) {
+                let judgeLineAngle = judgeLine.props.calculateValue(.angle, shouldAngleUpdateTimeTick[index + 1]) * 2.0 * .pi
+                let tmpAction = SKAction.rotate(toAngle: judgeLineAngle, duration: data!.tickToSecond(shouldAngleUpdateTimeTick[index + 1] - shouldAngleUpdateTimeTick[index]))
+                angleUpdateAction.append(tmpAction)
+            }
+            if angleUpdateAction.count > 0 {
+                movingActions.append(SKAction.sequence(angleUpdateAction))
+            }
+
+            var shouldAlphaUpdateTimeTick: [Double] = []
+            var alphaUpdateAction: [SKAction] = []
+            judgeLine.props.lineAlpha = judgeLine.props.lineAlpha.sorted { $0.timeTick < $1.timeTick }
+            for index in 0 ..< (judgeLine.props.lineAlpha.count - 1) {
+                if judgeLine.props.lineAlpha[index].followingEasing == .linear {
+                    shouldAlphaUpdateTimeTick.append(Double(judgeLine.props.lineAlpha[index + 1].timeTick))
+                    continue
+                }
+                for i in 0 ... updateFreq {
+                    shouldAlphaUpdateTimeTick.append(Double(judgeLine.props.lineAlpha[index].timeTick) + Double(i / updateFreq) * Double(judgeLine.props.lineAlpha[index + 1].timeTick - judgeLine.props.lineAlpha[index].timeTick))
+                }
+            }
+            shouldAlphaUpdateTimeTick.append(data!.currentTimeTick)
+            shouldAlphaUpdateTimeTick = shouldAlphaUpdateTimeTick.filterDuplicates { $0 }
+            shouldAlphaUpdateTimeTick.sort()
+            shouldAlphaUpdateTimeTick.removeAll(where: { $0 < data!.currentTimeTick })
+            for index in 0 ..< (shouldAlphaUpdateTimeTick.count - 1) {
+                let judgeLineAlpha = judgeLine.props.calculateValue(.lineAlpha, shouldAlphaUpdateTimeTick[index + 1])
+                let tmpAction = SKAction.fadeAlpha(to: judgeLineAlpha, duration: data!.tickToSecond(shouldAlphaUpdateTimeTick[index + 1] - shouldAlphaUpdateTimeTick[index]))
+                alphaUpdateAction.append(tmpAction)
+            }
+            if alphaUpdateAction.count > 0 {
+                movingActions.append(SKAction.sequence(alphaUpdateAction))
+            }
+
+            let groupAction = SKAction.group(movingActions)
             judgeLineNode.run(groupAction, withKey: "movingJudgeLine")
             link(nodeA: judgeLineNode, to: judgeLineNodeTemplate!)
             addChild(judgeLineNode)
@@ -311,7 +401,7 @@ class ChartPreviewScene: SKScene {
                 let noteDeltaY = (note.posX - 0.5) * size.width * sin(judgeLineAngle)
                 if note.noteType == .Hold {
                     let topColor = CIColor(red: 22.0 / 255.0, green: 176.0 / 255.0, blue: 248.0 / 255.0, alpha: 1.0)
-                    let bottomColor = CIColor(red: 22.0 / 255.0, green: 176.0 / 255.0, blue: 248.0 / 255.0, alpha: 0.0)
+                    let bottomColor = CIColor(red: 22.0 / 255.0, green: 176.0 / 255.0, blue: 248.0 / 255.0, alpha: 0.4)
                     let texture = SKTexture(size: CGSize(width: 200, height: 200), color1: topColor, color2: bottomColor, direction: GradientDirection.up)
                     texture.filteringMode = .nearest
                     noteNode = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight + _distance * Double(note.holdTimeTick)), cornerRadius: _noteCornerRadius)
@@ -334,11 +424,8 @@ class ChartPreviewScene: SKScene {
                         let noteAlpha = judgeLine.props.calculateValue(.noteAlpha, tmpTick)
 
                         let tmpActionX = SKAction.moveTo(x: (note.fallSide ? -1.0 : 1.0) * (noteRelativePosition + Double(note.holdTimeTick) / 2 * _distance) * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, duration: data!.tickToSecond(_refreshTick))
-
                         let tmpActionY = SKAction.moveTo(y: (note.fallSide ? 1.0 : -1.0) * (noteRelativePosition + Double(note.holdTimeTick) / 2 * _distance) * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY, duration: data!.tickToSecond(_refreshTick))
-
                         let tmpActionAngle = SKAction.rotate(toAngle: judgeLineAngle, duration: data!.tickToSecond(_refreshTick))
-
                         let tmpActionAlpha = SKAction.fadeAlpha(to: noteAlpha, duration: data!.tickToSecond(_refreshTick))
 
                         noteMoveAction.append(SKAction.group([tmpActionX, tmpActionY, tmpActionAngle, tmpActionAlpha]))
@@ -349,6 +436,7 @@ class ChartPreviewScene: SKScene {
                 } else {
                     noteNode.position = CGPoint(x: (note.fallSide ? -1.0 : 1.0) * noteRelativePosition * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, y: (note.fallSide ? 1.0 : -1.0) * noteRelativePosition * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY)
                     noteNode.zRotation = judgeLineAngle
+                    noteNode.blendMode = .replace
                     noteNode.fillColor = noteColor(type: note.noteType)
                     var noteMoveAction: [SKAction] = []
                     var tmpTick = data!.currentTimeTick
@@ -362,11 +450,8 @@ class ChartPreviewScene: SKScene {
                         let noteAlpha = judgeLine.props.calculateValue(.noteAlpha, tmpTick)
 
                         let tmpActionX = SKAction.moveTo(x: (note.fallSide ? -1.0 : 1.0) * noteRelativePosition * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, duration: data!.tickToSecond(_refreshTick))
-
                         let tmpActionY = SKAction.moveTo(y: (note.fallSide ? 1.0 : -1.0) * noteRelativePosition * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY, duration: data!.tickToSecond(_refreshTick))
-
                         let tmpActionAngle = SKAction.rotate(toAngle: judgeLineAngle, duration: data!.tickToSecond(_refreshTick))
-
                         let tmpActionAlpha = SKAction.fadeAlpha(to: noteAlpha, duration: data!.tickToSecond(_refreshTick))
 
                         noteMoveAction.append(SKAction.group([tmpActionX, tmpActionY, tmpActionAngle, tmpActionAlpha]))
@@ -395,7 +480,6 @@ class ChartPreviewScene: SKScene {
             return res
         }
         linkedNodes.forEach {
-            print($0)
             $0.removeAllActions()
         }
     }
