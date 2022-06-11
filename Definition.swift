@@ -34,6 +34,38 @@ extension Array {
     }
 }
 
+func ?? <T>(lhs: Binding<T?>, rhs: T) -> Binding<T> {
+    Binding(
+        get: { lhs.wrappedValue ?? rhs },
+        set: { lhs.wrappedValue = $0 }
+    )
+}
+
+public extension SKNode {
+    private enum AssociatedKey {
+        static var judgeLineID: Int?
+        static var note: Note?
+    }
+
+    var noteRef: Note? {
+        get {
+            return objc_getAssociatedObject(self, &AssociatedKey.note) as? Note ?? nil
+        }
+        set {
+            objc_setAssociatedObject(self, &AssociatedKey.note, newValue, .OBJC_ASSOCIATION_RETAIN)
+        }
+    }
+
+    var judgeLineIDRef: Int? {
+        get {
+            return objc_getAssociatedObject(self, &AssociatedKey.judgeLineID) as? Int ?? nil
+        }
+        set {
+            objc_setAssociatedObject(self, &AssociatedKey.judgeLineID, newValue, .OBJC_ASSOCIATION_RETAIN)
+        }
+    }
+}
+
 // Used for encoding color, a better solution is wanted.
 public struct CodableColor {
     let color: UIColor
@@ -252,6 +284,11 @@ class PropStatus: Codable, ObservableObject {
     }
 
     @Published var followingEasing: EASINGTYPE
+    @Published var nextJumpValue: Double?
+
+    func prefixValue() -> Double {
+        return (nextJumpValue == nil ? value : nextJumpValue!)
+    }
 
     init(timeTick: Int, value: Double, followingEasing: EASINGTYPE) {
         self.timeTick = timeTick
@@ -260,7 +297,7 @@ class PropStatus: Codable, ObservableObject {
     }
 
     enum CodingKeys: String, CodingKey {
-        case timeTick, value, followingEasing
+        case timeTick, value, followingEasing, nextJumpValue
     }
 
     public required init(from decoder: Decoder) throws {
@@ -268,6 +305,7 @@ class PropStatus: Codable, ObservableObject {
         timeTick = try values.decode(Int.self, forKey: .timeTick)
         value = try values.decode(Double.self, forKey: .value)
         followingEasing = try values.decode(EASINGTYPE.self, forKey: .followingEasing)
+        nextJumpValue = try values.decodeIfPresent(Double.self, forKey: .nextJumpValue) ?? nil
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -275,6 +313,7 @@ class PropStatus: Codable, ObservableObject {
         try container.encode(timeTick, forKey: .timeTick)
         try container.encode(value, forKey: .value)
         try container.encode(followingEasing, forKey: .followingEasing)
+        try container.encode(nextJumpValue, forKey: .nextJumpValue)
     }
 }
 
@@ -327,17 +366,21 @@ public class JudgeLineProps: Codable, ObservableObject {
     func calculateValue(_ type: PROPTYPE, _ timeTick: Double) -> Double {
         var prop = returnProp(type: type)
         prop = prop.sorted { $0.timeTick < $1.timeTick }
-        if timeTick <= Double(prop[0].timeTick) || prop.count == 1 {
+        prop = prop.filterDuplicates { $0.timeTick }
+        if timeTick < Double(prop[0].timeTick) || prop.count == 1 {
             return prop[0].value
         }
         if prop.count > 1 {
             for index in 1 ..< prop.count {
+                if Double(prop[index].timeTick) == timeTick {
+                    return prop[index].prefixValue()
+                }
                 if Double(prop[index].timeTick) > timeTick {
-                    return prop[index - 1].value + calculateEasing(x: (timeTick - Double(prop[index - 1].timeTick)) / Double(prop[index].timeTick - prop[index - 1].timeTick), type: prop[index - 1].followingEasing) * (prop[index].value - prop[index - 1].value)
+                    return prop[index - 1].prefixValue() + calculateEasing(x: (timeTick - Double(prop[index - 1].timeTick)) / Double(prop[index].timeTick - prop[index - 1].timeTick), type: prop[index - 1].followingEasing) * (prop[index].value - prop[index - 1].prefixValue())
                 }
             }
         }
-        return prop[prop.count - 1].value // remain the same at the end
+        return prop[prop.count - 1].prefixValue() // remain the same at the end
     }
 
     func calculateNoteDistance(_ startTimeTick: Double, _ endTimeTick: Double) -> Double {
@@ -352,35 +395,36 @@ public class JudgeLineProps: Codable, ObservableObject {
         var indexI = 0
         var indexJ = 0
         speed = speed.sorted { $0.timeTick < $1.timeTick }
+        speed = speed.filterDuplicates { $0.timeTick }
         if startTimeTick < Double(speed[0].timeTick) {
             result += speed[0].value * (Double(speed[0].timeTick) - startTimeTick)
         } else {
             for index in 0 ..< speed.count - 1 {
                 indexI += 1
-                if Double(speed[index].timeTick) < startTimeTick, Double(speed[index + 1].timeTick) > startTimeTick {
-                    result += speed[index].value * (Double(speed[index + 1].timeTick) - startTimeTick) + (integrateEasing(type: speed[index].followingEasing) - integrateOverEasing(x: (startTimeTick - Double(speed[index].value)) / Double(speed[index + 1].timeTick - speed[index].timeTick), type: speed[index].followingEasing)) * Double(speed[index + 1].timeTick - speed[index].timeTick) * (speed[index + 1].value - speed[index].value)
-                    if Double(speed[index].timeTick) < endTimeTick, Double(speed[index + 1].timeTick) > endTimeTick {
-                        return speed[index].value * (endTimeTick - startTimeTick) + (integrateOverEasing(x: (endTimeTick - Double(speed[index].value)) / Double(speed[index + 1].timeTick - speed[index].timeTick), type: speed[index].followingEasing) - integrateOverEasing(x: (startTimeTick - Double(speed[index].value)) / Double(speed[index + 1].timeTick - speed[index].timeTick), type: speed[index].followingEasing)) * Double(speed[index + 1].timeTick - speed[index].timeTick) * (speed[index + 1].value - speed[index].value) * 10
+                if Double(speed[index].timeTick) < startTimeTick, Double(speed[index + 1].timeTick) >= startTimeTick {
+                    result += speed[index].prefixValue() * (Double(speed[index + 1].timeTick) - startTimeTick)
+                    if Double(speed[index].timeTick) < endTimeTick, Double(speed[index + 1].timeTick) >= endTimeTick {
+                        return speed[index].prefixValue() * (endTimeTick - startTimeTick) * 10
                     }
                     break
                 }
             }
             if indexI == speed.count - 1 {
-                return speed[speed.count - 1].value * (endTimeTick - startTimeTick) * 10
+                return speed[speed.count - 1].prefixValue() * (endTimeTick - startTimeTick) * 10
             }
         }
         indexJ = indexI
-        for index in indexI ..< (speed.count - 1) {
+        for index in indexI ..< speed.count - 1 {
             indexJ += 1
             if Double(speed[index + 1].timeTick) < endTimeTick {
-                result += speed[index].value * Double(speed[index + 1].timeTick - speed[index].timeTick) + integrateEasing(type: speed[index].followingEasing) * Double(speed[index + 1].timeTick - speed[index].timeTick) * (speed[index + 1].value - speed[index].value)
+                result += speed[index].prefixValue() * Double(speed[index + 1].timeTick - speed[index].timeTick)
             } else {
-                result += speed[index].value * (endTimeTick - Double(speed[index].timeTick)) + integrateOverEasing(x: (endTimeTick - Double(speed[index].value)) / Double(speed[index + 1].timeTick - speed[index].timeTick), type: speed[index].followingEasing) * (endTimeTick - Double(speed[index].timeTick)) * (speed[index + 1].value - speed[index].value)
+                result += speed[index].prefixValue() * (endTimeTick - Double(speed[index].timeTick))
                 break
             }
         }
         if indexJ == speed.count - 1 {
-            result += speed[speed.count - 1].value * (endTimeTick - Double(speed[speed.count - 1].timeTick))
+            result += speed[speed.count - 1].prefixValue() * (endTimeTick - Double(speed[speed.count - 1].timeTick))
         }
         return result * 10
     }
@@ -692,10 +736,10 @@ public class DataStructure: ObservableObject, Codable {
                     chartPreviewScene.startRunning()
                 }
                 lastStartTick = currentTimeTick
+                audioPlayer?.currentTime = currentTimeTick / Double(tickPerBeat) / Double(bpm) * 60.0 - offsetSecond
                 timeWhenStartSecond = Date().timeIntervalSince1970
                 scheduleTimer = Timer.scheduledTimer(timeInterval: updateTimeIntervalSecond, target: self, selector: #selector(updateCurrentTime), userInfo: nil, repeats: true)
                 audioPlayer?.volume = 1.0
-                audioPlayer?.currentTime = currentTimeTick / Double(tickPerBeat) / Double(bpm) * 60.0 - offsetSecond
                 audioPlayer?.play()
             } else {
                 if timeWhenStartSecond != nil {

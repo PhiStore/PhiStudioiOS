@@ -191,6 +191,8 @@ class ChartPreviewScene: SKScene {
                 }
 
                 var noteNode = noteNodeTemplate!.copy() as! SKShapeNode
+                noteNode.noteRef = note
+                noteNode.judgeLineIDRef = judgeLine.id
 
                 let noteRelativePosition = judgeLine.props.calculateNoteDistance(data!.currentTimeTick, Double(note.timeTick)) * _distance
                 let noteDeltaX = (note.posX - 0.5) * size.width * cos(judgeLineAngle)
@@ -202,6 +204,8 @@ class ChartPreviewScene: SKScene {
                     let texture = SKTexture(size: CGSize(width: 200, height: 200), color1: topColor, color2: bottomColor, direction: GradientDirection.up)
                     texture.filteringMode = .nearest
                     noteNode = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight + _distance * Double(note.holdTimeTick)), cornerRadius: _noteCornerRadius)
+                    noteNode.noteRef = note
+                    noteNode.judgeLineIDRef = judgeLine.id
 
                     noteNode.fillTexture = texture
                     noteNode.fillColor = .white
@@ -244,6 +248,7 @@ class ChartPreviewScene: SKScene {
     }
 
     func startRunning() {
+        isPaused = true
         if judgeLineNodeTemplate == nil {
             initJudgeLineNodeTemplate()
         } else {
@@ -268,6 +273,7 @@ class ChartPreviewScene: SKScene {
         linkedNodes.forEach {
             $0.run(SKAction.move(by: CGVector(dx: 0, dy: size.height), duration: Double(data!.chartLengthSecond)), withKey: "moving")
         }
+
         for judgeLine in data!.listOfJudgeLines {
             let judgeLineNode = judgeLineNodeTemplate!.copy() as! SKShapeNode
             let judgeLinePosX = judgeLine.props.calculateValue(.controlX, data!.currentTimeTick) * size.width
@@ -285,12 +291,8 @@ class ChartPreviewScene: SKScene {
             var controlXUpdateAction: [SKAction] = []
             judgeLine.props.controlX = judgeLine.props.controlX.sorted { $0.timeTick < $1.timeTick }
             for index in 0 ..< (judgeLine.props.controlX.count - 1) {
-                if judgeLine.props.controlX[index].followingEasing == .linear {
-                    shouldControlXUpdateTimeTick.append(Double(judgeLine.props.controlX[index + 1].timeTick))
-                    continue
-                }
-                for i in 0 ... updateFreq {
-                    shouldControlXUpdateTimeTick.append(Double(judgeLine.props.controlX[index].timeTick) + Double(i / updateFreq) * Double(judgeLine.props.controlX[index + 1].timeTick - judgeLine.props.controlX[index].timeTick))
+                for i in -1 ... updateFreq + 1 {
+                    shouldControlXUpdateTimeTick.append(Double(judgeLine.props.controlX[index].timeTick) + Double(i) / Double(updateFreq) * Double(judgeLine.props.controlX[index + 1].timeTick - judgeLine.props.controlX[index].timeTick))
                 }
             }
             shouldControlXUpdateTimeTick.append(data!.currentTimeTick)
@@ -310,12 +312,8 @@ class ChartPreviewScene: SKScene {
             var controlYUpdateAction: [SKAction] = []
             judgeLine.props.controlY = judgeLine.props.controlY.sorted { $0.timeTick < $1.timeTick }
             for index in 0 ..< (judgeLine.props.controlY.count - 1) {
-                if judgeLine.props.controlY[index].followingEasing == .linear {
-                    shouldControlYUpdateTimeTick.append(Double(judgeLine.props.controlY[index + 1].timeTick))
-                    continue
-                }
-                for i in 0 ... updateFreq {
-                    shouldControlYUpdateTimeTick.append(Double(judgeLine.props.controlY[index].timeTick) + Double(i / updateFreq) * Double(judgeLine.props.controlY[index + 1].timeTick - judgeLine.props.controlY[index].timeTick))
+                for i in -1 ... updateFreq + 1 {
+                    shouldControlYUpdateTimeTick.append(Double(judgeLine.props.controlY[index].timeTick) + Double(i) / Double(updateFreq) * Double(judgeLine.props.controlY[index + 1].timeTick - judgeLine.props.controlY[index].timeTick))
                 }
             }
             shouldControlYUpdateTimeTick.append(data!.currentTimeTick)
@@ -335,12 +333,8 @@ class ChartPreviewScene: SKScene {
             var angleUpdateAction: [SKAction] = []
             judgeLine.props.angle = judgeLine.props.angle.sorted { $0.timeTick < $1.timeTick }
             for index in 0 ..< (judgeLine.props.angle.count - 1) {
-                if judgeLine.props.angle[index].followingEasing == .linear {
-                    shouldAngleUpdateTimeTick.append(Double(judgeLine.props.angle[index + 1].timeTick))
-                    continue
-                }
-                for i in 0 ... updateFreq {
-                    shouldAngleUpdateTimeTick.append(Double(judgeLine.props.angle[index].timeTick) + Double(i / updateFreq) * Double(judgeLine.props.angle[index + 1].timeTick - judgeLine.props.angle[index].timeTick))
+                for i in -1 ... updateFreq + 1 {
+                    shouldAngleUpdateTimeTick.append(Double(judgeLine.props.angle[index].timeTick) + Double(i) / Double(updateFreq) * Double(judgeLine.props.angle[index + 1].timeTick - judgeLine.props.angle[index].timeTick))
                 }
             }
             shouldAngleUpdateTimeTick.append(data!.currentTimeTick)
@@ -360,12 +354,8 @@ class ChartPreviewScene: SKScene {
             var alphaUpdateAction: [SKAction] = []
             judgeLine.props.lineAlpha = judgeLine.props.lineAlpha.sorted { $0.timeTick < $1.timeTick }
             for index in 0 ..< (judgeLine.props.lineAlpha.count - 1) {
-                if judgeLine.props.lineAlpha[index].followingEasing == .linear {
-                    shouldAlphaUpdateTimeTick.append(Double(judgeLine.props.lineAlpha[index + 1].timeTick))
-                    continue
-                }
-                for i in 0 ... updateFreq {
-                    shouldAlphaUpdateTimeTick.append(Double(judgeLine.props.lineAlpha[index].timeTick) + Double(i / updateFreq) * Double(judgeLine.props.lineAlpha[index + 1].timeTick - judgeLine.props.lineAlpha[index].timeTick))
+                for i in -1 ... updateFreq + 1 {
+                    shouldAlphaUpdateTimeTick.append(Double(judgeLine.props.lineAlpha[index].timeTick) + Double(i) / Double(updateFreq) * Double(judgeLine.props.lineAlpha[index + 1].timeTick - judgeLine.props.lineAlpha[index].timeTick))
                 }
             }
             shouldAlphaUpdateTimeTick.append(data!.currentTimeTick)
@@ -396,6 +386,8 @@ class ChartPreviewScene: SKScene {
                     continue
                 }
                 var noteNode = noteNodeTemplate!.copy() as! SKShapeNode
+                noteNode.noteRef = note
+                noteNode.judgeLineIDRef = judgeLine.id
                 let noteRelativePosition = judgeLine.props.calculateNoteDistance(data!.currentTimeTick, Double(note.timeTick)) * _distance
                 let noteDeltaX = (note.posX - 0.5) * size.width * cos(judgeLineAngle)
                 let noteDeltaY = (note.posX - 0.5) * size.width * sin(judgeLineAngle)
@@ -405,6 +397,9 @@ class ChartPreviewScene: SKScene {
                     let texture = SKTexture(size: CGSize(width: 200, height: 200), color1: topColor, color2: bottomColor, direction: GradientDirection.up)
                     texture.filteringMode = .nearest
                     noteNode = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight + _distance * Double(note.holdTimeTick)), cornerRadius: _noteCornerRadius)
+                    noteNode.noteRef = note
+                    noteNode.judgeLineIDRef = judgeLine.id
+
                     noteNode.fillTexture = texture
                     noteNode.fillColor = .white
                     noteNode.position = CGPoint(x: (note.fallSide ? -1.0 : 1.0) * (noteRelativePosition + Double(note.holdTimeTick) / 2) * _distance * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, y: (note.fallSide ? 1.0 : -1.0) * (noteRelativePosition + Double(note.holdTimeTick) / 2 * _distance) * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY)
@@ -431,7 +426,11 @@ class ChartPreviewScene: SKScene {
                         noteMoveAction.append(SKAction.group([tmpActionX, tmpActionY, tmpActionAngle, tmpActionAlpha]))
                         tmpTick += _refreshTick
                     }
-                    noteMoveFunctions.append(SKAction.sequence([SKAction.wait(forDuration: data!.tickToSecond(Double(note.timeTick) - data!.currentTimeTick)), SKAction.fadeOut(withDuration: data!.tickToSecond(Double(note.holdTimeTick))), SKAction.removeFromParent()]))
+                    if Double(note.timeTick) > data!.currentTimeTick {
+                        noteMoveFunctions.append(SKAction.sequence([SKAction.wait(forDuration: data!.tickToSecond(Double(note.timeTick) - data!.currentTimeTick)), SKAction.fadeOut(withDuration: data!.tickToSecond(Double(note.holdTimeTick))), SKAction.removeFromParent()]))
+                    } else {
+                        noteMoveFunctions.append(SKAction.sequence([SKAction.fadeOut(withDuration: data!.tickToSecond(Double(note.holdTimeTick) - data!.currentTimeTick + Double(note.timeTick))), SKAction.removeFromParent()]))
+                    }
                     noteMoveFunctions.append(SKAction.sequence(noteMoveAction))
                 } else {
                     noteNode.position = CGPoint(x: (note.fallSide ? -1.0 : 1.0) * noteRelativePosition * sin(judgeLineAngle) + judgeLinePosX + noteDeltaX, y: (note.fallSide ? 1.0 : -1.0) * noteRelativePosition * cos(judgeLineAngle) + judgeLinePosY + noteDeltaY)
@@ -457,7 +456,7 @@ class ChartPreviewScene: SKScene {
                         noteMoveAction.append(SKAction.group([tmpActionX, tmpActionY, tmpActionAngle, tmpActionAlpha]))
                         tmpTick += _refreshTick
                     }
-                    noteMoveAction.append(SKAction.removeFromParent())
+                    noteMoveAction.append(SKAction.sequence([SKAction.fadeOut(withDuration: 0.2), SKAction.removeFromParent()]))
                     noteMoveFunctions.append(SKAction.sequence(noteMoveAction))
                 }
                 let noteGroupAction = SKAction.group(noteMoveFunctions)
@@ -466,6 +465,7 @@ class ChartPreviewScene: SKScene {
                 addChild(noteNode)
             }
         }
+        isPaused = false
     }
 
     func pauseRunning() {
@@ -482,6 +482,17 @@ class ChartPreviewScene: SKScene {
         linkedNodes.forEach {
             $0.removeAllActions()
         }
+    }
+
+    override func touchesBegan(_: Set<UITouch>, with _: UIEvent?) {
+//        for _touch in touches {
+//            for node in nodes(at: _touch.location(in: self)) {
+//                if node.noteRef != nil {
+//                    let fadeAction = SKAction.sequence([SKAction.fadeOut(withDuration: 0.5), SKAction.removeFromParent()])
+//                    node.run(fadeAction)
+//                }
+//            }
+//        }
     }
 }
 

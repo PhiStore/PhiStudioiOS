@@ -158,31 +158,60 @@ class PropEditorScene: SKScene {
             prop = prop.sorted(by: { propA, propB in
                 propA.timeTick < propB.timeTick
             })
+            prop = prop.filterDuplicates { $0.timeTick }
             if prop.count != 0 {
-                besselPath.move(to: CGPoint(x: CGFloat(prop[0].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX, y: size.height * prop[0].value))
+                if propType != .speed {
+                    besselPath.move(to: CGPoint(x: CGFloat(prop[0].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX, y: size.height * prop[0].prefixValue()))
 
-                for indexI in 0 ..< prop.count {
-                    controlNode = controlNodeTemplate!.copy() as! SKShapeNode
-                    controlNode.position = CGPoint(x: CGFloat(prop[indexI].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX, y: size.height * prop[indexI].value)
-                    if propType == data!.currentPropType {
-                        controlNode.alpha = 1.0
-                    }
-                    besselPath.addLine(to: CGPoint(x: CGFloat(prop[indexI].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX, y: size.height * prop[indexI].value))
-                    if indexI != prop.count - 1 {
-                        let startX = CGFloat(prop[indexI].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX
-                        let endX = CGFloat(prop[indexI + 1].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX
-                        let startY = size.height * prop[indexI].value
-                        let endY = size.height * prop[indexI + 1].value
-                        var positionX = startX
-                        var positionY = 0.0
-                        while positionX < endX {
-                            positionX += _renderMin
-                            positionY = calculateEasing(x: (positionX - startX) / (endX - startX), type: prop[indexI].followingEasing) * (endY - startY) + startY
-                            besselPath.addLine(to: CGPoint(x: positionX, y: positionY))
+                    for indexI in 0 ..< prop.count {
+                        controlNode = controlNodeTemplate!.copy() as! SKShapeNode
+                        controlNode.position = CGPoint(x: CGFloat(prop[indexI].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX, y: size.height * prop[indexI].value)
+                        if propType == data!.currentPropType {
+                            controlNode.alpha = 1.0
+                        }
+                        link(nodeA: controlNode, to: controlNodeTemplate!)
+                        addChild(controlNode)
+                        besselPath.addLine(to: CGPoint(x: CGFloat(prop[indexI].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX, y: size.height * prop[indexI].value))
+                        if prop[indexI].nextJumpValue != nil {
+                            controlNode = controlNodeTemplate!.copy() as! SKShapeNode
+                            controlNode.position = CGPoint(x: CGFloat(prop[indexI].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX, y: size.height * prop[indexI].nextJumpValue!)
+                            if propType == data!.currentPropType {
+                                controlNode.alpha = 1.0
+                            }
+                            link(nodeA: controlNode, to: controlNodeTemplate!)
+                            addChild(controlNode)
+                            besselPath.addLine(to: CGPoint(x: CGFloat(prop[indexI].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX, y: size.height * prop[indexI].nextJumpValue!))
+                        }
+                        if indexI != prop.count - 1 {
+                            let startX = CGFloat(prop[indexI].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX
+                            let endX = CGFloat(prop[indexI + 1].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX
+                            let startY = size.height * prop[indexI].prefixValue()
+                            let endY = size.height * prop[indexI + 1].value
+                            var positionX = startX
+                            var positionY = 0.0
+                            while positionX < endX {
+                                positionX += _renderMin
+                                positionY = calculateEasing(x: (positionX - startX) / (endX - startX), type: prop[indexI].followingEasing) * (endY - startY) + startY
+                                besselPath.addLine(to: CGPoint(x: positionX, y: positionY))
+                            }
                         }
                     }
-                    link(nodeA: controlNode, to: controlNodeTemplate!)
-                    addChild(controlNode)
+                } else {
+                    besselPath.move(to: CGPoint(x: CGFloat(prop[0].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX, y: size.height * prop[0].value))
+
+                    for indexI in 0 ..< prop.count {
+                        controlNode = controlNodeTemplate!.copy() as! SKShapeNode
+                        controlNode.position = CGPoint(x: CGFloat(prop[indexI].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX, y: size.height * prop[indexI].value)
+                        if propType == data!.currentPropType {
+                            controlNode.alpha = 1.0
+                        }
+                        link(nodeA: controlNode, to: controlNodeTemplate!)
+                        addChild(controlNode)
+                        besselPath.addLine(to: CGPoint(x: CGFloat(prop[indexI].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX, y: size.height * prop[indexI].value))
+                        if indexI != prop.count - 1 {
+                            besselPath.addLine(to: CGPoint(x: CGFloat(prop[indexI + 1].timeTick - Int(data!.currentTimeTick)) * _distanceH + RelativePostionX, y: size.height * prop[indexI].value))
+                        }
+                    }
                 }
                 besselPath.addLine(to: CGPoint(x: (Double(data!.chartLengthTick()) - data!.currentTimeTick) * _distanceH + RelativePostionX, y: size.height * prop[prop.count - 1].value))
                 let controlCurveNode = SKShapeNode()

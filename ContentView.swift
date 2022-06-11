@@ -84,16 +84,13 @@ struct ContentView: View {
     func workSpace() -> some View {
         if data.windowStatus == .pannelNote || data.windowStatus == .note {
             NoteEditorView().environmentObject(data)
-        } 
-        else {
+        } else {
             if data.windowStatus == .pannelProp || data.windowStatus == .prop {
                 PropEditorView().environmentObject(data)
-            }
-            else {
+            } else {
                 if data.windowStatus == .pannelPreview || data.windowStatus == .preview {
                     ChartPreview().environmentObject(data)
-                }
-                else {
+                } else {
                     Text("Error or not done yet")
                 }
             }
@@ -147,8 +144,8 @@ struct ContentView: View {
     var body: some View {
         Group {
             if UIScreen.main.bounds.height < UIScreen.main.bounds.width {
-                VStack (alignment: .center){
-                    HStack (alignment: .center, spacing: size) {
+                VStack(alignment: .center) {
+                    HStack(alignment: .center, spacing: size) {
                         Image(systemName: shouldShowPannel() ? "command.circle" : "command.circle.fill").resizable()
                             .frame(width: size * 2, height: size * 2)
                             .onTapGesture {
@@ -239,14 +236,14 @@ struct ContentView: View {
                             Slider(value: $data.currentTimeTick,
                                    in: 0 ... Double(data.chartLengthSecond * data.tickPerBeat * data.bpm / 60))
                         }
-                        .padding([.leading,.trailing], size / 2)
-                        .padding([.top,.bottom], size / 2)
+                        .padding([.leading, .trailing], size / 2)
+                        .padding([.top, .bottom], size / 2)
                         .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
                     }
-                    
+
                     Spacer(minLength: size)
-                    
-                    HStack (alignment: .center, spacing: 0) {
+
+                    HStack(alignment: .center, spacing: 0) {
                         Group {
                             if shouldShowPannel() {
                                 VStack(alignment: .leading) {
@@ -270,14 +267,14 @@ struct ContentView: View {
                                                 Label("JudgeLine", systemImage: "pencil.tip.crop.circle")
                                             }
                                     }
-                                    .frame(idealWidth: UIScreen.main.bounds.width / 5 ,maxWidth: UIScreen.main.bounds.width / 4, minHeight: 200, maxHeight: UIScreen.main.bounds.height)
+                                    .frame(idealWidth: UIScreen.main.bounds.width / 5, maxWidth: UIScreen.main.bounds.width / 4, minHeight: 200, maxHeight: UIScreen.main.bounds.height)
                                     .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
                                 }
                                 Spacer(minLength: size)
                             }
                         }
                         VStack(alignment: .leading) {
-                            Text("\(workSpaceTitle()): @ \(NSString(format: "%.3f", data.currentTimeTick))T/\(NSString(format: "%.3f", data.currentTimeTick / Double(data.tickPerBeat)))B").font(.title2).fontWeight(.bold)
+                            Text("\(workSpaceTitle()): @ \(NSString(format: "%.1f", data.currentTimeTick))T/\(NSString(format: "%.1f", data.currentTimeTick / Double(data.tickPerBeat)))B").font(.title2).fontWeight(.bold)
                             workSpace()
                         }
                         .frame(minWidth: 400, maxWidth: UIScreen.main.bounds.width, minHeight: 200, maxHeight: UIScreen.main.bounds.height)
@@ -290,8 +287,8 @@ struct ContentView: View {
                 sideNote()
             }
         }
-        .padding([.leading,.trailing,.top],size)
-        .padding(.bottom,size/2)
+        .padding([.leading, .trailing, .top], size)
+        .padding(.bottom, size / 2)
         .onReceive(orientationChanged) { _ in
             data.objectWillChange.send()
         }

@@ -88,12 +88,14 @@ struct ChartSettings: View {
                     showingImagePicker = true
                 }
                 Button("Export '.zip' file") {
-                    do {
-                        try _ = data.saveCache()
-                        try self.zipURL = data.exportZip()
-                        showingExporter = true
-                    } catch {
-                        print(error)
+                    if !showingExporter {
+                        do {
+                            try _ = data.saveCache()
+                            try self.zipURL = data.exportZip()
+                            showingExporter = true
+                        } catch {
+                            print(error)
+                        }
                     }
                 }
                 Button("Import '.zip' file") {
