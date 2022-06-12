@@ -840,15 +840,7 @@ public class DataStructure: ObservableObject, Codable {
         let dataEncodedString = String(data: dataEncoded, encoding: .utf8)
         let pecString = chartToPec()
         let infoString = """
-        #
-        Name: \(musicName)
-        Path: tmp
-        Song: tmp.mp3
-        Picture: tmp.png
-        Chart: tmp.pec
-        Level: \(chartLevel)
-        Composer: \(authorName)
-        Charter: \(chartAuthorName)
+        "Chart","tmp.pec"\r\n"Music","tmp.mp3"\r\n"Image","tmp.png"\r\n"AspectRatio","1.77"\r\n"ScaleRatio","8000"\r\n"GlobalAlpha","0.6"\r\n"Name","\(musicName)"\r\n"Level","\(chartLevel)"\r\n"Illustrator","\(authorName)"\r\n"Designer","\(chartAuthorName)"\r\n
         """
         let fm = FileManager.default
         if let documentBaseURL = fm.urls(for: .documentDirectory, in: .userDomainMask).first {
@@ -860,7 +852,7 @@ public class DataStructure: ObservableObject, Codable {
             try dataEncodedString?.write(to: jsonFileURL, atomically: true, encoding: .utf8)
             let pecFileURL = tmpDirURL.appendingPathComponent("tmp.pec")
             try pecString.write(to: pecFileURL, atomically: true, encoding: .utf8)
-            let infoFileURL = tmpDirURL.appendingPathComponent("info.txt")
+            let infoFileURL = tmpDirURL.appendingPathComponent("info.csv")
             try infoString.write(to: infoFileURL, atomically: true, encoding: .utf8)
             let imagePngURL = tmpDirURL.appendingPathComponent("tmp.png")
             if let imgData = imageFile?.pngData() {
@@ -869,8 +861,8 @@ public class DataStructure: ObservableObject, Codable {
         }
         return true
     }
-    
-    func fuckIt() throws -> Bool{
+
+    func fuckIt() throws -> Bool {
         let fm = FileManager.default
         let urls = fm.urls(for: .documentDirectory, in: .userDomainMask)
         let url = urls.first!
@@ -948,7 +940,7 @@ public class DataStructure: ObservableObject, Codable {
         var pecString = """
         \(Int(offsetSecond * 1000))
         bp 0.000 \(bpm).000
-        
+
         """
         for judgeLineID in 0 ..< listOfJudgeLines.count {
             var updateTimeTick: [Double] = []

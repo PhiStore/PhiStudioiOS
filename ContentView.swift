@@ -4,6 +4,21 @@
  * Copyright (c) 2022 TianKaiMa
  */
 import SwiftUI
+import WebKit
+
+struct WebView: UIViewRepresentable {
+    var url: URL
+
+    func makeUIView(context _: Context) -> WKWebView {
+        return WKWebView()
+    }
+
+    func updateUIView(_ webView: WKWebView, context _: Context) {
+        let request = URLRequest(url: url)
+        webView.load(request)
+    }
+}
+
 struct ContentView: View {
     // These variables are used for location and alignment
     // Guide: reserve size*2 for boundaries, keep everything fit in place
@@ -17,6 +32,7 @@ struct ContentView: View {
         .autoconnect()
 
     @StateObject private var data = DataStructure()
+    @State private var showWebPage = false
 
     func shouldShowPannel() -> Bool {
         return (data.windowStatus == WINDOWSTATUS.pannelNote || data.windowStatus == WINDOWSTATUS.pannelProp || data.windowStatus == WINDOWSTATUS.pannelPreview)
@@ -180,6 +196,17 @@ struct ContentView: View {
                                     case .lineAlpha: data.currentPropType = .displayRange
                                     case .displayRange: data.currentPropType = .controlX
                                     }
+                                } else {
+                                    showWebPage.toggle()
+                                }
+                            }
+                            .fullScreenCover(isPresented: $showWebPage) {
+                                VStack(alignment: .leading) {
+                                    Button("Close") {
+                                        showWebPage.toggle()
+                                    }
+                                    .padding(10)
+                                    WebView(url: URL(string: "https://phi-x.github.io/sim-phi/")!)
                                 }
                             }
                         Image(systemName: "arrow.triangle.2.circlepath").resizable()
