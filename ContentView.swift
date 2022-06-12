@@ -124,7 +124,7 @@ struct ContentView: View {
                 Text("Charting Team:")
                     .font(.title2)
                     .padding(20)
-                Text("TimiTini, IcedDog, nugget233, Naptie")
+                Text("'7b93bb', IcedDog, nugget233, Naptie")
             }
             Group {
                 Text("Sponsor Link:")

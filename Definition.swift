@@ -838,6 +838,18 @@ public class DataStructure: ObservableObject, Codable {
         // when saving, the imageFile and data itself is handled here, but audioFile is handled when its imported
         let dataEncoded = try JSONEncoder().encode(self)
         let dataEncodedString = String(data: dataEncoded, encoding: .utf8)
+        let pecString = chartToPec()
+        let infoString = """
+        #
+        Name: \(musicName)
+        Path: tmp
+        Song: tmp.mp3
+        Picture: tmp.png
+        Chart: tmp.pec
+        Level: \(chartLevel)
+        Composer: \(authorName)
+        Charter: \(chartAuthorName)
+        """
         let fm = FileManager.default
         if let documentBaseURL = fm.urls(for: .documentDirectory, in: .userDomainMask).first {
             let tmpDirURL = documentBaseURL.appendingPathComponent("tmp")
@@ -846,11 +858,25 @@ public class DataStructure: ObservableObject, Codable {
             }
             let jsonFileURL = tmpDirURL.appendingPathComponent("tmp.json")
             try dataEncodedString?.write(to: jsonFileURL, atomically: true, encoding: .utf8)
+            let pecFileURL = tmpDirURL.appendingPathComponent("tmp.pec")
+            try pecString.write(to: pecFileURL, atomically: true, encoding: .utf8)
+            let infoFileURL = tmpDirURL.appendingPathComponent("info.txt")
+            try infoString.write(to: infoFileURL, atomically: true, encoding: .utf8)
             let imagePngURL = tmpDirURL.appendingPathComponent("tmp.png")
             if let imgData = imageFile?.pngData() {
                 try? imgData.write(to: imagePngURL)
             }
         }
+        return true
+    }
+    
+    func fuckIt() throws -> Bool{
+        let fm = FileManager.default
+        let urls = fm.urls(for: .documentDirectory, in: .userDomainMask)
+        let url = urls.first!
+        let tmpDirURL = url.appendingPathComponent("tmp")
+        try fm.removeItem(at: tmpDirURL)
+        try _ = loadCache()
         return true
     }
 
@@ -864,23 +890,18 @@ public class DataStructure: ObservableObject, Codable {
         if fm.fileExists(atPath: archiveURL.path) {
             try fm.removeItem(at: archiveURL)
         }
-        let coordinator = NSFileCoordinator()
-        var error: NSError?
-        coordinator.coordinate(readingItemAt: tmpDirURL, options: [.forUploading], error: &error) { zipURL in
-            try! fm.moveItem(at: zipURL, to: archiveURL)
-        }
+        try fm.zipItem(at: tmpDirURL, to: archiveURL, shouldKeepParent: false)
         return archiveURL
     }
 
     func importZip() throws -> Bool {
-        let fileManager = FileManager()
         let fm = FileManager.default
         let urls = fm.urls(for: .documentDirectory, in: .userDomainMask)
         let url = urls.first!
         let archiveURL = url.appendingPathComponent("import.zip")
         let tmpDirURL = url.appendingPathComponent("tmp")
         try fm.removeItem(at: tmpDirURL)
-        try fileManager.unzipItem(at: archiveURL, to: url)
+        try fm.unzipItem(at: archiveURL, to: tmpDirURL)
         try _ = loadCache()
         return true
     }
@@ -915,20 +936,126 @@ public class DataStructure: ObservableObject, Codable {
         }
     }
 
-//    func chartToPec() -> String {
-//        var pecString = """
-//        \(Int(offsetSecond * 1000))
-//        0.000 \(bpm).000
-//        """
-//        for judgeLine in listOfJudgeLines {
-//            for controlX in judgeLine.props.controlX {
-//                pecString += """
-//                cm
-//                """
-//            }
-//        }
-//        return pecString
-//    }
+    func angleConvert(_ x: Double) -> Double {
+        if x > 0.5 {
+            return (x - 1) * 360
+        } else {
+            return x * 360
+        }
+    }
+
+    func chartToPec() -> String {
+        var pecString = """
+        \(Int(offsetSecond * 1000))
+        bp 0.000 \(bpm).000
+        
+        """
+        for judgeLineID in 0 ..< listOfJudgeLines.count {
+            var updateTimeTick: [Double] = []
+            for index in 0 ..< (listOfJudgeLines[judgeLineID].props.controlX.count - 1) {
+                for i in -1 ... updateFreq + 1 {
+                    updateTimeTick.append(Double(listOfJudgeLines[judgeLineID].props.controlX[index].timeTick) + Double(i) / Double(updateFreq) * Double(listOfJudgeLines[judgeLineID].props.controlX[index + 1].timeTick - listOfJudgeLines[judgeLineID].props.controlX[index].timeTick))
+                }
+            }
+            for index in 0 ..< (listOfJudgeLines[judgeLineID].props.controlY.count - 1) {
+                for i in -1 ... updateFreq + 1 {
+                    updateTimeTick.append(Double(listOfJudgeLines[judgeLineID].props.controlY[index].timeTick) + Double(i) / Double(updateFreq) * Double(listOfJudgeLines[judgeLineID].props.controlY[index + 1].timeTick - listOfJudgeLines[judgeLineID].props.controlY[index].timeTick))
+                }
+            }
+            updateTimeTick.append(0.0)
+            updateTimeTick = updateTimeTick.filterDuplicates { $0 }
+            updateTimeTick.removeAll(where: { $0 < 0 })
+            updateTimeTick.sort()
+            for _updateTimeTick in updateTimeTick {
+                pecString += """
+                cp \(judgeLineID) \(_updateTimeTick / Double(tickPerBeat)) \(listOfJudgeLines[judgeLineID].props.calculateValue(.controlX, _updateTimeTick) * 2048) \(listOfJudgeLines[judgeLineID].props.calculateValue(.controlY, _updateTimeTick) * 1400)
+
+                """
+            }
+            updateTimeTick = []
+            for index in 0 ..< (listOfJudgeLines[judgeLineID].props.angle.count - 1) {
+                for i in -1 ... updateFreq + 1 {
+                    updateTimeTick.append(Double(listOfJudgeLines[judgeLineID].props.angle[index].timeTick) + Double(i) / Double(updateFreq) * Double(listOfJudgeLines[judgeLineID].props.angle[index + 1].timeTick - listOfJudgeLines[judgeLineID].props.angle[index].timeTick))
+                }
+            }
+            updateTimeTick.append(0.0)
+            updateTimeTick = updateTimeTick.filterDuplicates { $0 }
+            updateTimeTick.removeAll(where: { $0 < 0 })
+            updateTimeTick.sort()
+            for _updateTimeTick in updateTimeTick {
+                pecString += """
+                cd \(judgeLineID) \(_updateTimeTick / Double(tickPerBeat)) \(angleConvert(listOfJudgeLines[judgeLineID].props.calculateValue(.angle, _updateTimeTick)))
+
+                """
+            }
+            updateTimeTick = []
+            for index in 0 ..< (listOfJudgeLines[judgeLineID].props.lineAlpha.count - 1) {
+                for i in -1 ... updateFreq + 1 {
+                    updateTimeTick.append(Double(listOfJudgeLines[judgeLineID].props.lineAlpha[index].timeTick) + Double(i) / Double(updateFreq) * Double(listOfJudgeLines[judgeLineID].props.lineAlpha[index + 1].timeTick - listOfJudgeLines[judgeLineID].props.lineAlpha[index].timeTick))
+                }
+            }
+            updateTimeTick.append(0.0)
+            updateTimeTick = updateTimeTick.filterDuplicates { $0 }
+            updateTimeTick.removeAll(where: { $0 < 0 })
+            updateTimeTick.sort()
+            for _updateTimeTick in updateTimeTick {
+                pecString += """
+                ca \(judgeLineID) \(_updateTimeTick / Double(tickPerBeat)) \(listOfJudgeLines[judgeLineID].props.calculateValue(.lineAlpha, _updateTimeTick) * 255)
+
+                """
+            }
+            updateTimeTick = []
+            for index in 0 ..< (listOfJudgeLines[judgeLineID].props.speed.count - 1) {
+                for i in -1 ... updateFreq + 1 {
+                    updateTimeTick.append(Double(listOfJudgeLines[judgeLineID].props.speed[index].timeTick) + Double(i) / Double(updateFreq) * Double(listOfJudgeLines[judgeLineID].props.speed[index + 1].timeTick - listOfJudgeLines[judgeLineID].props.speed[index].timeTick))
+                }
+            }
+            updateTimeTick.append(0.0)
+            updateTimeTick = updateTimeTick.filterDuplicates { $0 }
+            updateTimeTick.removeAll(where: { $0 < 0 })
+            updateTimeTick.sort()
+            for _updateTimeTick in updateTimeTick {
+                pecString += """
+                cv \(judgeLineID) \(_updateTimeTick / Double(tickPerBeat)) \(listOfJudgeLines[judgeLineID].props.calculateValue(.speed, _updateTimeTick) * 1200 / Double(_distance))
+
+                """
+            }
+
+            for _note in listOfJudgeLines[judgeLineID].noteList {
+                switch _note.noteType {
+                case .Tap:
+                    pecString += """
+                    n1 \(judgeLineID) \(Double(_note.timeTick) / Double(tickPerBeat)) \((_note.posX - 0.5) * 2048) \(_note.fallSide ? 1 : 2) \(_note.isFake ? 1 : 0)
+                    # 1.000
+                    & 1.00
+
+                    """
+                case .Drag:
+                    pecString += """
+                    n4 \(judgeLineID) \(Double(_note.timeTick) / Double(tickPerBeat)) \((_note.posX - 0.5) * 2048) \(_note.fallSide ? 1 : 2) \(_note.isFake ? 1 : 0)
+                    # 1.000
+                    & 1.00
+
+                    """
+                case .Flick:
+                    pecString += """
+                    n3 \(judgeLineID) \(Double(_note.timeTick) / Double(tickPerBeat)) \((_note.posX - 0.5) * 2048) \(_note.fallSide ? 1 : 2) \(_note.isFake ? 1 : 0)
+                    # 1.000
+                    & 1.00
+
+                    """
+                case .Hold:
+                    pecString += """
+                    n2 \(judgeLineID) \(Double(_note.timeTick) / Double(tickPerBeat)) \(Double(_note.timeTick + _note.holdTimeTick) / Double(tickPerBeat)) \((_note.posX - 0.5) * 2048) \(_note.fallSide ? 1 : 2) \(_note.isFake ? 1 : 0)
+                    # 1.000
+                    & 1.00
+
+                    """
+                }
+            }
+        }
+        return pecString
+    }
 
     func loadCache() throws -> Bool {
         let fm = FileManager.default
@@ -938,6 +1065,7 @@ public class DataStructure: ObservableObject, Codable {
             if !fm.fileExists(atPath: tmpDirURL.path) {
                 try fm.createDirectory(at: tmpDirURL, withIntermediateDirectories: true, attributes: nil)
                 // No cache to load
+                print("Nothing to load here")
                 return false
             }
             let jsonFileURL = tmpDirURL.appendingPathComponent("tmp.json")

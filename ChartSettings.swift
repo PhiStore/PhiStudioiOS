@@ -68,6 +68,7 @@ struct ChartSettings: View {
     @State private var image: Image?
     @State private var zipURL: URL?
     @State private var showAlert = false
+    @State private var showAlertNext = false
     @State private var showingImagePicker = false
     @State private var showingExporter = false
     @State private var showingImporter = false
@@ -114,6 +115,18 @@ struct ChartSettings: View {
                     Alert(title: Text("Confirm reload?"), message: Text("This would override all current settings"), primaryButton: .default(Text("cancel")), secondaryButton: .destructive(Text("Reload"), action: {
                         do {
                             try _ = data.loadCache()
+                        } catch {
+                            print(error)
+                        }
+                    }))
+                }
+                .foregroundColor(Color.red)
+                Button("Fuck it") {
+                    showAlertNext = true
+                }.alert(isPresented: $showAlertNext) {
+                    Alert(title: Text("Remove everything?"), message: Text("This would remove everything and start over!"), primaryButton: .default(Text("cancel")), secondaryButton: .destructive(Text("Remove"), action: {
+                        do {
+                            try _ = data.fuckIt()
                         } catch {
                             print(error)
                         }
