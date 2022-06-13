@@ -840,7 +840,10 @@ public class DataStructure: ObservableObject, Codable {
         let dataEncodedString = String(data: dataEncoded, encoding: .utf8)
         let pecString = chartToPec()
         let infoString = """
-        "Chart","tmp.pec"\r\n"Music","tmp.mp3"\r\n"Image","tmp.png"\r\n"AspectRatio","1.77"\r\n"ScaleRatio","8000"\r\n"GlobalAlpha","0.6"\r\n"Name","\(musicName)"\r\n"Level","\(chartLevel)"\r\n"Illustrator","\(authorName)"\r\n"Designer","\(chartAuthorName)"\r\n
+        Chart,Music,Image,AspectRatio,ScaleRatio,GlobalAlpha,Name,Level,Illustrator,Designer
+        谱面,音乐,图片,宽高比,按键缩放,背景变暗,名称,等级,曲绘,谱师
+        tmp.pec,tmp.mp3,tmp.png,1.333333,8.00E+03,0.6,\(musicName),\(chartLevel),\(authorName),\(chartAuthorName)
+
         """
         let fm = FileManager.default
         if let documentBaseURL = fm.urls(for: .documentDirectory, in: .userDomainMask).first {
