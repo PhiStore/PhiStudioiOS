@@ -7,15 +7,115 @@ import SwiftUI
 import WebKit
 
 struct WebView: UIViewRepresentable {
-    var url: URL
+    typealias UIViewType = WKWebView
+
+    let webView: WKWebView
 
     func makeUIView(context _: Context) -> WKWebView {
-        return WKWebView()
+        return webView
     }
 
-    func updateUIView(_ webView: WKWebView, context _: Context) {
-        let request = URLRequest(url: url)
-        webView.load(request)
+    func updateUIView(_: WKWebView, context _: Context) {}
+}
+
+class WebViewModel: ObservableObject {
+    let webView: WKWebView
+    let url: URL
+
+    init() {
+//        let overrideConsole = """
+//            function log(emoji, type, args) {
+//              window.webkit.messageHandlers.logging.postMessage(
+//                `${emoji} JS ${type}: ${Object.values(args)
+//                  .map(v => typeof(v) === "undefined" ? "undefined" : typeof(v) === "object" ? JSON.stringify(v) : v.toString())
+//                  .map(v => v.substring(0, 3000)) // Limit msg to 3000 chars
+//                  .join(", ")}`
+//              )
+//            }
+//
+//            let originalLog = console.log
+//            let originalWarn = console.warn
+//            let originalError = console.error
+//            let originalDebug = console.debug
+//
+//            console.log = function() { log("📗", "log", arguments); originalLog.apply(null, arguments) }
+//            console.warn = function() { log("📙", "warning", arguments); originalWarn.apply(null, arguments) }
+//            console.error = function() { log("📕", "error", arguments); originalError.apply(null, arguments) }
+//            console.debug = function() { log("📘", "debug", arguments); originalDebug.apply(null, arguments) }
+//
+//            window.addEventListener("error", function(e) {
+//               log("💥", "Uncaught", [`${e.message} at ${e.filename}:${e.lineno}:${e.colno}`])
+//            })
+//        """
+//
+//        class LoggingMessageHandler: NSObject, WKScriptMessageHandler {
+//            func userContentController(_: WKUserContentController, didReceive message: WKScriptMessage) {
+//                print(message.body)
+//            }
+//        }
+//
+//        let userContentController = WKUserContentController()
+//        userContentController.add(LoggingMessageHandler(), name: "logging")
+//        userContentController.addUserScript(WKUserScript(source: overrideConsole, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+//
+//        let webViewConfig = WKWebViewConfiguration()
+//        webViewConfig.userContentController = userContentController
+
+//        webView = WKWebView(frame: .zero, configuration: webViewConfig)
+        webView = WKWebView(frame: .zero)
+        url = URL(string: "https://phi-x.github.io/sim-phi/")!
+
+        loadUrl()
+    }
+
+    func loadUrl() {
+        webView.load(URLRequest(url: url))
+
+        putZip()
+    }
+
+    func putZip() {
+        let fm = FileManager.default
+        if let documentBaseURL = fm.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let exportFile = documentBaseURL.appendingPathComponent("export.zip")
+            if !fm.fileExists(atPath: exportFile.path) {
+                return
+            } else {
+                do {
+                    // let fileData: String = try Data(contentsOf: exportFile).base64EncodedString()
+                    // let jsLoadFileBase64 = """
+                    //     var base64 = "\(fileData)";
+                    //     var binary_string = window.atob(base64);
+                    //     var len = binary_string.length;
+                    //     var bytes = new Uint8Array(len);
+                    //     for (var i = 0; i < len; i++) {
+                    //         bytes[i] = binary_string.charCodeAt(i);
+                    //     }
+                    //     loadFile(bytes.buffer);
+                    // """
+                    // webView.evaluateJavaScript(jsLoadFileBase64)
+                    print(exportFile.path)
+                    let jsLoadFromURL = """
+                        const xhr = new XMLHttpRequest();
+                        xhr.open("get", "https://getZipData/export.zip", true);
+                        xhr.responseType = 'blob';
+                        xhr.send();
+                        xhr.onprogress = progress => {
+                            message.sendMessage(`加载文件：${Math.floor(progress.loaded / 5079057 * 100)}%`);
+                        };
+                        xhr.onload = () => {
+                            console.log(xhr.response)
+                            document.getElementById("filename").value = "export.zip";
+                            loadFile(xhr.response);
+                        };
+                    """
+//                    webView.loadSimulatedRequest(URLRequest(url: URL(string: "https://getZipData/export.zip")!), response: .init(), responseData: try Data(contentsOf: exportFile))
+//                    webView.evaluateJavaScript(jsLoadFromURL)
+                } catch {
+                    print(error)
+                }
+            }
+        }
     }
 }
 
@@ -26,6 +126,9 @@ struct ContentView: View {
     var screenHeight = min(UIScreen.main.bounds.height, UIScreen.main.bounds.width)
     var screenWidth = max(UIScreen.main.bounds.height, UIScreen.main.bounds.width)
     var size = (UIScreen.main.bounds.width + UIScreen.main.bounds.height) / 100
+
+    @StateObject var emulator = WebViewModel()
+    @State private var saveButtonAnimate = false
 
     let orientationChanged = NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)
         .makeConnectable()
@@ -143,6 +246,12 @@ struct ContentView: View {
                 Text("'7b93bb', IcedDog, nugget233, Naptie")
             }
             Group {
+                Text("Special Thanks:")
+                    .font(.title2)
+                    .padding(20)
+                Text("lchzh3473")
+            }
+            Group {
                 Text("Sponsor Link:")
                     .font(.title2)
                     .padding(20)
@@ -162,79 +271,189 @@ struct ContentView: View {
             if UIScreen.main.bounds.height < UIScreen.main.bounds.width {
                 VStack(alignment: .center) {
                     HStack(alignment: .center, spacing: size) {
-                        Image(systemName: shouldShowPannel() ? "command.circle" : "command.circle.fill").resizable()
-                            .frame(width: size * 2, height: size * 2)
-                            .onTapGesture {
-                                switch data.windowStatus {
-                                case .pannelProp: data.windowStatus = .prop
-                                case .prop: data.windowStatus = .pannelProp
-                                case .pannelNote: data.windowStatus = .note
-                                case .note: data.windowStatus = .pannelNote
-                                case .pannelPreview: data.windowStatus = .preview
-                                case .preview: data.windowStatus = .pannelPreview
-                                }
-                            }
-                        Image(systemName: paintIcon()).resizable()
-                            .renderingMode(.template)
-                            .foregroundColor(getColor())
-                            .frame(width: size * 2, height: size * 1.8)
-                            .onTapGesture {
-                                if data.windowStatus == .pannelNote || data.windowStatus == .note {
-                                    switch data.currentNoteType {
-                                    case .Tap: data.currentNoteType = .Hold
-                                    case .Hold: data.currentNoteType = .Flick
-                                    case .Flick: data.currentNoteType = .Drag
-                                    case .Drag: data.currentNoteType = .Tap
+                        // Image(systemName: shouldShowPannel() ? "command.circle" : "command.circle.fill").resizable()
+                        //     .frame(width: size * 2, height: size * 2)
+                        //     .onTapGesture {
+                        //         switch data.windowStatus {
+                        //         case .pannelProp: data.windowStatus = .prop
+                        //         case .prop: data.windowStatus = .pannelProp
+                        //         case .pannelNote: data.windowStatus = .note
+                        //         case .note: data.windowStatus = .pannelNote
+                        //         case .pannelPreview: data.windowStatus = .preview
+                        //         case .preview: data.windowStatus = .pannelPreview
+                        //         }
+                        //     }
+
+                        // test on if the programmed refresh functions are working, this button should NOT be in stable releases
+                        // Image(systemName: "arrow.triangle.2.circlepath").resizable()
+                        //     .renderingMode(.template)
+                        //     .frame(width: size * 2, height: size * 1.8)
+                        //     .onTapGesture {
+                        //         data.rebuildScene()
+                        //         data.objectWillChange.send()
+                        //     }
+
+                        // Image(systemName: workSpaceIcon()).resizable()
+                        //     .renderingMode(.template)
+                        //     .frame(width: size * 2, height: size * 2)
+                        //     .onTapGesture {
+                        //         switch data.windowStatus {
+                        //         case .note: data.windowStatus = .prop
+                        //         case .pannelNote: data.windowStatus = .pannelProp
+                        //         case .prop: data.windowStatus = .preview
+                        //         case .pannelProp: data.windowStatus = .pannelPreview
+                        //         case .preview: data.windowStatus = .note
+                        //         case .pannelPreview: data.windowStatus = .pannelNote
+                        //         }
+                        //     }
+
+                        HStack(spacing: size) {
+                            VStack {
+                                Image(systemName: data.windowStatus == .pannelNote ? "sun.max.circle.fill" : "sun.max.circle").resizable()
+                                    .renderingMode(.template)
+                                    .foregroundColor(data.windowStatus == .note || data.windowStatus == .pannelNote ? .blue : nil)
+                                    .frame(width: size * 2, height: size * 2)
+                                    .rotationEffect(.degrees(data.windowStatus == .pannelNote ? 360 : 0))
+                                    .animation(.easeInOut, value: data.windowStatus == .pannelNote)
+                                    .onTapGesture {
+                                        switch data.windowStatus {
+                                        case .note: data.windowStatus = .pannelNote
+                                        case .pannelNote: data.windowStatus = .note
+                                        case .prop: data.windowStatus = .note
+                                        case .pannelProp: data.windowStatus = .pannelNote
+                                        case .preview: data.windowStatus = .note
+                                        case .pannelPreview: data.windowStatus = .pannelNote
+                                        }
                                     }
-                                } else if data.windowStatus == .pannelProp || data.windowStatus == .prop {
-                                    switch data.currentPropType {
-                                    case .controlX: data.currentPropType = .controlY
-                                    case .controlY: data.currentPropType = .angle
-                                    case .angle: data.currentPropType = .speed
-                                    case .speed: data.currentPropType = .noteAlpha
-                                    case .noteAlpha: data.currentPropType = .lineAlpha
-                                    case .lineAlpha: data.currentPropType = .displayRange
-                                    case .displayRange: data.currentPropType = .controlX
-                                    }
-                                } else {
-                                    showWebPage.toggle()
-                                }
+                                Text("Note")
+                                    .font(.caption)
                             }
-                            .fullScreenCover(isPresented: $showWebPage) {
-                                VStack(alignment: .leading) {
-                                    Button("Close") {
+
+                            VStack {
+                                Image(systemName: data.windowStatus == .pannelProp ? "moon.circle.fill" : "moon.circle").resizable()
+                                    .renderingMode(.template)
+                                    .foregroundColor(data.windowStatus == .prop || data.windowStatus == .pannelProp ? .blue : nil)
+                                    .frame(width: size * 2, height: size * 2)
+                                    .rotationEffect(.degrees(data.windowStatus == .pannelProp ? 360 : 0))
+                                    .animation(.easeInOut, value: data.windowStatus == .pannelProp)
+                                    .onTapGesture {
+                                        switch data.windowStatus {
+                                        case .note: data.windowStatus = .prop
+                                        case .pannelNote: data.windowStatus = .pannelProp
+                                        case .prop: data.windowStatus = .pannelProp
+                                        case .pannelProp: data.windowStatus = .prop
+                                        case .preview: data.windowStatus = .prop
+                                        case .pannelPreview: data.windowStatus = .pannelProp
+                                        }
+                                    }
+                                Text("Prop")
+                                    .font(.caption)
+                            }
+
+                            VStack {
+                                Image(systemName: data.windowStatus == .pannelPreview ? "snowflake.circle.fill" : "snowflake.circle").resizable()
+                                    .renderingMode(.template)
+                                    .foregroundColor(data.windowStatus == .preview || data.windowStatus == .pannelPreview ? .blue : nil)
+                                    .frame(width: size * 2, height: size * 2)
+                                    .rotationEffect(.degrees(data.windowStatus == .pannelPreview ? 360 : 0))
+                                    .animation(.easeInOut, value: data.windowStatus == .pannelPreview)
+                                    .onTapGesture {
+                                        switch data.windowStatus {
+                                        case .note: data.windowStatus = .preview
+                                        case .pannelNote: data.windowStatus = .pannelPreview
+                                        case .prop: data.windowStatus = .preview
+                                        case .pannelProp: data.windowStatus = .pannelPreview
+                                        case .preview: data.windowStatus = .pannelPreview
+                                        case .pannelPreview: data.windowStatus = .preview
+                                        }
+                                    }
+                                Text("Preview")
+                                    .font(.caption)
+                            }
+                        }
+                        .padding([.leading, .trailing], size / 4)
+                        .padding([.top, .bottom], size / 4)
+                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(.cyan))
+
+                        VStack {
+                            Image(systemName: data.locked ? "lock.circle.fill" : "lock.circle").resizable()
+                                .renderingMode(.template)
+                                .frame(width: size * 2, height: size * 2)
+                                .rotationEffect(.degrees(data.locked ? 360 : 0))
+                                .animation(.easeInOut, value: data.locked)
+                                .onTapGesture {
+                                    data.locked.toggle()
+                                }
+
+                            Text(data.locked ? "Locked" : "Unlocked")
+                                .font(.caption)
+                        }
+
+                        VStack {
+                            Image(systemName: "number.circle.fill").resizable()
+                                .renderingMode(.template)
+                                .rotationEffect(.degrees(saveButtonAnimate ? 180 : 0))
+                                .animation(.easeInOut, value: saveButtonAnimate)
+                                .frame(width: size * 2, height: size * 2)
+                                .onTapGesture {
+                                    saveButtonAnimate.toggle()
+                                    do {
+                                        try _ = data.saveCache()
+                                    } catch {
+                                        print(error)
+                                    }
+                                }
+
+                            Text("Save")
+                                .font(.caption)
+                        }
+
+                        VStack {
+                            Image(systemName: paintIcon()).resizable()
+                                .renderingMode(.template)
+                                .foregroundColor(getColor())
+                                .frame(width: size * 2, height: size * 1.8)
+                                .onTapGesture {
+                                    if data.windowStatus == .pannelNote || data.windowStatus == .note {
+                                        switch data.currentNoteType {
+                                        case .Tap: data.currentNoteType = .Hold
+                                        case .Hold: data.currentNoteType = .Flick
+                                        case .Flick: data.currentNoteType = .Drag
+                                        case .Drag: data.currentNoteType = .Tap
+                                        }
+                                    } else if data.windowStatus == .pannelProp || data.windowStatus == .prop {
+                                        switch data.currentPropType {
+                                        case .controlX: data.currentPropType = .controlY
+                                        case .controlY: data.currentPropType = .angle
+                                        case .angle: data.currentPropType = .speed
+                                        case .speed: data.currentPropType = .noteAlpha
+                                        case .noteAlpha: data.currentPropType = .lineAlpha
+                                        case .lineAlpha: data.currentPropType = .displayRange
+                                        case .displayRange: data.currentPropType = .controlX
+                                        }
+                                    } else {
                                         showWebPage.toggle()
+                                        emulator.putZip()
                                     }
-                                    .padding(10)
-                                    WebView(url: URL(string: "https://phi-x.github.io/sim-phi/")!)
                                 }
-                            }
-                        Image(systemName: "arrow.triangle.2.circlepath").resizable()
-                            .renderingMode(.template)
-                            .frame(width: size * 2, height: size * 1.8)
-                            .onTapGesture {
-                                data.rebuildScene()
-                                data.objectWillChange.send()
-                            }
-                        Image(systemName: data.locked ? "lock.circle.fill" : "lock.circle").resizable()
-                            .renderingMode(.template)
-                            .frame(width: size * 2, height: size * 2)
-                            .onTapGesture {
-                                data.locked.toggle()
-                            }
-                        Image(systemName: workSpaceIcon()).resizable()
-                            .renderingMode(.template)
-                            .frame(width: size * 2, height: size * 2)
-                            .onTapGesture {
-                                switch data.windowStatus {
-                                case .note: data.windowStatus = .prop
-                                case .pannelNote: data.windowStatus = .pannelProp
-                                case .prop: data.windowStatus = .preview
-                                case .pannelProp: data.windowStatus = .pannelPreview
-                                case .preview: data.windowStatus = .note
-                                case .pannelPreview: data.windowStatus = .pannelNote
+                                .fullScreenCover(isPresented: $showWebPage) {
+                                    VStack(alignment: .leading) {
+                                        HStack {
+                                            Button("Close") {
+                                                showWebPage.toggle()
+                                            }
+                                            .padding(10)
+                                            Button("Refresh") {
+                                                emulator.webView.reload()
+                                            }
+                                        }
+                                        WebView(webView: emulator.webView)
+                                    }
                                 }
-                            }
+                            Text((data.windowStatus == .note || data.windowStatus == .pannelNote) ? String(describing: data.currentNoteType) : ((data.windowStatus == .prop || data.windowStatus == .pannelProp) ? String(describing: data.currentPropType) : "Emulator"))
+                                .font(.caption)
+                        }
+
                         Spacer()
                         HStack(spacing: size / 2) {
                             Image(systemName: "gobackward.5").resizable()
@@ -264,7 +483,7 @@ struct ContentView: View {
                                    in: 0 ... Double(data.chartLengthSecond * data.tickPerBeat * data.bpm / 60))
                         }
                         .padding([.leading, .trailing], size / 2)
-                        .padding([.top, .bottom], size / 2)
+                        .padding([.top, .bottom], size / 4)
                         .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.blue))
                     }
 
@@ -314,7 +533,7 @@ struct ContentView: View {
                 sideNote()
             }
         }
-        .padding([.leading, .trailing, .top], size)
+        .padding([.leading, .trailing, .top], size / 2)
         .padding(.bottom, size / 2)
         .onReceive(orientationChanged) { _ in
             data.objectWillChange.send()

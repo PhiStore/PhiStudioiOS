@@ -70,8 +70,8 @@ struct ChartSettings: View {
     @State private var showAlert = false
     @State private var showAlertNext = false
     @State private var showingImagePicker = false
-    @State private var showingExporter = false
-    @State private var showingImporter = false
+    @State private var showingFileExporter = false
+    @State private var showingFileImporter = false
     @State private var numberFormatter: NumberFormatter = {
         var nf = NumberFormatter()
         nf.numberStyle = .decimal
@@ -81,26 +81,23 @@ struct ChartSettings: View {
     var body: some View {
         List {
             Section(header: Text("File Operation:")) {
-                Button("Import Music") {
-                    showingImporter = true
+                Button("Import Music / '.zip' file") {
+                    showingFileImporter = true
                 }
 
                 Button("Import Photo") {
                     showingImagePicker = true
                 }
                 Button("Export '.zip' file") {
-                    if !showingExporter {
+                    if !showingFileExporter {
                         do {
                             try _ = data.saveCache()
                             try self.zipURL = data.exportZip()
-                            showingExporter = true
+                            showingFileExporter = true
                         } catch {
                             print(error)
                         }
                     }
-                }
-                Button("Import '.zip' file") {
-                    showingImporter = true
                 }
                 Button("Save to local storage") {
                     do {
@@ -180,6 +177,8 @@ struct ChartSettings: View {
                     })
                     Button("[No copyright]", action: {
                         data.copyright = .none
+                        // WARNING: DEBUG ONLY
+                        NotificationCenter.default.post(name: NSNotification.Name("com.app.close"), object: nil)
                     })
                 }.onChange(of: data.copyright) { _ in
                     if data.windowStatus == .preview || data.windowStatus == .pannelPreview {
@@ -233,6 +232,7 @@ struct ChartSettings: View {
 
                 }.onDelete(perform: { offset in
                     data.highlightedTicks.remove(atOffsets: offset)
+                    data.rebuildScene()
                 })
 
                 VStack {
@@ -245,6 +245,7 @@ struct ChartSettings: View {
                         } else {
                             // add a random color to the new preferTick
                             data.highlightedTicks.append(ColoredInt(value: Int(newPreferTick), color: Color(red: .random(in: 0 ... 1), green: .random(in: 0 ... 1), blue: .random(in: 0 ... 1))))
+                            data.rebuildScene()
                         }
 
                     })
@@ -283,7 +284,7 @@ struct ChartSettings: View {
             let configuration = PHPickerConfiguration(photoLibrary: PHPhotoLibrary.shared())
             ImagePicker(Image: $data.imageFile, isPresented: $showingImagePicker, configuration: configuration)
         }
-        .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.zip, .mp3], allowsMultipleSelection: false) { result in
+        .fileImporter(isPresented: $showingFileImporter, allowedContentTypes: [.zip, .mp3], allowsMultipleSelection: false) { result in
             // Hint here: the file importer doesn't actually care which button user hit, whether it's importing a .zip file or a .mp3 file, they're all handled here.
             do {
                 guard let selectedFile: URL = try result.get().first else { return }
@@ -311,6 +312,8 @@ struct ChartSettings: View {
                             try fm.copyItem(at: selectedFile, to: fileURL)
                             data.audioFileURL = fileURL
                         }
+                    } else {
+                        print("[Err]: Failed to access document url at ChartSettings.swift")
                     }
                 } else {
                     print("[Err]: Denied access to user-seleted file at ChartSettings.swift")
@@ -319,6 +322,6 @@ struct ChartSettings: View {
                 print(error)
             }
         }
-        .fileExporter(isPresented: $showingExporter, document: URLExportDocument(data: data), contentType: .zip, onCompletion: { _ in })
+        .fileExporter(isPresented: $showingFileExporter, document: URLExportDocument(data: data), contentType: .zip, onCompletion: { _ in })
     }
 }

@@ -640,11 +640,12 @@ public class DataStructure: ObservableObject, Codable {
         }
     }
 
-    @Published var highlightedTicks: [ColoredInt] {
-        didSet {
-            rebuildScene()
-        }
-    }
+    @Published var highlightedTicks: [ColoredInt]
+    // {
+    // didSet {
+    //     rebuildScene()
+    // }
+    // }
 
     @Published var maxAcceptableNotes: Double = 31.0
     @Published var defaultHoldTimeTick: Int
@@ -675,7 +676,7 @@ public class DataStructure: ObservableObject, Codable {
     @Published var imageFile: UIImage? {
         didSet {
             if imageFile != nil {
-                noteEditScene.clearAndMakeBackgroundImage()
+                noteEditScene.addBackgroundImageToView()
                 chartPreviewScene.clearAndMakeBackgroundImage()
             }
         }
@@ -736,11 +737,15 @@ public class DataStructure: ObservableObject, Codable {
                     chartPreviewScene.startRunning()
                 }
                 lastStartTick = currentTimeTick
-                audioPlayer?.currentTime = currentTimeTick / Double(tickPerBeat) / Double(bpm) * 60.0 - offsetSecond
+                if currentTimeTick / Double(tickPerBeat) / Double(bpm) * 60.0 - offsetSecond >= 0 {
+                    audioPlayer?.currentTime = currentTimeTick / Double(tickPerBeat) / Double(bpm) * 60.0 - offsetSecond
+                    audioPlayer?.volume = 1.0
+                    audioPlayer?.play()
+                } else {
+                    scheduleTimer = Timer.scheduledTimer(timeInterval: -currentTimeTick / Double(tickPerBeat) / Double(bpm) * 60.0 + offsetSecond, target: self, selector: #selector(playAudio), userInfo: nil, repeats: false)
+                }
                 timeWhenStartSecond = Date().timeIntervalSince1970
                 scheduleTimer = Timer.scheduledTimer(timeInterval: updateTimeIntervalSecond, target: self, selector: #selector(updateCurrentTime), userInfo: nil, repeats: true)
-                audioPlayer?.volume = 1.0
-                audioPlayer?.play()
             } else {
                 if timeWhenStartSecond != nil {
                     if windowStatus == .note || windowStatus == .pannelNote {
@@ -773,6 +778,12 @@ public class DataStructure: ObservableObject, Codable {
         }
     }
 
+    @objc func playAudio() {
+        audioPlayer?.currentTime = 0
+        audioPlayer?.volume = 1.0
+        audioPlayer?.play()
+    }
+
     func chartLengthTick() -> Int {
         return chartLengthSecond * tickPerBeat * bpm / 60
     }
@@ -795,11 +806,11 @@ public class DataStructure: ObservableObject, Codable {
         if renderStatus == .note || renderStatus == .pannelNote {
             noteEditScene.size = canvasSize
             noteEditScene.scaleMode = .aspectFit
-            noteEditScene.updateCanvasSize()
-            noteEditScene.clearAndMakeBackgroundImage()
-            noteEditScene.clearAndMakeLint()
-            noteEditScene.clearAndMakeJudgeLines()
-            noteEditScene.clearAndMakeNotes()
+            noteEditScene.initTemplates()
+            noteEditScene.addBackgroundImageToView()
+            noteEditScene.addJudgeLinesToView()
+            noteEditScene.addLintingToView()
+            noteEditScene.addNotesToView()
         }
         if renderStatus == .prop || renderStatus == .pannelProp {
             propEditScene.size = canvasSize
@@ -820,8 +831,8 @@ public class DataStructure: ObservableObject, Codable {
 
     func rebuildLineAndNote() {
         if windowStatus == .note || windowStatus == .pannelNote {
-            noteEditScene.clearAndMakeJudgeLines()
-            noteEditScene.clearAndMakeNotes()
+            noteEditScene.addJudgeLinesToView()
+            noteEditScene.addNotesToView()
         }
         if windowStatus == .prop || windowStatus == .pannelProp {
             propEditScene.clearAndMakeIndexLines()
@@ -863,6 +874,15 @@ public class DataStructure: ObservableObject, Codable {
             }
         }
         return true
+    }
+
+    @objc func appClose(_: Notification) {
+        do {
+            print("[Log]: AutoSave reached at Definition.swift")
+            try _ = saveCache()
+        } catch {
+            print(error)
+        }
     }
 
     func fuckIt() throws -> Bool {
@@ -1143,6 +1163,7 @@ public class DataStructure: ObservableObject, Codable {
             try _ = loadCache()
         } catch {}
         rebuildScene()
+        NotificationCenter.default.addObserver(self, selector: #selector(appClose(_:)), name: NSNotification.Name("com.app.close"), object: nil)
     }
 
     enum CodingKeys: String, CodingKey {

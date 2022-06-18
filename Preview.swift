@@ -19,6 +19,7 @@ class ChartPreviewScene: SKScene {
     var timeDemoNodeTemplate: SKShapeNode?
     var authorLintNodeTemplate: SKLabelNode?
     var scoreLintNodeTemplate: SKLabelNode?
+    var soundNode = SKNode()
 
     var nodeLinks: [(SKNode, SKNode)] = []
     func link(nodeA: SKNode, to nodeB: SKNode) {
@@ -465,16 +466,32 @@ class ChartPreviewScene: SKScene {
                 addChild(noteNode)
             }
         }
+
+        let someNode = SKNode()
+        var actionList: [SKAction] = []
+        let soundAction = SKAction.playSoundFileNamed("HitSong2.mp3", waitForCompletion: false)
+        for judgeLine in data!.listOfJudgeLines {
+            for note in judgeLine.noteList {
+                if Double(note.timeTick) < data!.currentTimeTick {
+                    continue
+                }
+                actionList.append(SKAction.sequence([SKAction.wait(forDuration: data!.tickToSecond(Double(note.timeTick) - data!.currentTimeTick)), soundAction]))
+            }
+        }
+        someNode.run(SKAction.group(actionList))
+        link(nodeA: someNode, to: soundNode)
+        addChild(someNode)
+
         isPaused = false
     }
 
     func pauseRunning() {
         let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
             var res = res
-            if pair.0 == timeDemoNodeTemplate {
+            if pair.0 == timeDemoNodeTemplate || pair.0 == soundNode {
                 res.insert(pair.1)
             }
-            if pair.1 == timeDemoNodeTemplate {
+            if pair.1 == timeDemoNodeTemplate || pair.1 == soundNode {
                 res.insert(pair.0)
             }
             return res

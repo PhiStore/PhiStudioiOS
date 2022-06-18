@@ -6,7 +6,14 @@
 import SpriteKit
 import SwiftUI
 
-let _distance = 5.0
+let _distance = 5.0 // distance (in pixel) per timeTick (this might have issue when user change the tickPerBeat option...)
+let _yBaseLine = 50.0 // the relative postion of the currentTimeTick judgeLine
+
+// parameters about judgeLine
+let _judgeLineHeight = 2.0
+let _lintNodeHeight = 4.0
+
+// parameters about note
 let _noteWidth = 150.0
 let _noteHeight = 20.0
 let _noteCornerRadius = 4.0
@@ -14,14 +21,19 @@ let _noteCornerRadius = 4.0
 class NoteEditorScene: SKScene {
     var data: DataStructure?
 
+    // several templates the program uses, notice that all templates and its subsets should be linked to each other
     var judgeLineNodeTemplate: SKShapeNode?
     var judgeLineLabelNodeTemplate: SKLabelNode?
     var noteNodeTemplate: SKShapeNode?
     var backgroundImageNodeTemplate: SKSpriteNode?
     var lintNodeTemplate: SKShapeNode?
+    var soundNode = SKNode()
 
-    var moveStartPoint: CGPoint?
-    var moveStartTimeTick: Double?
+    // moveStartPoint and moveStartTimeTick are used for scroll the view
+    var lastTouchLocation: CGPoint?
+    var lastTouchTimeTick: Double?
+
+    // for fast hold
     var lastHitTimeTick: Int?
 
     var nodeLinks: [(SKNode, SKNode)] = []
@@ -31,6 +43,7 @@ class NoteEditorScene: SKScene {
     }
 
     func removeNodesLinked(to node: SKNode) {
+        // remove all the nodes from view if they're linked to the given node, used for refreshing the whole scene
         let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
             var res = res
             if pair.0 == node {
@@ -45,7 +58,8 @@ class NoteEditorScene: SKScene {
         nodeLinks = nodeLinks.filter { $0.0 != node && $0.1 != node }
     }
 
-    func updateCanvasSize() {
+    func initTemplates() {
+        // Plz notice that the background image node is NOT handled here
         if judgeLineNodeTemplate != nil {
             removeNodesLinked(to: judgeLineNodeTemplate!)
         }
@@ -56,35 +70,56 @@ class NoteEditorScene: SKScene {
             judgeLineNodeTemplate.alpha = 1.0
             return judgeLineNodeTemplate
         }()
-    }
 
-    func clearAndMakeJudgeLines() {
-        if judgeLineNodeTemplate == nil {
-            judgeLineNodeTemplate = {
-                let judgeLineNodeTemplate = SKShapeNode(rectOf: CGSize(width: size.width, height: 2))
-                judgeLineNodeTemplate.fillColor = SKColor.white
-                judgeLineNodeTemplate.name = "judgeLine"
-                judgeLineNodeTemplate.alpha = 1.0
-                return judgeLineNodeTemplate
-            }()
-        } else {
-            removeNodesLinked(to: judgeLineNodeTemplate!)
+        if lintNodeTemplate != nil {
+            removeNodesLinked(to: lintNodeTemplate!)
         }
-        if judgeLineLabelNodeTemplate == nil {
-            judgeLineLabelNodeTemplate = {
-                let judgeLineLabelNodeTemplate = SKLabelNode(fontNamed: "ChalkboardSE-Light")
-                judgeLineLabelNodeTemplate.fontSize = 15
-                judgeLineLabelNodeTemplate.fontColor = SKColor.white
-                judgeLineLabelNodeTemplate.name = "judgeLineLabel"
-                judgeLineLabelNodeTemplate.horizontalAlignmentMode = .left
-                return judgeLineLabelNodeTemplate
-            }()
-        } else {
+        lintNodeTemplate = {
+            let lintNodeTemplate = SKShapeNode(rectOf: CGSize(width: size.width, height: 4))
+            lintNodeTemplate.fillColor = .red
+            lintNodeTemplate.name = "lint"
+            lintNodeTemplate.alpha = 0.4
+            lintNodeTemplate.position = CGPoint(x: size.width / 2, y: 50)
+            lintNodeTemplate.zPosition = 100
+            return lintNodeTemplate
+        }()
+
+        if judgeLineLabelNodeTemplate != nil {
             removeNodesLinked(to: judgeLineLabelNodeTemplate!)
         }
-        let RelativePostionY = 50 + _distance * (data!.currentTimeTick - Double(Int(data!.currentTimeTick)))
-        let RelativeTick = Int(data!.currentTimeTick)
-        for currentLineTick in 0 ..< data!.chartLengthTick() + 1 {
+
+        judgeLineLabelNodeTemplate = {
+            let judgeLineLabelNodeTemplate = SKLabelNode(fontNamed: "ChalkboardSE-Light")
+            judgeLineLabelNodeTemplate.fontSize = 15
+            judgeLineLabelNodeTemplate.fontColor = SKColor.white
+            judgeLineLabelNodeTemplate.name = "judgeLineLabel"
+            judgeLineLabelNodeTemplate.horizontalAlignmentMode = .left
+            return judgeLineLabelNodeTemplate
+        }()
+
+        if noteNodeTemplate != nil {
+            removeNodesLinked(to: noteNodeTemplate!)
+        }
+        noteNodeTemplate = {
+            let noteNodeTemplate = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight), cornerRadius: _noteCornerRadius)
+            noteNodeTemplate.name = "note"
+            noteNodeTemplate.alpha = 1.0
+            noteNodeTemplate.lineWidth = 8
+            return noteNodeTemplate
+        }()
+    }
+
+    func addJudgeLinesToView() {
+        if judgeLineNodeTemplate == nil || judgeLineLabelNodeTemplate == nil {
+            initTemplates()
+        }
+        removeNodesLinked(to: judgeLineNodeTemplate!)
+        removeNodesLinked(to: judgeLineLabelNodeTemplate!)
+
+        let yBaseLine = _yBaseLine + _distance * (data!.currentTimeTick - Double(Int(data!.currentTimeTick)))
+        let timeTickBaseLine = Int(data!.currentTimeTick)
+        for currentLineTick in 0 ... data!.chartLengthTick() {
+            // I think some code could be done here to optimize performance... the same cycle is done so many times... completely uncessary
             var indexedInt: Int?
             var indexedColor: Color?
             for _highLightTick in data!.highlightedTicks {
@@ -99,7 +134,7 @@ class NoteEditorScene: SKScene {
                 continue
             }
             let judgeLineNode = judgeLineNodeTemplate!.copy() as! SKShapeNode
-            judgeLineNode.position = CGPoint(x: size.width / 2, y: RelativePostionY + CGFloat(currentLineTick - RelativeTick) * _distance)
+            judgeLineNode.position = CGPoint(x: size.width / 2, y: yBaseLine + CGFloat(currentLineTick - timeTickBaseLine) * _distance)
             if !(currentLineTick % data!.tickPerBeat == 0) {
                 judgeLineNode.alpha = 0.2
                 judgeLineNode.fillColor = SKColor(indexedColor!)
@@ -109,29 +144,21 @@ class NoteEditorScene: SKScene {
             if currentLineTick % data!.tickPerBeat == 0 {
                 let judgeLineLabelNode = judgeLineLabelNodeTemplate!.copy() as! SKLabelNode
                 judgeLineLabelNode.text = "\(String(currentLineTick))/\(String(currentLineTick / data!.tickPerBeat))"
-                judgeLineLabelNode.position = CGPoint(x: 0, y: RelativePostionY + CGFloat(currentLineTick - RelativeTick) * _distance)
+                judgeLineLabelNode.position = CGPoint(x: 0, y: yBaseLine + CGFloat(currentLineTick - timeTickBaseLine) * _distance)
                 link(nodeA: judgeLineLabelNode, to: judgeLineLabelNodeTemplate!)
                 addChild(judgeLineLabelNode)
             }
         }
     }
 
-    func clearAndMakeNotes() {
-        if data == nil {
-            return
-        }
+    func addNotesToView() {
         if noteNodeTemplate == nil {
-            noteNodeTemplate = {
-                let noteNodeTemplate = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight), cornerRadius: _noteCornerRadius)
-                noteNodeTemplate.name = "note"
-                noteNodeTemplate.alpha = 1.0
-                noteNodeTemplate.lineWidth = 8
-                return noteNodeTemplate
-            }()
+            initTemplates()
         } else {
             removeNodesLinked(to: noteNodeTemplate!)
         }
-        let RelativePostionY = 50 + _distance * (data!.currentTimeTick - Double(Int(data!.currentTimeTick)))
+        let yBaseLine = _yBaseLine + _distance * (data!.currentTimeTick - Double(Int(data!.currentTimeTick)))
+        let timeTickBaseLine = Int(data!.currentTimeTick)
         for note in data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList {
             var noteNode: SKShapeNode
             if note.noteType == .Hold {
@@ -142,13 +169,13 @@ class NoteEditorScene: SKScene {
                 noteNode = SKShapeNode(rectOf: CGSize(width: _noteWidth, height: _noteHeight + _distance * Double(note.holdTimeTick)), cornerRadius: _noteCornerRadius)
                 noteNode.fillTexture = texture
                 noteNode.fillColor = .white
-                noteNode.position = CGPoint(x: note.posX * size.width, y: RelativePostionY + (CGFloat(note.timeTick) - data!.currentTimeTick + CGFloat(note.holdTimeTick) / 2) * _distance)
+                noteNode.position = CGPoint(x: note.posX * size.width, y: yBaseLine + (CGFloat(note.timeTick - timeTickBaseLine + note.holdTimeTick / 2) * _distance))
                 noteNode.name = "note"
                 noteNode.alpha = 1.0
                 noteNode.lineWidth = 8
             } else {
                 noteNode = noteNodeTemplate!.copy() as! SKShapeNode
-                noteNode.position = CGPoint(x: note.posX * size.width, y: RelativePostionY + CGFloat(note.timeTick - Int(data!.currentTimeTick)) * _distance)
+                noteNode.position = CGPoint(x: note.posX * size.width, y: yBaseLine + CGFloat(note.timeTick - timeTickBaseLine) * _distance)
                 noteNode.fillColor = noteColor(type: note.noteType)
             }
             if !note.fallSide {
@@ -162,7 +189,7 @@ class NoteEditorScene: SKScene {
         }
     }
 
-    func clearAndMakeBackgroundImage() {
+    func addBackgroundImageToView() {
         if data!.imageFile == nil {
             return
         }
@@ -184,16 +211,9 @@ class NoteEditorScene: SKScene {
         addChild(backgroundImage)
     }
 
-    func clearAndMakeLint() {
+    func addLintingToView() {
         if lintNodeTemplate == nil {
-            lintNodeTemplate = {
-                let lintNodeTemplate = SKShapeNode(circleOfRadius: 10)
-                lintNodeTemplate.fillColor = SKColor.red
-                lintNodeTemplate.name = "lintNode"
-                lintNodeTemplate.alpha = 0.5
-                lintNodeTemplate.position = CGPoint(x: 0, y: 50)
-                return lintNodeTemplate
-            }()
+            initTemplates()
         } else {
             removeNodesLinked(to: lintNodeTemplate!)
         }
@@ -203,6 +223,7 @@ class NoteEditorScene: SKScene {
     }
 
     func startRunning() {
+        isPaused = true
         let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
             var res = res
             if pair.0 == judgeLineNodeTemplate || pair.0 == judgeLineLabelNodeTemplate || pair.0 == noteNodeTemplate {
@@ -216,15 +237,29 @@ class NoteEditorScene: SKScene {
         linkedNodes.forEach {
             $0.run(SKAction.repeatForever(SKAction.move(by: CGVector(dx: 0, dy: Double(-data!.tickPerBeat) * _distance), duration: 60.0 / Double(data!.bpm))), withKey: "moving")
         }
+
+        let someNode = SKNode()
+        var actionList: [SKAction] = []
+        let soundAction = SKAction.playSoundFileNamed("HitSong2.mp3", waitForCompletion: false)
+        for note in data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList {
+            if Double(note.timeTick) < data!.currentTimeTick {
+                continue
+            }
+            actionList.append(SKAction.sequence([SKAction.wait(forDuration: data!.tickToSecond(Double(note.timeTick) - data!.currentTimeTick)), soundAction]))
+        }
+        someNode.run(SKAction.group(actionList))
+        link(nodeA: someNode, to: soundNode)
+        addChild(someNode)
+        isPaused = false
     }
 
     func pauseRunning() {
         let linkedNodes = nodeLinks.reduce(Set<SKNode>()) { res, pair -> Set<SKNode> in
             var res = res
-            if pair.0 == judgeLineNodeTemplate || pair.0 == judgeLineLabelNodeTemplate || pair.0 == noteNodeTemplate {
+            if pair.0 == judgeLineNodeTemplate || pair.0 == judgeLineLabelNodeTemplate || pair.0 == noteNodeTemplate || pair.0 == soundNode {
                 res.insert(pair.1)
             }
-            if pair.1 == judgeLineNodeTemplate || pair.1 == judgeLineLabelNodeTemplate || pair.1 == noteNodeTemplate {
+            if pair.1 == judgeLineNodeTemplate || pair.1 == judgeLineLabelNodeTemplate || pair.1 == noteNodeTemplate || pair.1 == soundNode {
                 res.insert(pair.0)
             }
             return res
@@ -247,12 +282,12 @@ class NoteEditorScene: SKScene {
             touchHint.run(SKAction.sequence([SKAction.fadeOut(withDuration: 1), SKAction.removeFromParent()]))
             addChild(touchHint)
             if data!.locked {
-                moveStartPoint = touchLocation
-                moveStartTimeTick = data?.currentTimeTick
+                lastTouchLocation = touchLocation
+                lastTouchTimeTick = data?.currentTimeTick
                 return
             } else {
-                moveStartPoint = nil
-                moveStartTimeTick = nil
+                lastTouchLocation = nil
+                lastTouchTimeTick = nil
             }
             let tmpTick: Double = (touchLocation.y - RelativePostionY) / _distance + data!.currentTimeTick
             var minTick = 0
@@ -274,7 +309,7 @@ class NoteEditorScene: SKScene {
                     data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.removeAll(where: {
                         ($0.noteType == .Hold ? (($0.timeTick <= minTick) && (minTick <= $0.timeTick + $0.holdTimeTick)) : ($0.timeTick == minTick)) && (fabs($0.posX * size.width - node.position.x) < 75)
                     })
-                    clearAndMakeNotes()
+                    addNotesToView()
                     data!.objectWillChange.send()
                     return
                 }
@@ -298,7 +333,7 @@ class NoteEditorScene: SKScene {
                             data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList[i].id = i
                         }
                         lastHitTimeTick = nil
-                        clearAndMakeNotes()
+                        addNotesToView()
                         data!.objectWillChange.send() // refresh swiftUI side
                         return
                     }
@@ -316,7 +351,7 @@ class NoteEditorScene: SKScene {
                     for i in 0 ..< data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList.count {
                         data!.listOfJudgeLines[data!.editingJudgeLineNumber].noteList[i].id = i
                     }
-                    clearAndMakeNotes()
+                    addNotesToView()
                     data!.objectWillChange.send() // refresh swiftUI side
                     return
                 }
@@ -328,7 +363,7 @@ class NoteEditorScene: SKScene {
         if !data!.locked || data!.isRunning {
             return
         }
-        if moveStartPoint == nil || moveStartTimeTick == nil {
+        if lastTouchLocation == nil || lastTouchTimeTick == nil {
             return
         }
         if let _touch = touches.first {
@@ -344,13 +379,13 @@ class NoteEditorScene: SKScene {
                 return res
             }
             linkedNodes.forEach {
-                $0.run(SKAction.move(by: CGVector(dx: 0, dy: min(touchLocation.y - moveStartPoint!.y, moveStartTimeTick! * _distance)), duration: 0))
+                $0.run(SKAction.move(by: CGVector(dx: 0, dy: min(touchLocation.y - lastTouchLocation!.y, lastTouchTimeTick! * _distance)), duration: 0))
             }
             data!.shouldUpdateFrame = false
-            data!.currentTimeTick = moveStartTimeTick! - (touchLocation.y - moveStartPoint!.y) / _distance
+            data!.currentTimeTick = lastTouchTimeTick! - (touchLocation.y - lastTouchLocation!.y) / _distance
             data!.shouldUpdateFrame = true
-            moveStartPoint = touchLocation
-            moveStartTimeTick = data!.currentTimeTick
+            lastTouchLocation = touchLocation
+            lastTouchTimeTick = data!.currentTimeTick
             return
         }
     }
