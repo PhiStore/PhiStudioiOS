@@ -47,8 +47,6 @@ struct PropSettingsView: View {
                                 data.objectWillChange.send()
                             }
                         }
-                    }
-                    Group {
                         if prop.nextJumpValue != nil {
                             Group {
                                 Stepper(value: $prop.nextJumpValue ?? 0.0, step: 0.01, onEditingChanged: { _ in }) {
@@ -125,8 +123,6 @@ struct PropSettingsView: View {
                                 data.objectWillChange.send()
                             }
                         }
-                    }
-                    Group {
                         if prop.nextJumpValue != nil {
                             Group {
                                 Stepper(value: $prop.nextJumpValue ?? 0.0, step: 0.01, onEditingChanged: { _ in }) {
@@ -196,6 +192,35 @@ struct PropSettingsView: View {
                     .onChange(of: prop.value, perform: { _ in
                         data.rebuildLineAndNote()
                     })
+                    Group {
+                        if prop.nextJumpValue == nil {
+                            Button("Jump value") {
+                                prop.nextJumpValue = prop.value
+                                data.objectWillChange.send()
+                            }
+                        }
+                        if prop.nextJumpValue != nil {
+                            Group {
+                                Stepper(value: $prop.nextJumpValue ?? 0.0, step: 0.01, onEditingChanged: { _ in }) {
+                                    HStack {
+                                        Text("After Jump value:")
+                                        TextField("[Double]", value: $prop.nextJumpValue ?? 0.0, formatter: numberFormatter)
+                                    }
+                                }
+                                .foregroundColor(.cyan)
+                                .onChange(of: prop.nextJumpValue ?? 0.0, perform: { _ in
+                                    data.rebuildLineAndNote()
+                                })
+
+                                Button("Remove Jump") {
+                                    prop.nextJumpValue = nil
+                                    data.objectWillChange.send()
+                                    data.rebuildLineAndNote()
+                                }
+                                .foregroundColor(.red)
+                            }
+                        }
+                    }
                     Menu {
                         Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
                             ForEach(EASINGTYPE.allCases, id: \.self) { type in
@@ -278,6 +303,35 @@ struct PropSettingsView: View {
                     .onChange(of: prop.value, perform: { _ in
                         data.rebuildLineAndNote()
                     })
+                    Group {
+                        if prop.nextJumpValue == nil {
+                            Button("Jump value") {
+                                prop.nextJumpValue = prop.value
+                                data.objectWillChange.send()
+                            }
+                        }
+                        if prop.nextJumpValue != nil {
+                            Group {
+                                Stepper(value: $prop.nextJumpValue ?? 0.0, step: 0.01, onEditingChanged: { _ in }) {
+                                    HStack {
+                                        Text("After Jump value:")
+                                        TextField("[Double]", value: $prop.nextJumpValue ?? 0.0, formatter: numberFormatter)
+                                    }
+                                }
+                                .foregroundColor(.cyan)
+                                .onChange(of: prop.nextJumpValue ?? 0.0, perform: { _ in
+                                    data.rebuildLineAndNote()
+                                })
+
+                                Button("Remove Jump") {
+                                    prop.nextJumpValue = nil
+                                    data.objectWillChange.send()
+                                    data.rebuildLineAndNote()
+                                }
+                                .foregroundColor(.red)
+                            }
+                        }
+                    }
                     Menu {
                         Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
                             ForEach(EASINGTYPE.allCases, id: \.self) { type in
@@ -325,6 +379,35 @@ struct PropSettingsView: View {
                     .onChange(of: prop.value, perform: { _ in
                         data.rebuildLineAndNote()
                     })
+                    Group {
+                        if prop.nextJumpValue == nil {
+                            Button("Jump value") {
+                                prop.nextJumpValue = prop.value
+                                data.objectWillChange.send()
+                            }
+                        }
+                        if prop.nextJumpValue != nil {
+                            Group {
+                                Stepper(value: $prop.nextJumpValue ?? 0.0, step: 0.01, onEditingChanged: { _ in }) {
+                                    HStack {
+                                        Text("After Jump value:")
+                                        TextField("[Double]", value: $prop.nextJumpValue ?? 0.0, formatter: numberFormatter)
+                                    }
+                                }
+                                .foregroundColor(.cyan)
+                                .onChange(of: prop.nextJumpValue ?? 0.0, perform: { _ in
+                                    data.rebuildLineAndNote()
+                                })
+
+                                Button("Remove Jump") {
+                                    prop.nextJumpValue = nil
+                                    data.objectWillChange.send()
+                                    data.rebuildLineAndNote()
+                                }
+                                .foregroundColor(.red)
+                            }
+                        }
+                    }
                     Menu {
                         Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
                             ForEach(EASINGTYPE.allCases, id: \.self) { type in
@@ -372,6 +455,35 @@ struct PropSettingsView: View {
                     .onChange(of: prop.value, perform: { _ in
                         data.rebuildLineAndNote()
                     })
+                    Group {
+                        if prop.nextJumpValue == nil {
+                            Button("Jump value") {
+                                prop.nextJumpValue = prop.value
+                                data.objectWillChange.send()
+                            }
+                        }
+                        if prop.nextJumpValue != nil {
+                            Group {
+                                Stepper(value: $prop.nextJumpValue ?? 0.0, step: 0.01, onEditingChanged: { _ in }) {
+                                    HStack {
+                                        Text("After Jump value:")
+                                        TextField("[Double]", value: $prop.nextJumpValue ?? 0.0, formatter: numberFormatter)
+                                    }
+                                }
+                                .foregroundColor(.cyan)
+                                .onChange(of: prop.nextJumpValue ?? 0.0, perform: { _ in
+                                    data.rebuildLineAndNote()
+                                })
+
+                                Button("Remove Jump") {
+                                    prop.nextJumpValue = nil
+                                    data.objectWillChange.send()
+                                    data.rebuildLineAndNote()
+                                }
+                                .foregroundColor(.red)
+                            }
+                        }
+                    }
                     Menu {
                         Picker(String(describing: prop.followingEasing), selection: $prop.followingEasing) {
                             ForEach(EASINGTYPE.allCases, id: \.self) { type in

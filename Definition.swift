@@ -6,6 +6,7 @@
 import AVFoundation
 import SpriteKit
 import SwiftUI
+import WebKit
 import ZIPFoundation
 
 let _defaultTickPerBeat = 48
@@ -274,12 +275,12 @@ class PropStatus: Codable, ObservableObject {
     @Published var value: Double {
         didSet {
             // limit size to [0,1]
-            if value > 1 {
-                value = 1
-            }
-            if value < 0 {
-                value = 0
-            }
+            // if value > 1 {
+            //     value = 1
+            // }
+            // if value < 0 {
+            //     value = 0
+            // }
         }
     }
 
@@ -909,6 +910,15 @@ public class DataStructure: ObservableObject, Codable {
         return archiveURL
     }
 
+    @objc func saveZip(_: Notification) {
+        do {
+            print("[Log]: SaveZip reached at Definition.swift")
+            try _ = exportZip()
+        } catch {
+            print(error)
+        }
+    }
+
     func importZip() throws -> Bool {
         let fm = FileManager.default
         let urls = fm.urls(for: .documentDirectory, in: .userDomainMask)
@@ -1164,6 +1174,7 @@ public class DataStructure: ObservableObject, Codable {
         } catch {}
         rebuildScene()
         NotificationCenter.default.addObserver(self, selector: #selector(appClose(_:)), name: NSNotification.Name("com.app.close"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(saveZip(_:)), name: NSNotification.Name("com.app.saveZip"), object: nil)
     }
 
     enum CodingKeys: String, CodingKey {

@@ -18,111 +18,90 @@ struct WebView: UIViewRepresentable {
     func updateUIView(_: WKWebView, context _: Context) {}
 }
 
-class WebViewModel: ObservableObject {
-    let webView: WKWebView
-    let url: URL
+class ZipAssetHandler: NSObject, WKURLSchemeHandler {
+    func webView(_: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
+        print("!")
+        guard let url = urlSchemeTask.request.url else {
+            return
+        }
 
-    init() {
-//        let overrideConsole = """
-//            function log(emoji, type, args) {
-//              window.webkit.messageHandlers.logging.postMessage(
-//                `${emoji} JS ${type}: ${Object.values(args)
-//                  .map(v => typeof(v) === "undefined" ? "undefined" : typeof(v) === "object" ? JSON.stringify(v) : v.toString())
-//                  .map(v => v.substring(0, 3000)) // Limit msg to 3000 chars
-//                  .join(", ")}`
-//              )
-//            }
-//
-//            let originalLog = console.log
-//            let originalWarn = console.warn
-//            let originalError = console.error
-//            let originalDebug = console.debug
-//
-//            console.log = function() { log("📗", "log", arguments); originalLog.apply(null, arguments) }
-//            console.warn = function() { log("📙", "warning", arguments); originalWarn.apply(null, arguments) }
-//            console.error = function() { log("📕", "error", arguments); originalError.apply(null, arguments) }
-//            console.debug = function() { log("📘", "debug", arguments); originalDebug.apply(null, arguments) }
-//
-//            window.addEventListener("error", function(e) {
-//               log("💥", "Uncaught", [`${e.message} at ${e.filename}:${e.lineno}:${e.colno}`])
-//            })
-//        """
-//
-//        class LoggingMessageHandler: NSObject, WKScriptMessageHandler {
-//            func userContentController(_: WKUserContentController, didReceive message: WKScriptMessage) {
-//                print(message.body)
-//            }
-//        }
-//
-//        let userContentController = WKUserContentController()
-//        userContentController.add(LoggingMessageHandler(), name: "logging")
-//        userContentController.addUserScript(WKUserScript(source: overrideConsole, injectionTime: .atDocumentStart, forMainFrameOnly: true))
-//
-//        let webViewConfig = WKWebViewConfiguration()
-//        webViewConfig.userContentController = userContentController
-
-//        webView = WKWebView(frame: .zero, configuration: webViewConfig)
-        webView = WKWebView(frame: .zero)
-        url = URL(string: "https://phi-x.github.io/sim-phi/")!
-
-        loadUrl()
-    }
-
-    func loadUrl() {
-        webView.load(URLRequest(url: url))
-
-        putZip()
-    }
-
-    func putZip() {
+        NotificationCenter.default.post(name: NSNotification.Name("com.app.saveZip"), object: nil)
         let fm = FileManager.default
         if let documentBaseURL = fm.urls(for: .documentDirectory, in: .userDomainMask).first {
             let exportFile = documentBaseURL.appendingPathComponent("export.zip")
             if !fm.fileExists(atPath: exportFile.path) {
                 return
-            } else {
-                do {
-                    // let fileData: String = try Data(contentsOf: exportFile).base64EncodedString()
-                    // let jsLoadFileBase64 = """
-                    //     var base64 = "\(fileData)";
-                    //     var binary_string = window.atob(base64);
-                    //     var len = binary_string.length;
-                    //     var bytes = new Uint8Array(len);
-                    //     for (var i = 0; i < len; i++) {
-                    //         bytes[i] = binary_string.charCodeAt(i);
-                    //     }
-                    //     loadFile(bytes.buffer);
-                    // """
-                    // webView.evaluateJavaScript(jsLoadFileBase64)
-                    print(exportFile.path)
-                    let jsLoadFromURL = """
-                        const xhr = new XMLHttpRequest();
-                        xhr.open("get", "https://getZipData/export.zip", true);
-                        xhr.responseType = 'blob';
-                        xhr.send();
-                        xhr.onprogress = progress => {
-                            message.sendMessage(`加载文件：${Math.floor(progress.loaded / 5079057 * 100)}%`);
-                        };
-                        xhr.onload = () => {
-                            console.log(xhr.response)
-                            document.getElementById("filename").value = "export.zip";
-                            loadFile(xhr.response);
-                        };
-                    """
-//                    webView.loadSimulatedRequest(URLRequest(url: URL(string: "https://getZipData/export.zip")!), response: .init(), responseData: try Data(contentsOf: exportFile))
-//                    webView.evaluateJavaScript(jsLoadFromURL)
-                } catch {
-                    print(error)
-                }
+            }
+            print(exportFile.path)
+
+            let urlResponse = URLResponse(url: url, mimeType: "application/x-zip-compressed", expectedContentLength: -1, textEncodingName: nil)
+            urlSchemeTask.didReceive(urlResponse)
+            do {
+                try urlSchemeTask.didReceive(Data(contentsOf: exportFile))
+            } catch {
+                print(error)
+            }
+            urlSchemeTask.didFinish()
+        }
+    }
+
+    func webView(_: WKWebView, stop _: WKURLSchemeTask) {}
+
+    func handleError(error: NSError) {
+        if let failingUrl = error.userInfo["NSErrorFailingURLStringKey"] as? String {
+            if let url = NSURL(string: failingUrl) {
+                print("openURL succeeded\(url)")
+                return
             }
         }
     }
 }
 
+class WebViewModel: ObservableObject {
+    let webView: WKWebView
+    let url: URL
+
+    init() {
+        let conf = WKWebViewConfiguration()
+        conf.setURLSchemeHandler(ZipAssetHandler(), forURLScheme: "assets")
+        conf.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
+        conf.setValue(true, forKey: "allowUniversalAccessFromFileURLs")
+        webView = WKWebView(frame: .zero, configuration: conf)
+        webView.scrollView.bounces = false
+        url = URL(string: "http://sim-phi-wheat.vercel.app/")!
+        loadUrl()
+    }
+
+    func loadUrl() {
+        webView.load(URLRequest(url: url))
+    }
+
+    func putZip() {
+        // some work need to be done before this is a valid idea
+        // basically it tries to automatically get the zip file
+
+        let jsLoadFromURL = """
+            var xhr = new XMLHttpRequest();
+            xhr.open("get", "assets://phi-x.github.io/sim-phi/export.zip", true);
+            xhr.responseType = 'blob';
+            xhr.send();
+            xhr.onprogress = progress => {
+                message.sendMessage(`加载文件：${Math.floor(progress.loaded / 5079057 * 100)}%`);
+            };
+            xhr.onload = () => {
+                console.log(xhr.response)
+                document.getElementById("filename").value = "export.zip";
+                loadFile(xhr.response);
+            };
+            console.log("Finished")
+        """
+        webView.evaluateJavaScript(jsLoadFromURL)
+    }
+}
+
 struct ContentView: View {
     // These variables are used for location and alignment
-    // Guide: reserve size*2 for boundaries, keep everything fit in place
-    // On iOS 16.0, we find this a problem, since the window is resized, and it's a whole disaster...
+    // The whole view is re-made for iPadOS 16.0
     var screenHeight = min(UIScreen.main.bounds.height, UIScreen.main.bounds.width)
     var screenWidth = max(UIScreen.main.bounds.height, UIScreen.main.bounds.width)
     var size = (UIScreen.main.bounds.width + UIScreen.main.bounds.height) / 100
@@ -373,7 +352,7 @@ struct ContentView: View {
                         }
                         .padding([.leading, .trailing], size / 4)
                         .padding([.top, .bottom], size / 4)
-                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(.cyan))
+                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(.blue))
 
                         VStack {
                             Image(systemName: data.locked ? "lock.circle.fill" : "lock.circle").resizable()
@@ -433,7 +412,6 @@ struct ContentView: View {
                                         }
                                     } else {
                                         showWebPage.toggle()
-                                        emulator.putZip()
                                     }
                                 }
                                 .fullScreenCover(isPresented: $showWebPage) {
@@ -445,6 +423,9 @@ struct ContentView: View {
                                             .padding(10)
                                             Button("Refresh") {
                                                 emulator.webView.reload()
+                                            }
+                                            Button("Upload(beta)") {
+                                                emulator.putZip()
                                             }
                                         }
                                         WebView(webView: emulator.webView)
