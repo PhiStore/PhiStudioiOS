@@ -16,7 +16,7 @@ let package = Package(
         .iOSApplication(
             name: "PhiStudio",
             targets: ["AppModule"],
-            bundleIdentifier: "com.phix.phistudio",
+            bundleIdentifier: "com.tiankaima.phistudio",
             teamIdentifier: "VUW8FV5HN5",
             displayVersion: "1.1.4",
             bundleVersion: "30",
@@ -38,7 +38,7 @@ let package = Package(
                 .appTransportSecurity(configuration: .init(
                     exceptionDomains: [
                         .init(
-                            domainName: "phi-x.github.io",
+                            domainName: "tiankaima.github.io",
                             includesSubdomains: true,
                             exceptionAllowsInsecureHTTPLoads: true
                         ),

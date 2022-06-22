@@ -82,7 +82,7 @@ class WebViewModel: ObservableObject {
 
         let jsLoadFromURL = """
             var xhr = new XMLHttpRequest();
-            xhr.open("get", "assets://phi-x.github.io/sim-phi/export.zip", true);
+            xhr.open("get", "assets://fuck.you/sim-phi/export.zip", true);
             xhr.responseType = 'blob';
             xhr.send();
             xhr.onprogress = progress => {
