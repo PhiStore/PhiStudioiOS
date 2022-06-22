@@ -68,7 +68,7 @@ class WebViewModel: ObservableObject {
         conf.setValue(true, forKey: "allowUniversalAccessFromFileURLs")
         webView = WKWebView(frame: .zero, configuration: conf)
         webView.scrollView.bounces = false
-        url = URL(string: "http://sim-phi-wheat.vercel.app/")!
+        url = URL(string: "https://sim-phi-ten.vercel.app/")!
         loadUrl()
     }
 
