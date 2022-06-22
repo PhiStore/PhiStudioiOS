@@ -1,20 +1,18 @@
-# PhiStudio
+# PhiStudio-iOS
 
 ![visitors](https://visitor-badge.glitch.me/badge?page_id=tiankaima.PhiStudioiOS&left_color=green&right_color=red)
 
-PhiStudio 是 PhiX 项目组创建的一款社区系的制谱器。
+PhiStudio 是 PhiX 项目组创建的一款社区系的制谱器，本 repo 为 iOS 部分，由[TianKaiMa](https://github.com/tiankaima)主导完成。
 
 ## 简介
 
-PhiStudio 是一款开源的音游制谱器，游戏本体和玩法均参考了 Phigros，可以理解为 Cytoid 之于 Cytus 的关系。
+PhiStudio 是一款开源的音游制谱器，游戏本体和玩法均参考了 Phigros，可以理解为 Cylheim 之于 Cytus 的关系。
 
 **_框架相关：_** 使用 SpriteKit 构建，目前主要适配移动端逻辑，出于交互方便的考虑，我们目前只面向 iPad 进行分发。
 
 _以下 iPad 版本受支持：_
 
--   iPadOS 要求：iPadOS 7.0+
-
-> 部分 iPad 可能满足条件，但在 ipa 分发的过程可能受限，请自行尝试安装，如遇问题，可以提出 issue。
+-   iPadOS 要求：iPadOS >= 15.2
 
 **_版权信息_：** 在 PhiStudio 开发的过程中，尽管我们借鉴了大部分 Phigros 逻辑，但并没有逆向代码或是拆包的操作，因此不构成法律意义上的抄袭。
 
@@ -22,11 +20,7 @@ _以下 iPad 版本受支持：_
 
 ## 安装
 
-> 注意，目前并没有正式的安装方法；您可以尝试自行编译，但我们不会在正式版之前提供构建的方法。
-
-我们会在 2022 年 6 月之前完成 PhiStudio 的测试过程。测试过程保持闭环，不会对外开放测试资格，请不要发送相关请求测试资格的 issue。
-
-在测试完成之后，我们会在正式上架 App Store 之前，以 TestFlight 的形式暂时分发应用。
+参考 [动态链接](https://t.bilibili.com/672026283068096532)； 通过本 repo 自行打包的版本不受 PhiX Team 支持，出现问题请自行排查。
 
 ## 文档
 
@@ -67,3 +61,11 @@ _以下 iPad 版本受支持：_
 无，这意味着我们仅仅是公开了源代码，但并没有提供任何形式的授权/对代码进行任何程度的负责。
 
 请注意，未授权的分发、编译行为有可能构成侵权。
+
+## Feature Request & Bug Report
+
+请在本仓库提 Issue，无特殊情况请勿私发邮件或联系项目组。
+
+```txt
+PhiX Team 2022, All rights reserved.
+```
